@@ -1,0 +1,15 @@
+{
+  "name": "sales-dashboard",
+  "version": "1.0.0",
+  "description": "Dashboard desktop para o time comercial — substitui o workbook Metas Comercial.xlsx do SIGE Cloud (rm: análises, metas, ticket médio e gráficos em Electron + React).",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Wallauer",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^44.4.3"
+  }
+}
