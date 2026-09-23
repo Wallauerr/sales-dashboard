@@ -137,6 +137,14 @@ export default function App() {
   const metaPct = snap && snap.metaAnual > 0 ? snap.totalPeriodo / snap.metaAnual : 0;
   const restanteAno = snap ? snap.restanteAnoPorMes.dez : 0;
 
+  const runRate = useMemo(() => {
+    if (!snap || !snap.totalPeriodo || snap.totalPeriodo <= 0) return null;
+    const now = new Date();
+    const elapsed = now.getFullYear() === ano ? now.getMonth() + 1 : 12;
+    if (elapsed <= 0) return null;
+    return { projection: (snap.totalPeriodo / elapsed) * 12, elapsed };
+  }, [snap, ano]);
+
   return (
     <main className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 p-6">
       <header className="flex flex-wrap items-center justify-between gap-4">
@@ -183,7 +191,7 @@ export default function App() {
         </p>
       ) : (
         <div className="flex flex-col gap-6">
-          <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-7">
             <KpiCard>
               <KpiCardHeader>
                 <KpiCardTitle>Faturamento {ano}</KpiCardTitle>
@@ -233,6 +241,21 @@ export default function App() {
               </KpiCardHeader>
               <KpiCardContent>
                 <KpiCardValue value={pct(snap.participacaoAno)} hint={`de ${brlCompact(snap.totalHistorico)}`} />
+              </KpiCardContent>
+            </KpiCard>
+            <KpiCard>
+              <KpiCardHeader>
+                <KpiCardTitle>Projeção (run-rate)</KpiCardTitle>
+              </KpiCardHeader>
+              <KpiCardContent>
+                <KpiCardValue
+                  value={runRate ? brl0(runRate.projection) : "—"}
+                  hint={
+                    runRate
+                      ? `${brl0(snap.totalPeriodo / runRate.elapsed)}/mês med em ${runRate.elapsed === 12 ? "ano fechado" : `${runRate.elapsed} meses`}`
+                      : "sem dados"
+                  }
+                />
               </KpiCardContent>
             </KpiCard>
           </section>
