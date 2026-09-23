@@ -17,7 +17,9 @@ linux:
     - AppImage
   category: Office
   maintainer: Wallauer
+  synopsis: Dashboard de vendas Metas Comercial
   icon: resources/icon.png
+  syncDesktopName: true
 win:
   target:
     - nsis
