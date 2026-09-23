@@ -8,7 +8,8 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node scripts/smoke.ts",
+    "test:parity": "node scripts/parity.ts"
   },
   "author": "Wallauer",
   "license": "MIT",
