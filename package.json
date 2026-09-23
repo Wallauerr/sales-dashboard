@@ -1,6 +1,7 @@
 {
   "name": "sales-dashboard",
   "version": "1.0.0",
+  "packageManager": "pnpm@10.24.0",
   "description": "Dashboard desktop para o time comercial — substitui o workbook Metas Comercial.xlsx do SIGE Cloud (rm: análises, metas, ticket médio e gráficos em Electron + React).",
   "main": "out/main/index.js",
   "scripts": {
