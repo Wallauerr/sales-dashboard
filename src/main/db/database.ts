@@ -52,12 +52,19 @@ CREATE TABLE IF NOT EXISTS import_log (
 );
 `;
 
+const SCHEMA_VERSION = 1;
+
 export class SalesDatabase {
   private db: DatabaseSync;
 
   constructor(db: DatabaseSync) {
     this.db = db;
     db.exec("PRAGMA journal_mode = WAL");
+    const { user_version } = db.prepare("PRAGMA user_version").get() as { user_version: number };
+    if (user_version < SCHEMA_VERSION) {
+      db.exec("DROP TABLE IF EXISTS vendas; DROP TABLE IF EXISTS meta_config; DROP TABLE IF EXISTS import_log;");
+      db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+    }
     db.exec(SCHEMA);
   }
 
