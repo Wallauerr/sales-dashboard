@@ -14,6 +14,16 @@ const api = {
   getSnapshot: (ano: number) => ipcRenderer.invoke("kpis:get", ano) as Promise<KpiSnapshot>,
   getVendas: (filters: VendasFilter, limit?: number) => ipcRenderer.invoke("vendas:list", filters, limit) as Promise<VendasPage>,
   exportPdf: (ano: number) => ipcRenderer.invoke("app:export-pdf", ano) as Promise<string | null>,
+  minimize: () => ipcRenderer.invoke("win:minimize") as Promise<void>,
+  toggleMaximize: () => ipcRenderer.invoke("win:toggle-maximize") as Promise<void>,
+  closeWindow: () => ipcRenderer.invoke("win:close") as Promise<void>,
+  onMaximized: (callback: (maximized: boolean) => void) => {
+    const listener = (_e: Electron.IpcRendererEvent, value: boolean): void => callback(value);
+    ipcRenderer.on("win:maximized", listener);
+    return () => {
+      ipcRenderer.off("win:maximized", listener);
+    };
+  },
 };
 
 contextBridge.exposeInMainWorld("api", api);
