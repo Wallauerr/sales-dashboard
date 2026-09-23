@@ -7,35 +7,15 @@ type Handle = "n" | "e" | "s" | "w" | "ne" | "nw" | "se" | "sw";
 const MIN_W = 960;
 const MIN_H = 620;
 
-const ZONES: { handle: Handle; className: string; cursor: string; corner?: string }[] = [
-  { handle: "n", className: "left-[6px] right-[6px] top-0 h-[6px] hover:bg-muted-foreground/15", cursor: "cursor-ns-resize" },
-  { handle: "s", className: "left-[6px] right-[6px] bottom-0 h-[6px] hover:bg-muted-foreground/15", cursor: "cursor-ns-resize" },
-  { handle: "w", className: "top-[6px] bottom-[6px] left-0 w-[6px] hover:bg-muted-foreground/15", cursor: "cursor-ew-resize" },
-  { handle: "e", className: "top-[6px] bottom-[6px] right-0 w-[6px] hover:bg-muted-foreground/15", cursor: "cursor-ew-resize" },
-  {
-    handle: "nw",
-    className: "left-0 top-0 h-3.5 w-3.5 text-muted-foreground/50 transition-colors hover:text-muted-foreground",
-    cursor: "cursor-nwse-resize",
-    corner: "border-l-2 border-t-2 border-current",
-  },
-  {
-    handle: "ne",
-    className: "right-0 top-0 h-3.5 w-3.5 text-muted-foreground/50 transition-colors hover:text-muted-foreground",
-    cursor: "cursor-nesw-resize",
-    corner: "border-r-2 border-t-2 border-current",
-  },
-  {
-    handle: "sw",
-    className: "bottom-0 left-0 h-3.5 w-3.5 text-muted-foreground/50 transition-colors hover:text-muted-foreground",
-    cursor: "cursor-nesw-resize",
-    corner: "border-b-2 border-l-2 border-current",
-  },
-  {
-    handle: "se",
-    className: "right-0 bottom-0 h-3.5 w-3.5 text-muted-foreground/50 transition-colors hover:text-muted-foreground",
-    cursor: "cursor-nwse-resize",
-    corner: "border-b-2 border-r-2 border-current",
-  },
+const ZONES: { handle: Handle; className: string; cursor: string }[] = [
+  { handle: "n", className: "left-[8px] right-[8px] top-0 h-[8px]", cursor: "cursor-ns-resize" },
+  { handle: "s", className: "left-[8px] right-[8px] bottom-0 h-[8px]", cursor: "cursor-ns-resize" },
+  { handle: "w", className: "top-[8px] bottom-[8px] left-0 w-[8px]", cursor: "cursor-ew-resize" },
+  { handle: "e", className: "top-[8px] bottom-[8px] right-0 w-[8px]", cursor: "cursor-ew-resize" },
+  { handle: "nw", className: "left-0 top-0 h-4 w-4", cursor: "cursor-nwse-resize" },
+  { handle: "ne", className: "right-0 top-0 h-4 w-4", cursor: "cursor-nesw-resize" },
+  { handle: "sw", className: "bottom-0 left-0 h-4 w-4", cursor: "cursor-nesw-resize" },
+  { handle: "se", className: "right-0 bottom-0 h-4 w-4", cursor: "cursor-nwse-resize" },
 ];
 
 interface DragState {
@@ -113,10 +93,10 @@ export default function WindowResizeHandles() {
 
   return (
     <div className="pointer-events-none fixed inset-0 z-50" onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
-      {ZONES.map(({ handle, className, cursor, corner }) => (
+      {ZONES.map(({ handle, className, cursor }) => (
         <div
           key={handle}
-          className={`pointer-events-auto absolute ${className} ${cursor} ${corner ?? ""}`}
+          className={`pointer-events-auto absolute ${className} ${cursor}`}
           onPointerDown={onPointerDown(handle)}
         />
       ))}

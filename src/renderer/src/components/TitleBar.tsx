@@ -1,4 +1,4 @@
-import { CopyIcon, GripIcon, MinusIcon, SquareIcon, XIcon } from "lucide-react";
+import { CopyIcon, MinusIcon, SquareIcon, XIcon } from "lucide-react";
 
 import { useWindowMaximized } from "@/lib/useWindowMaximized";
 import iconUrl from "../assets/icon.png";
@@ -12,7 +12,6 @@ export default function TitleBar() {
       onDoubleClick={() => void window.api?.toggleMaximize?.()}
     >
       <div className="flex min-w-0 items-center gap-2">
-        <GripIcon aria-hidden className="size-3.5 shrink-0 text-white/35" />
         <img src={iconUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />
         <span className="truncate text-[13px] font-semibold tracking-tight font-heading">
           Sulmag Dashboard
