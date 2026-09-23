@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
+  --background: #f5f4f0;
   --foreground: #1a1a1a;
   --card: #ffffff;
   --card-foreground: #1a1a1a;
@@ -12,16 +12,16 @@
   --popover-foreground: #1a1a1a;
   --primary: #e49e18;
   --primary-foreground: #1a1a1a;
-  --secondary: #f5f0e6;
+  --secondary: #f0eadb;
   --secondary-foreground: #1a1a1a;
-  --muted: #f5f5f3;
+  --muted: #efede6;
   --muted-foreground: #6b7280;
   --accent: #f3ecd9;
   --accent-foreground: #1a1a1a;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border: #e8e6e1;
-  --input: #e8e6e1;
+  --border: #e4e1d9;
+  --input: #e4e1d9;
   --ring: #e49e18;
   --chart-1: #e49e18;
   --chart-2: #05d741;
@@ -106,6 +106,31 @@
   h6 {
     font-family: var(--font-heading);
     letter-spacing: -0.01em;
+  }
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 35%, transparent) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklab, var(--muted-foreground) 35%, transparent);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklab, var(--muted-foreground) 60%, transparent);
+    border: 3px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
   }
 }
 
