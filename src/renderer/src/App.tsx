@@ -48,7 +48,7 @@ export default function App() {
       </section>
 
       <footer className="mt-auto text-xs text-muted-foreground">
-        Electron {window.versions.electron()} · Node {window.versions.node()} · Chrome {window.versions.chrome()}
+        Electron {window.api.versions.electron()} · Node {window.api.versions.node()} · Chrome {window.api.versions.chrome()}
       </footer>
     </main>
   );

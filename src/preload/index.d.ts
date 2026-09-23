@@ -1,10 +1,21 @@
-interface VersionsApi {
-  node: () => string;
-  chrome: () => string;
-  electron: () => string;
+import type { ImportResult, KpiSnapshot } from "../shared/types";
+
+interface Api {
+  versions: {
+    node: () => string;
+    chrome: () => string;
+    electron: () => string;
+  };
   ping: () => Promise<string>;
+  importWorkbook: () => Promise<ImportResult | null>;
+  importFromPath: (filePath: string) => Promise<ImportResult>;
+  getSnapshot: (ano: number) => Promise<KpiSnapshot>;
 }
 
-interface Window {
-  versions: VersionsApi;
+declare global {
+  interface Window {
+    api: Api;
+  }
 }
+
+export {};
