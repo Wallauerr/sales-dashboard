@@ -17,6 +17,7 @@ import VendasTable from "@/components/detail/VendasTable";
 import { KpiCard, KpiCardContent, KpiCardHeader, KpiCardTitle, KpiCardValue } from "@/components/kpi/KpiCard";
 import ThemeToggle from "@/components/ThemeToggle";
 import TitleBar from "@/components/TitleBar";
+import WindowResizeHandles from "@/components/WindowResizeHandles";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -195,6 +196,7 @@ export default function App() {
       )}
     >
       <TitleBar />
+      <WindowResizeHandles />
 
       <main className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col gap-6 overflow-y-auto p-6 pt-5">
         <header className="flex flex-wrap items-center justify-between gap-4">

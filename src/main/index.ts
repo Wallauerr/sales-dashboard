@@ -41,6 +41,17 @@ function createWindow(): void {
     }
   });
   ipcMain.handle("win:close", () => win.close());
+  ipcMain.handle("win:get-bounds", () => win.getBounds());
+  ipcMain.on("win:set-bounds", (_e, b) => {
+    if (win.isMaximized() || win.isDestroyed()) return;
+    const minW = 960;
+    const minH = 620;
+    const x = Math.round(b?.x ?? win.getBounds().x);
+    const y = Math.round(b?.y ?? win.getBounds().y);
+    const width = Math.max(minW, Math.round(b?.width ?? win.getBounds().width));
+    const height = Math.max(minH, Math.round(b?.height ?? win.getBounds().height));
+    win.setBounds({ x, y, width, height });
+  });
   win.on("maximize", () => win.webContents.send("win:maximized", true));
   win.on("unmaximize", () => win.webContents.send("win:maximized", false));
 

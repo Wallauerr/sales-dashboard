@@ -1,6 +1,13 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { ImportResult, KpiSnapshot, VendasFilter, VendasPage } from "../shared/types.ts";
 
+export interface WindowBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 const api = {
   versions: {
     node: () => process.versions.node,
@@ -17,6 +24,8 @@ const api = {
   minimize: () => ipcRenderer.invoke("win:minimize") as Promise<void>,
   toggleMaximize: () => ipcRenderer.invoke("win:toggle-maximize") as Promise<void>,
   closeWindow: () => ipcRenderer.invoke("win:close") as Promise<void>,
+  getBounds: () => ipcRenderer.invoke("win:get-bounds") as Promise<WindowBounds>,
+  setBounds: (bounds: WindowBounds) => ipcRenderer.send("win:set-bounds", bounds),
   onMaximized: (callback: (maximized: boolean) => void) => {
     const listener = (_e: Electron.IpcRendererEvent, value: boolean): void => callback(value);
     ipcRenderer.on("win:maximized", listener);
