@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { brl, brl0, brlCompact, brlHumanDate, int, pct } from "@/lib/format";
+import { useWindowMaximized } from "@/lib/useWindowMaximized";
 
 const ANOS = [2024, 2025, 2026];
 const MES_LABEL: Record<Mes, string> = {
@@ -77,6 +78,7 @@ function regionPoints(snap: KpiSnapshot): RegionPoint[] {
 
 export default function App() {
   const [ano, setAno] = useState(2026);
+  const maximized = useWindowMaximized();
   const [snap, setSnap] = useState<KpiSnapshot | null>(null);
   const [funnelMes, setFunnelMes] = useState<Mes | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -165,9 +167,9 @@ export default function App() {
 
   if (!api) {
     return (
-      <div className="flex min-h-screen flex-col">
+      <div className="app-root flex h-dvh flex-col overflow-hidden rounded-[10px] bg-background text-foreground">
         <TitleBar />
-        <main className="mx-auto max-w-2xl p-8">
+        <main className="mx-auto w-full max-w-2xl overflow-y-auto p-8">
           <p className="text-muted-foreground">Aponte o app (Electron) para ver o dashboard. A API do preload não está disponível.</p>
         </main>
       </div>
@@ -186,10 +188,15 @@ export default function App() {
   }, [snap, ano]);
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div
+      className={cn(
+        "app-root flex h-dvh flex-col overflow-hidden bg-background text-foreground",
+        maximized ? "rounded-none border-0 shadow-none" : "rounded-[10px] border border-border/60 shadow-2xl",
+      )}
+    >
       <TitleBar />
 
-      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 p-6 pt-5">
+      <main className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col gap-6 overflow-y-auto p-6 pt-5">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">

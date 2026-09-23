@@ -1,18 +1,16 @@
-import { useEffect, useState } from "react";
 import { CopyIcon, MinusIcon, SquareIcon, XIcon } from "lucide-react";
 
+import { useWindowMaximized } from "@/lib/useWindowMaximized";
 import iconUrl from "../assets/icon.png";
 
 export default function TitleBar() {
-  const [maximized, setMaximized] = useState(false);
-
-  useEffect(() => {
-    const off = window.api?.onMaximized?.((v) => setMaximized(v));
-    return off;
-  }, []);
+  const maximized = useWindowMaximized();
 
   return (
-    <div className="app-region-drag relative z-40 flex h-9 shrink-0 items-center justify-between border-b border-white/10 bg-[#0b0b0d] pl-3 text-white select-none">
+    <div
+      className="app-region-drag relative z-40 flex h-9 shrink-0 items-center justify-between border-b border-white/10 bg-[#0b0b0d] pl-3 text-white select-none"
+      onDoubleClick={() => void window.api?.toggleMaximize?.()}
+    >
       <div className="flex min-w-0 items-center gap-2">
         <img src={iconUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />
         <span className="truncate text-[13px] font-semibold tracking-tight font-heading">

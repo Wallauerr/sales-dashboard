@@ -21,7 +21,8 @@ function createWindow(): void {
     minWidth: 960,
     minHeight: 620,
     title: "Sulmag Dashboard",
-    backgroundColor: "#0B0B0D",
+    backgroundColor: "#00000000",
+    transparent: true,
     frame: false,
     icon: iconPath(),
     webPreferences: {
