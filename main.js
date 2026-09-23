@@ -1,4 +1,5 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain } = require("electron");
+import { app, BrowserWindow, Menu, dialog, ipcMain } from "electron";
+
 const path = require("node:path");
 
 const isMac = process.platform === "darwin";
