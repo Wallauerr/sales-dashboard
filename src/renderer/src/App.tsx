@@ -64,6 +64,7 @@ export default function App() {
   const [reload, setReload] = useState(0);
   const [lastImport, setLastImport] = useState<{ path: string; at: string | null } | null>(null);
   const [detail, setDetail] = useState<{ mes?: Mes; vendedor?: string } | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const api = window.api;
 
@@ -123,6 +124,19 @@ export default function App() {
     }
   };
 
+  const handleExportPdf = async (): Promise<void> => {
+    if (!api) return;
+    setExporting(true);
+    try {
+      const path = await api.exportPdf(ano);
+      if (path) setImportMsg(`Relatório PDF salvo: ${path}`);
+    } catch (e) {
+      setImportMsg(e instanceof Error ? `Erro: ${e.message}` : String(e));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const totalQtd = useMemo(
     () => (snap ? MESES.reduce((acc, m) => acc + snap.quantidadePorMes[m], 0) : 0),
     [snap],
@@ -154,7 +168,7 @@ export default function App() {
           <h1 className="text-2xl font-semibold tracking-tight">Metas Comercial</h1>
           <p className="text-sm text-muted-foreground">Dashbboard de vendas — substituto do workbook SIGE Cloud</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 no-print">
           <div className="flex rounded-lg border bg-muted p-0.5">
             {ANOS.map((a) => (
               <button
@@ -178,13 +192,16 @@ export default function App() {
               Reimportar {lastImport.path.split(/[\\/]/).pop()}
             </Button>
           ) : null}
+          <Button variant="outline" onClick={() => void handleExportPdf()} disabled={exporting}>
+            {exporting ? "Gerando PDF…" : "Exportar PDF"}
+          </Button>
         </div>
       </header>
 
-      {importMsg ? <p className="text-xs text-muted-foreground">{importMsg}</p> : null}
-      {error ? <p className="text-xs text-destructive">Erro: {error}</p> : null}
+      {importMsg ? <p className="text-xs text-muted-foreground no-print">{importMsg}</p> : null}
+      {error ? <p className="text-xs text-destructive no-print">Erro: {error}</p> : null}
       {lastImport && lastImport.at ? (
-        <p className="text-xs text-muted-foreground">última atualização: {brlHumanDate(lastImport.at)}</p>
+        <p className="text-xs text-muted-foreground no-print">última atualização: {brlHumanDate(lastImport.at)}</p>
       ) : null}
 
       {!snap ? (
@@ -193,6 +210,15 @@ export default function App() {
         </p>
       ) : (
         <div className="flex flex-col gap-6">
+          <p className="hidden items-center justify-between text-xs text-muted-foreground print:flex">
+            <span>
+              Relatório Metas Comercial — {ano} · emitido em {brlHumanDate(new Date().toISOString())}
+            </span>
+            <span>
+              {int(totalQtd)} vendas · {brl0(snap.totalPeriodo)} · meta {brl0(snap.metaAnual)}
+            </span>
+          </p>
+
           {detail ? (
             <VendasTable ano={ano} initial={detail} onClose={() => setDetail(null)} />
           ) : null}

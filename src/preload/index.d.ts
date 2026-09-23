@@ -12,6 +12,7 @@ interface Api {
   lastImport: () => Promise<{ path: string; at: string | null } | null>;
   getSnapshot: (ano: number) => Promise<KpiSnapshot>;
   getVendas: (filters: VendasFilter, limit?: number) => Promise<VendasPage>;
+  exportPdf: (ano: number) => Promise<string | null>;
 }
 
 declare global {

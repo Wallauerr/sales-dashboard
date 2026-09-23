@@ -13,6 +13,7 @@ const api = {
   lastImport: () => ipcRenderer.invoke("ingest:last-import") as Promise<{ path: string; at: string | null } | null>,
   getSnapshot: (ano: number) => ipcRenderer.invoke("kpis:get", ano) as Promise<KpiSnapshot>,
   getVendas: (filters: VendasFilter, limit?: number) => ipcRenderer.invoke("vendas:list", filters, limit) as Promise<VendasPage>,
+  exportPdf: (ano: number) => ipcRenderer.invoke("app:export-pdf", ano) as Promise<string | null>,
 };
 
 contextBridge.exposeInMainWorld("api", api);

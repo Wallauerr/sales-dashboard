@@ -126,7 +126,7 @@ export default function VendasTable({ ano, initial, onClose }: Props) {
             {brl0(totalValor)}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="no-print flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => void exportCsv()} disabled={loading || rows.length === 0}>
             Exportar CSV
           </Button>
@@ -136,7 +136,7 @@ export default function VendasTable({ ano, initial, onClose }: Props) {
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="no-print flex flex-wrap items-center gap-2">
           <select
             value={mes}
             onChange={(e) => setMes(e.target.value)}
