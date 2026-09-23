@@ -2,6 +2,7 @@ import * as XLSX from "xlsx";
 import { readFileSync } from "node:fs";
 import type { ImportResult, Mes, Sale } from "../../shared/types.ts";
 import { MESES } from "../../shared/types.ts";
+import { importResultSchema, saleSchema } from "../../shared/schemas.ts";
 import type { SalesDatabase } from "../db/database.ts";
 import { canonicalEstado, canonicalRegion, monthKey, parseDate, statusRaw, titleCase, uppercase, toISO } from "./normalize.ts";
 
@@ -107,7 +108,7 @@ function normalizeRow(raw: RawBaseRow): Sale {
   const mes: Mes | null = cacheValido ? mesCache : dEng ? monthKey(dEng) : null;
   const ano: number | null = cacheValido ? anoCache : dEng ? dEng.getFullYear() : null;
 
-  return {
+  return saleSchema.parse({
     codigo: String(raw["Código"]).trim(),
     data: data ? toISO(data) : null,
     dataAprovOrcamento: dataAprovOrcamento ? toISO(dataAprovOrcamento) : null,
@@ -132,7 +133,7 @@ function normalizeRow(raw: RawBaseRow): Sale {
     nfe: String(raw["NF-e/NFS-e"] ?? "").trim(),
     mes,
     ano,
-  };
+  });
 }
 
 export async function importWorkbook(db: SalesDatabase, filePath: string): Promise<ImportResult> {
@@ -155,5 +156,5 @@ export async function importWorkbook(db: SalesDatabase, filePath: string): Promi
   db.logImport(result);
   db.setMeta("last_import_path", filePath);
   db.setMeta("last_import_at", new Date().toISOString());
-  return result;
+  return importResultSchema.parse(result);
 }

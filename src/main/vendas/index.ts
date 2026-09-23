@@ -1,9 +1,11 @@
-import type { Sale, VendasFilter, VendasPage } from "../../shared/types.ts";
+import type { Sale } from "../../shared/types.ts";
+import { saleSchema, vendasFilterSchema, vendasPageSchema } from "../../shared/schemas.ts";
 import type { SalesDatabase } from "../db/database.ts";
 
 const STATUS_FATURAMENTO = ["Pedido", "Pedido Faturado"];
 
-export function getVendas(db: SalesDatabase, filters: VendasFilter, limit = 200): VendasPage {
+export function getVendas(db: SalesDatabase, filtersInput: unknown, limit = 200) {
+  const filters = vendasFilterSchema.parse(filtersInput);
   const where: string[] = ["ano = ?"];
   const params: (string | number)[] = [filters.ano];
 
@@ -38,7 +40,7 @@ export function getVendas(db: SalesDatabase, filters: VendasFilter, limit = 200)
     .prepare(`SELECT * FROM vendas ${sql} ORDER BY valor_total DESC, codigo ASC LIMIT ?`)
     .all(...params, limit) as unknown as Record<string, unknown>[];
 
-  return { rows: rows.map(normalizeRow), total };
+  return vendasPageSchema.parse({ rows: rows.map((r) => saleSchema.parse(normalizeRow(r))), total });
 }
 
 function normalizeRow(r: Record<string, unknown>): Sale {

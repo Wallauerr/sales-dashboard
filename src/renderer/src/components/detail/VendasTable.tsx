@@ -51,10 +51,10 @@ export default function VendasTable({ ano, initial, onClose }: Props) {
   const filters = useMemo<VendasFilter>(
     () => ({
       ano,
-      mes: mes || null,
-      statusSistema: status || null,
-      vendedor: vendedor.trim() || null,
-      regiao: regiao || null,
+      mes: (mes || undefined) as Mes | undefined,
+      statusSistema: status || undefined,
+      vendedor: vendedor.trim() || undefined,
+      regiao: regiao || undefined,
     }),
     [ano, mes, status, vendedor, regiao],
   );

@@ -1,68 +1,17 @@
-export type Mes =
-  | "jan"
-  | "fev"
-  | "mar"
-  | "abr"
-  | "mai"
-  | "jun"
-  | "jul"
-  | "ago"
-  | "set"
-  | "out"
-  | "nov"
-  | "dez";
+import {
+  MESES as MESES_LIST,
+  type ImportResult,
+  type Mes,
+  type Sale,
+  type VendasFilter,
+  type VendasPage,
+} from "./schemas.ts";
 
-export const MESES: Mes[] = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+export type { ImportResult, Mes, Sale, VendasFilter, VendasPage };
+
+export const MESES = MESES_LIST;
 
 export const STATUS_FATURAMENTO = ["Pedido", "Pedido Faturado"];
-
-export interface Sale {
-  codigo: string;
-  data: string | null;
-  dataAprovOrcamento: string | null;
-  dataAprovPedido: string | null;
-  dataAprovFaturamento: string | null;
-  dataEmissaoFiscal: string | null;
-  empresa: string;
-  statusSistema: string;
-  vendedor: string;
-  categoria: string;
-  status: string;
-  origem: string;
-  cliente: string;
-  cidade: string;
-  estado: string;
-  regiao: string;
-  transportadora: string;
-  frete: number;
-  desconto: number;
-  comissao: number;
-  valorTotal: number;
-  nfe: string;
-  mes: Mes | null;
-  ano: number | null;
-}
-
-export interface ImportResult {
-  filePath: string;
-  totalRows: number;
-  inserted: number;
-  updated: number;
-  discarded: number;
-}
-
-export interface VendasFilter {
-  ano: number;
-  mes?: string | null;
-  vendedor?: string | null;
-  regiao?: string | null;
-  statusSistema?: string | null;
-}
-
-export interface VendasPage {
-  rows: Sale[];
-  total: number;
-}
 
 export interface FunnelMonth {
   mes: Mes;
