@@ -33,12 +33,58 @@ interface RawBaseRow {
   "Quantidade"?: number;
 }
 
+function readBaseSheet(ws: XLSX.WorkSheet, filePath: string, requireHeader: boolean): RawBaseRow[] | null {
+  const rows = XLSX.utils.sheet_to_json<RawBaseRow>(ws, { defval: "" });
+  if (requireHeader && rows.length > 0 && !("Código" in rows[0])) return null;
+  if (rows.length === 0) {
+    const head = XLSX.utils.sheet_to_json<unknown[]>(ws, { defval: "", header: 1 });
+    const first = head[0];
+    if (first && String(first[0] ?? "").trim() === "Código") {
+      throw new Error(`Planilha "Base" vazia em ${filePath}`);
+    }
+    return null;
+  }
+  return rows;
+}
+
+function readSigeReport(ws: XLSX.WorkSheet): RawBaseRow[] | null {
+  const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
+  const headerIdx = aoa.findIndex((row) => String(row[0] ?? "").trim() === "Código");
+  if (headerIdx < 0) return null;
+  const header = aoa[headerIdx];
+  const idx: Record<string, number> = {};
+  header.forEach((name, i) => {
+    const key = String(name ?? "").trim();
+    if (key) idx[key] = i;
+  });
+  const rows: RawBaseRow[] = [];
+  for (let r = headerIdx + 1; r < aoa.length; r++) {
+    const cells = aoa[r];
+    const codigo = String(cells[0] ?? "").trim();
+    if (!codigo) continue;
+    const raw = { "Código": codigo } as unknown as Record<string, unknown>;
+    for (const [name, i] of Object.entries(idx)) {
+      if (name === "Código") continue;
+      raw[name] = cells[i];
+    }
+    rows.push(raw as unknown as RawBaseRow);
+  }
+  return rows;
+}
+
 function readWorkbook(filePath: string): RawBaseRow[] {
-  const buf = readFileSync(filePath);
-  const wb = XLSX.read(buf, { type: "buffer", cellDates: false });
-  const ws = wb.Sheets["Base"];
-  if (!ws) throw new Error(`Planilha "Base" não encontrada em ${filePath}`);
-  return XLSX.utils.sheet_to_json<RawBaseRow>(ws, { defval: "" });
+  const wb = XLSX.read(readFileSync(filePath), { type: "buffer", cellDates: false });
+  if (wb.Sheets["Base"]) {
+    const rows = readBaseSheet(wb.Sheets["Base"], filePath, true);
+    if (rows) return rows;
+  }
+  for (const name of wb.SheetNames) {
+    const rows = readSigeReport(wb.Sheets[name]);
+    if (rows) return rows;
+  }
+  throw new Error(
+    `Formato não reconhecido em ${filePath}. Esperado a aba "Base" ou um relatório de pedidos do SIGE (colunas Código/Data).`,
+  );
 }
 
 function normalizeRow(raw: RawBaseRow): Sale {

@@ -1,9 +1,9 @@
 import { app, BrowserWindow, Menu, dialog, ipcMain } from "electron";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { SalesDatabase } from "./db/database.ts";
-import { importWorkbook } from "./ingest/index.ts";
-import { registerIpc } from "./ipc.ts";
+import { SalesDatabase } from "./db/database";
+import { importWorkbook } from "./ingest/index";
+import { registerIpc } from "./ipc";
 
 let db: SalesDatabase;
 
@@ -27,7 +27,7 @@ function createWindow(): void {
 
 async function importViaDialog(): Promise<void> {
   const { canceled, filePaths } = await dialog.showOpenDialog({
-    title: "Import export from SIGE Cloud",
+    title: "Importar dados do SIGE (Metas Comercial.xlsx ou relatório de pedidos)",
     properties: ["openFile"],
     filters: [{ name: "Excel workbooks", extensions: ["xlsx"] }],
   });
@@ -42,7 +42,7 @@ const template = [
     label: "File",
     submenu: [
       {
-        label: "Import Metas Comercial.xlsx…",
+        label: "Importar dados do SIGE…",
         accelerator: "CmdOrCtrl+O",
         click: (): void => {
           void importViaDialog();
@@ -76,3 +76,4 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
+
