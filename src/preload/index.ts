@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { ImportResult, KpiSnapshot } from "../shared/types.ts";
+import type { ImportResult, KpiSnapshot, VendasFilter, VendasPage } from "../shared/types.ts";
 
 const api = {
   versions: {
@@ -12,6 +12,7 @@ const api = {
   importFromPath: (filePath: string) => ipcRenderer.invoke("ingest:import-from-path", filePath) as Promise<ImportResult>,
   lastImport: () => ipcRenderer.invoke("ingest:last-import") as Promise<{ path: string; at: string | null } | null>,
   getSnapshot: (ano: number) => ipcRenderer.invoke("kpis:get", ano) as Promise<KpiSnapshot>,
+  getVendas: (filters: VendasFilter, limit?: number) => ipcRenderer.invoke("vendas:list", filters, limit) as Promise<VendasPage>,
 };
 
 contextBridge.exposeInMainWorld("api", api);

@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { brlCompact } from "@/lib/format";
 
 export interface BarSeries {
@@ -12,6 +13,7 @@ interface Props {
   series: BarSeries[];
   valueFormat?: (v: number) => string;
   height?: number;
+  onBarClick?: (index: number) => void;
 }
 
 const W = 800;
@@ -28,7 +30,7 @@ function niceCeil(v: number): number {
   return nice * p;
 }
 
-export default function GroupedBars({ labels, series, valueFormat = brlCompact, height = 280 }: Props) {
+export default function GroupedBars({ labels, series, valueFormat = brlCompact, height = 280, onBarClick }: Props) {
   const chartW = W - L - R;
   const chartH = height - T - B;
   const max = Math.max(1, ...series.flatMap((s) => s.values));
@@ -64,7 +66,8 @@ export default function GroupedBars({ labels, series, valueFormat = brlCompact, 
               width={bw}
               height={Math.max(0, T + chartH - y(v))}
               rx={2}
-              className={bars[0].colorClass ?? "fill-chart-1"}
+              className={cn(bars[0].colorClass ?? "fill-chart-1", onBarClick && "cursor-pointer")}
+              onClick={onBarClick ? () => onBarClick(i) : undefined}
             />
           ))
         : bars.map((s, si) =>
@@ -76,7 +79,8 @@ export default function GroupedBars({ labels, series, valueFormat = brlCompact, 
                 width={bw - 2}
                 height={Math.max(0, T + chartH - y(v))}
                 rx={2}
-                className={s.colorClass ?? "fill-chart-1"}
+                className={cn(s.colorClass ?? "fill-chart-1", onBarClick && "cursor-pointer")}
+                onClick={onBarClick ? () => onBarClick(i) : undefined}
               />
             )),
           )}

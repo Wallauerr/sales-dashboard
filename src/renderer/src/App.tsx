@@ -8,6 +8,7 @@ import HorizontalBars from "@/components/charts/HorizontalBars";
 import type { HBarDatum } from "@/components/charts/HorizontalBars";
 import RegionMap from "@/components/charts/RegionMap";
 import type { RegionPoint } from "@/components/charts/RegionMap";
+import VendasTable from "@/components/detail/VendasTable";
 import { KpiCard, KpiCardContent, KpiCardHeader, KpiCardTitle, KpiCardValue } from "@/components/kpi/KpiCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,6 +63,7 @@ export default function App() {
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
   const [lastImport, setLastImport] = useState<{ path: string; at: string | null } | null>(null);
+  const [detail, setDetail] = useState<{ mes?: Mes; vendedor?: string } | null>(null);
 
   const api = window.api;
 
@@ -191,6 +193,10 @@ export default function App() {
         </p>
       ) : (
         <div className="flex flex-col gap-6">
+          {detail ? (
+            <VendasTable ano={ano} initial={detail} onClose={() => setDetail(null)} />
+          ) : null}
+
           <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-7">
             <KpiCard>
               <KpiCardHeader>
@@ -271,6 +277,7 @@ export default function App() {
                   { name: "Realizado", kind: "bar", colorClass: "fill-chart-1", values: MESES.map((m) => snap.faturamentoPorMes[m]) },
                   { name: "Meta", kind: "marker", colorClass: "stroke-chart-3", values: MESES.map((_m, i) => snap.metasPorMes[i].meta) },
                 ]}
+                onBarClick={(i) => setDetail({ mes: MESES[i] })}
               />
             </CardContent>
           </Card>
@@ -345,6 +352,7 @@ export default function App() {
                 <HorizontalBars
                   data={snap.porVendedor.map((v) => ({ label: v.vendedor, value: v.valor, sub: pct(v.share), colorClass: "bg-chart-5" }))}
                   format={brl0}
+                  onSelect={(d) => setDetail({ vendedor: d.label })}
                 />
               </CardContent>
             </Card>

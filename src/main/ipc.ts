@@ -1,6 +1,7 @@
 import { dialog, ipcMain, BrowserWindow } from "electron";
 import { getSnapshot } from "./kpis/index.ts";
 import { importWorkbook } from "./ingest/index.ts";
+import { getVendas } from "./vendas/index.ts";
 import type { SalesDatabase } from "./db/database.ts";
 
 export function registerIpc(db: SalesDatabase): void {
@@ -25,6 +26,10 @@ export function registerIpc(db: SalesDatabase): void {
 
   ipcMain.handle("kpis:get", (_event, ano: number) => {
     return getSnapshot(db, ano);
+  });
+
+  ipcMain.handle("vendas:list", (_event, filters: Parameters<typeof getVendas>[1], limit?: number) => {
+    return getVendas(db, filters, limit ?? 200);
   });
 
   ipcMain.handle("dialog:open-file", async () => {

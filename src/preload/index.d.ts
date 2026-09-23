@@ -1,4 +1,4 @@
-import type { ImportResult, KpiSnapshot } from "../shared/types";
+import type { ImportResult, KpiSnapshot, VendasFilter, VendasPage } from "../shared/types";
 
 interface Api {
   versions: {
@@ -11,6 +11,7 @@ interface Api {
   importFromPath: (filePath: string) => Promise<ImportResult>;
   lastImport: () => Promise<{ path: string; at: string | null } | null>;
   getSnapshot: (ano: number) => Promise<KpiSnapshot>;
+  getVendas: (filters: VendasFilter, limit?: number) => Promise<VendasPage>;
 }
 
 declare global {

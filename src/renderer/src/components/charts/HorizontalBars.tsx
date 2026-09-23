@@ -17,6 +17,7 @@ interface Props {
   maxValue?: number;
   showValue?: boolean;
   valueClassName?: string;
+  onSelect?: (datum: HBarDatum, index: number) => void;
 }
 
 export default function HorizontalBars({
@@ -25,12 +26,17 @@ export default function HorizontalBars({
   colorClass = "bg-chart-1",
   maxValue,
   showValue = true,
+  onSelect,
 }: Props) {
   const max = maxValue ?? Math.max(1, ...data.map((d) => d.value));
   return (
     <div className="flex flex-col gap-2.5">
-      {data.map((d) => (
-        <div key={d.label} className="grid grid-cols-[120px_1fr_auto] items-center gap-3">
+      {data.map((d, i) => (
+        <div
+          key={d.label}
+          className={cn("grid grid-cols-[120px_1fr_auto] items-center gap-3", onSelect && "cursor-pointer", onSelect && "hover:opacity-80")}
+          onClick={onSelect ? () => onSelect(d, i) : undefined}
+        >
           <span className="truncate text-xs text-muted-foreground" title={d.label}>
             {d.label}
           </span>

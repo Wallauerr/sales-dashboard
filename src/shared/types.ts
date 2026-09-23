@@ -51,6 +51,19 @@ export interface ImportResult {
   discarded: number;
 }
 
+export interface VendasFilter {
+  ano: number;
+  mes?: string | null;
+  vendedor?: string | null;
+  regiao?: string | null;
+  statusSistema?: string | null;
+}
+
+export interface VendasPage {
+  rows: Sale[];
+  total: number;
+}
+
 export interface FunnelMonth {
   mes: Mes;
   orcamento: number;
