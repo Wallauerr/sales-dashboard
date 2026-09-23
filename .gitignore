@@ -16,6 +16,7 @@ node_modules
 # Builds / dist
 dist
 out
+release
 build
 .DS_Store
 

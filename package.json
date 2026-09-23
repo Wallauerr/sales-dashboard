@@ -1,6 +1,7 @@
 {
   "name": "sales-dashboard",
   "version": "1.0.0",
+  "packageManager": "pnpm@10.24.0",
   "description": "Dashboard desktop para o time comercial — substitui o workbook Metas Comercial.xlsx do SIGE Cloud (rm: análises, metas, ticket médio e gráficos em Electron + React).",
   "main": "out/main/index.js",
   "scripts": {
@@ -8,7 +9,10 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node scripts/smoke.ts",
+    "test:parity": "node scripts/parity.ts",
+    "dist:linux": "electron-vite build && electron-builder --linux AppImage",
+    "dist:win": "electron-vite build && electron-builder --win nsis"
   },
   "author": "Wallauer",
   "license": "MIT",
@@ -19,6 +23,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "^44.4.3",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
