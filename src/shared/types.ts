@@ -41,7 +41,6 @@ export interface Sale {
   nfe: string;
   mes: Mes | null;
   ano: number | null;
-  quantidade: number;
 }
 
 export interface ImportResult {

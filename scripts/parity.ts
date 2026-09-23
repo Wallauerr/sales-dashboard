@@ -58,7 +58,6 @@ function reference(): Ref {
   for (const r of rows) {
     const st = String(r["Status Sistema"] ?? "").trim();
     const valor = Number(r["Valor Total(R$)"]) || 0;
-    const qtd = Number(r["Quantidade"]) || 0;
     const mesC = String(r["Mês"] ?? "").trim();
     const anoC = Number(r["Ano"]);
     const mesIdx = MESES.indexOf(mesC as never);
@@ -70,7 +69,7 @@ function reference(): Ref {
         total2026 += valor;
         if (mesValido) {
           fatMes[mesC] = (fatMes[mesC] ?? 0) + valor;
-          qtdMes[mesC] = (qtdMes[mesC] ?? 0) + qtd;
+          qtdMes[mesC] = (qtdMes[mesC] ?? 0) + 1;
         }
         vendedor.set(titleCase(String(r["Vendedor"] ?? "")), (vendedor.get(titleCase(String(r["Vendedor"] ?? ""))) ?? 0) + valor);
         estado.set(canonicalEstado(String(r["Estado"] ?? "")), (estado.get(canonicalEstado(String(r["Estado"] ?? ""))) ?? 0) + valor);
@@ -120,7 +119,7 @@ async function main(): Promise<void> {
   for (const mes of MESES) {
     check(`qtd ${mes} motor==ref`, s.quantidadePorMes[mes], ref.qtdMes[mes] ?? 0);
   }
-  check("qtd total", qtdEngTotal, 1270);
+  check("qtd total", qtdEngTotal, Object.values(ref.qtdMes).reduce((a, b) => a + b, 0));
 
   console.log("\n— Funil (contagem de vendas por status x mês) —");
   const pivotFunil: Record<string, number[]> = {

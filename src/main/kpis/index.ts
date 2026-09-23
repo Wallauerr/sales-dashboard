@@ -44,7 +44,7 @@ function faturamentoPorMes(db: SalesDatabase, ano: number): Record<Mes, number> 
 function quantidadePorMes(db: SalesDatabase, ano: number): Record<Mes, number> {
   const rows = db.raw
     .prepare(
-      `SELECT mes, SUM(quantidade) AS qtd FROM vendas
+      `SELECT mes, COUNT(*) AS qtd FROM vendas
        WHERE ano = ? AND status_sistema IN ('Pedido', 'Pedido Faturado')
        GROUP BY mes`,
     )

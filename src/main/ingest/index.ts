@@ -132,7 +132,6 @@ function normalizeRow(raw: RawBaseRow): Sale {
     nfe: String(raw["NF-e/NFS-e"] ?? "").trim(),
     mes,
     ano,
-    quantidade: Number(raw["Quantidade"]) || 0,
   };
 }
 

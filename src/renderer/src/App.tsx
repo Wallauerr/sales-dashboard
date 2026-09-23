@@ -201,7 +201,7 @@ export default function App() {
                 <KpiCardTitle>Quantidade</KpiCardTitle>
               </KpiCardHeader>
               <KpiCardContent>
-                <KpiCardValue value={int(totalQtd)} hint="unidades no ano" />
+                <KpiCardValue value={int(totalQtd)} hint="vendas no ano (1 por linha)" />
               </KpiCardContent>
             </KpiCard>
             <KpiCard>

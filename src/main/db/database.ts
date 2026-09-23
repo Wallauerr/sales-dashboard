@@ -26,8 +26,7 @@ CREATE TABLE IF NOT EXISTS vendas (
   valor_total REAL NOT NULL DEFAULT 0,
   nfe TEXT NOT NULL DEFAULT '',
   mes TEXT,
-  ano INTEGER,
-  quantidade INTEGER NOT NULL DEFAULT 0
+  ano INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS idx_vendas_ano_mes ON vendas (ano, mes);
@@ -52,7 +51,7 @@ CREATE TABLE IF NOT EXISTS import_log (
 );
 `;
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 export class SalesDatabase {
   private db: DatabaseSync;
@@ -105,7 +104,6 @@ export class SalesDatabase {
     nfe: string;
     mes: string | null;
     ano: number | null;
-    quantidade: number;
   }): void {
     this.db
       .prepare(
@@ -113,8 +111,8 @@ export class SalesDatabase {
            codigo, data, data_aprov_orcamento, data_aprov_pedido, data_aprov_faturamento,
            data_emissao_fiscal, empresa, status_sistema, vendedor, categoria, status, origem,
            cliente, cidade, estado, regiao, transportadora, frete, desconto, comissao,
-           valor_total, nfe, mes, ano, quantidade
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           valor_total, nfe, mes, ano
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         row.codigo,
@@ -141,7 +139,6 @@ export class SalesDatabase {
         row.nfe,
         row.mes,
         row.ano,
-        row.quantidade,
       );
   }
 
