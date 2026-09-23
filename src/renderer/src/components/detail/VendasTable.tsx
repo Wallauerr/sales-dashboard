@@ -1,14 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FileDownIcon } from "lucide-react";
 
 import type { Mes, Sale, VendasFilter } from "../../../../shared/types";
 import { MESES } from "../../../../shared/types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { brl0 } from "@/lib/format";
 
 const STATUS_OPCOES = [
-  { value: "", label: "Todos status" },
+  { value: "__all__", label: "Todos status" },
   { value: "__fat__", label: "Faturamento (Pedido + Faturado)" },
   { value: "Orçamento", label: "Orçamento" },
   { value: "Pedido", label: "Pedido" },
@@ -23,7 +30,6 @@ const LIMIT = 200;
 interface Props {
   ano: number;
   initial?: { mes?: Mes | null; vendedor?: string | null; regiao?: string | null };
-  onClose: () => void;
 }
 
 function parseData(d: string | null): string {
@@ -37,9 +43,9 @@ function statusLabel(status: string): string {
   return status === "Pedido Nao Faturado" ? "Pedido Não Faturado" : status;
 }
 
-export default function VendasTable({ ano, initial, onClose }: Props) {
-  const [mes, setMes] = useState<string>(initial?.mes ?? "");
-  const [status, setStatus] = useState<string>("");
+export default function VendasTable({ ano, initial }: Props) {
+  const [mes, setMes] = useState<string>(initial?.mes ?? "__all__");
+  const [status, setStatus] = useState<string>("__all__");
   const [vendedor, setVendedor] = useState<string>(initial?.vendedor ?? "");
   const [regiao, setRegiao] = useState<string>(initial?.regiao ?? "");
   const [rows, setRows] = useState<Sale[]>([]);
@@ -51,8 +57,8 @@ export default function VendasTable({ ano, initial, onClose }: Props) {
   const filters = useMemo<VendasFilter>(
     () => ({
       ano,
-      mes: (mes || undefined) as Mes | undefined,
-      statusSistema: status || undefined,
+      mes: (mes === "__all__" ? undefined : mes) as Mes | undefined,
+      statusSistema: status === "__all__" ? undefined : status,
       vendedor: vendedor.trim() || undefined,
       regiao: regiao || undefined,
     }),
@@ -117,126 +123,121 @@ export default function VendasTable({ ano, initial, onClose }: Props) {
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <CardTitle>Linhas — {ano}</CardTitle>
+          <p className="text-sm font-semibold font-heading">Linhas — {ano}</p>
           <p className="text-xs text-muted-foreground">
             {total} linhas{rows.length < total ? ` · exibindo as ${LIMIT} maiores` : ""} · valor exibido{" "}
             {brl0(totalValor)}
           </p>
         </div>
-        <div className="no-print flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => void exportCsv()} disabled={loading || rows.length === 0}>
-            Exportar CSV
-          </Button>
-          <Button size="sm" variant="ghost" onClick={onClose}>
-            Fechar
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="no-print flex flex-wrap items-center gap-2">
-          <select
-            value={mes}
-            onChange={(e) => setMes(e.target.value)}
-            className="h-8 rounded-md border bg-muted px-2 text-xs"
-            aria-label="Filtrar por mês"
-          >
-            <option value="">Todos meses</option>
+        <Button size="sm" variant="outline" onClick={() => void exportCsv()} disabled={loading || rows.length === 0} className="no-print">
+          <FileDownIcon className="size-4" />
+          Exportar CSV
+        </Button>
+      </div>
+
+      <div className="no-print flex flex-wrap items-center gap-2">
+        <Select value={mes} onValueChange={setMes}>
+          <SelectTrigger className="w-40" size="sm">
+            <SelectValue placeholder="Todos meses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todos meses</SelectItem>
             {MESES.map((m) => (
-              <option key={m} value={m}>
+              <SelectItem key={m} value={m}>
                 {m}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="h-8 rounded-md border bg-muted px-2 text-xs"
-            aria-label="Filtrar por status"
-          >
+          </SelectContent>
+        </Select>
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger className="w-52" size="sm">
+            <SelectValue placeholder="Todos status" />
+          </SelectTrigger>
+          <SelectContent>
             {STATUS_OPCOES.map((o) => (
-              <option key={o.value} value={o.value}>
+              <SelectItem key={o.value} value={o.value}>
                 {o.label}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-          <input
-            value={vendedor}
-            onChange={(e) => setVendedor(e.target.value)}
-            placeholder="Filtrar vendedor…"
-            className="h-8 w-56 rounded-md border bg-muted px-2 text-xs"
-          />
-          <input
-            value={regiao}
-            onChange={(e) => setRegiao(e.target.value)}
-            placeholder="Filtrar região…"
-            className="h-8 w-40 rounded-md border bg-muted px-2 text-xs"
-          />
-        </div>
+          </SelectContent>
+        </Select>
+        <input
+          value={vendedor}
+          onChange={(e) => setVendedor(e.target.value)}
+          placeholder="Filtrar vendedor…"
+          className="h-8 w-56 rounded-md border border-input bg-background px-2 text-xs shadow-xs"
+        />
+        <input
+          value={regiao}
+          onChange={(e) => setRegiao(e.target.value)}
+          placeholder="Filtrar região…"
+          className="h-8 w-40 rounded-md border border-input bg-background px-2 text-xs shadow-xs"
+        />
+      </div>
 
-        {error ? <p className="text-xs text-destructive">Erro: {error}</p> : null}
+      {error ? <p className="text-xs text-destructive">Erro: {error}</p> : null}
 
-        <div className="overflow-x-auto rounded-md border">
-          <table className="w-full text-xs">
-            <thead className="bg-muted text-left">
+      <div className="overflow-x-auto rounded-md border">
+        <table className="w-full text-xs">
+          <thead className="bg-muted text-left">
+            <tr>
+              <th className="px-3 py-2 font-medium">Código</th>
+              <th className="px-3 py-2 font-medium">Data</th>
+              <th className="px-3 py-2 font-medium">Cliente</th>
+              <th className="px-3 py-2 font-medium">Vendedor</th>
+              <th className="px-3 py-2 font-medium">UF</th>
+              <th className="px-3 py-2 font-medium">Status</th>
+              <th className="px-3 py-2 text-right font-medium">Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
               <tr>
-                <th className="px-3 py-2 font-medium">Código</th>
-                <th className="px-3 py-2 font-medium">Data</th>
-                <th className="px-3 py-2 font-medium">Cliente</th>
-                <th className="px-3 py-2 font-medium">Vendedor</th>
-                <th className="px-3 py-2 font-medium">UF</th>
-                <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 text-right font-medium">Valor</th>
+                <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">
+                  Carregando…
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">
-                    Carregando…
+            ) : rows.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">
+                  Nenhuma linha para estes filtros.
+                </td>
+              </tr>
+            ) : (
+              rows.map((r) => (
+                <tr key={`${r.codigo}-${r.data}-${r.valorTotal}`} className="border-t align-top hover:bg-muted/40">
+                  <td className="px-3 py-1.5 tabular-nums">{r.codigo}</td>
+                  <td className="px-3 py-1.5">{parseData(r.data)}</td>
+                  <td className="max-w-56 truncate px-3 py-1.5" title={r.cliente}>
+                    {r.cliente}
                   </td>
-                </tr>
-              ) : rows.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">
-                    Nenhuma linha para estes filtros.
+                  <td className="px-3 py-1.5">{r.vendedor}</td>
+                  <td className="px-3 py-1.5">{r.estado}</td>
+                  <td className="px-3 py-1.5">
+                    <span
+                      className={cn(
+                        "rounded px-1.5 py-0.5 text-[10px]",
+                        r.statusSistema === "Pedido Faturado" ? "bg-chart-5/20 text-chart-5" : "bg-muted",
+                      )}
+                    >
+                      {statusLabel(r.statusSistema)}
+                    </span>
                   </td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{brl0(r.valorTotal)}</td>
                 </tr>
-              ) : (
-                rows.map((r) => (
-                  <tr key={`${r.codigo}-${r.data}-${r.valorTotal}`} className="border-t align-top hover:bg-muted/40">
-                    <td className="px-3 py-1.5 tabular-nums">{r.codigo}</td>
-                    <td className="px-3 py-1.5">{parseData(r.data)}</td>
-                    <td className="max-w-56 truncate px-3 py-1.5" title={r.cliente}>
-                      {r.cliente}
-                    </td>
-                    <td className="px-3 py-1.5">{r.vendedor}</td>
-                    <td className="px-3 py-1.5">{r.estado}</td>
-                    <td className="px-3 py-1.5">
-                      <span
-                        className={cn(
-                          "rounded px-1.5 py-0.5 text-[10px]",
-                          r.statusSistema === "Pedido Faturado" ? "bg-chart-5/20" : "bg-muted",
-                        )}
-                      >
-                        {statusLabel(r.statusSistema)}
-                      </span>
-                    </td>
-                    <td className="px-3 py-1.5 text-right tabular-nums">{brl0(r.valorTotal)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        {rows.length < total ? (
-          <p className="text-xs text-muted-foreground">
-            Liste apenas as {LIMIT} maiores em valor. Filtre ou exporte o CSV para ver tudo.
-          </p>
-        ) : null}
-      </CardContent>
-    </Card>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      {rows.length < total ? (
+        <p className="text-xs text-muted-foreground">
+          Liste apenas as {LIMIT} maiores em valor. Filtre ou exporte o CSV para ver tudo.
+        </p>
+      ) : null}
+    </div>
   );
 }

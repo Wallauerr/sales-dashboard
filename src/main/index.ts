@@ -1,65 +1,73 @@
-import { app, BrowserWindow, Menu, dialog, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { SalesDatabase } from "./db/database";
-import { importWorkbook } from "./ingest/index";
 import { registerIpc } from "./ipc";
+
+app.disableHardwareAcceleration();
 
 let db: SalesDatabase;
 
-const isMac = process.platform === "darwin";
+function iconPath(): string {
+  return app.isPackaged
+    ? join(process.resourcesPath, "icon.png")
+    : join(__dirname, "../../resources/icon.png");
+}
 
 function createWindow(): void {
   const win = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1280,
+    height: 840,
+    minWidth: 960,
+    minHeight: 620,
+    title: "Sulmag Dashboard",
+    backgroundColor: "#00000000",
+    transparent: true,
+    frame: false,
+    icon: iconPath(),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
     },
   });
 
+  win.setMenuBarVisibility(false);
+
+  ipcMain.handle("win:minimize", () => win.minimize());
+  ipcMain.handle("win:toggle-maximize", () => {
+    if (win.isMaximized()) {
+      win.unmaximize();
+    } else {
+      win.maximize();
+    }
+  });
+  ipcMain.handle("win:close", () => win.close());
+  ipcMain.handle("win:get-bounds", () => win.getBounds());
+  ipcMain.on("win:set-bounds", (_e, b) => {
+    if (win.isMaximized() || win.isDestroyed()) return;
+    const minW = 960;
+    const minH = 620;
+    const x = Math.round(b?.x ?? win.getBounds().x);
+    const y = Math.round(b?.y ?? win.getBounds().y);
+    const width = Math.max(minW, Math.round(b?.width ?? win.getBounds().width));
+    const height = Math.max(minH, Math.round(b?.height ?? win.getBounds().height));
+    win.setBounds({ x, y, width, height });
+  });
+  win.on("maximize", () => win.webContents.send("win:maximized", true));
+  win.on("unmaximize", () => win.webContents.send("win:maximized", false));
+
   if (process.env.ELECTRON_RENDERER_URL) {
+    win.webContents.on("console-message", (_e, _level, message) => {
+      console.log("[renderer]", message);
+    });
     win.loadURL(process.env.ELECTRON_RENDERER_URL);
   } else {
     win.loadFile(join(__dirname, "../renderer/index.html"));
   }
 }
 
-async function importViaDialog(): Promise<void> {
-  const { canceled, filePaths } = await dialog.showOpenDialog({
-    title: "Importar dados do SIGE (Metas Comercial.xlsx ou relatório de pedidos)",
-    properties: ["openFile"],
-    filters: [{ name: "Excel workbooks", extensions: ["xlsx"] }],
-  });
-  if (canceled || filePaths.length === 0) return;
-  const result = await importWorkbook(db, filePaths[0]);
-  console.log("Import:", JSON.stringify(result));
-}
-
-const template = [
-  ...(isMac ? [{ role: "appMenu" as const }] : []),
-  {
-    label: "File",
-    submenu: [
-      {
-        label: "Importar dados do SIGE…",
-        accelerator: "CmdOrCtrl+O",
-        click: (): void => {
-          void importViaDialog();
-        },
-      },
-      { type: "separator" as const },
-      isMac ? { role: "close" as const } : { role: "quit" as const },
-    ],
-  },
-  { label: "Edit", role: "editMenu" as const },
-  { label: "View", role: "viewMenu" as const },
-  { label: "Window", role: "windowMenu" as const },
-];
-
 app.whenReady().then(() => {
+  app.setName("Sulmag Dashboard");
   db = SalesDatabase.open(new DatabaseSync(join(app.getPath("userData"), "metas.db")));
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 
   registerIpc(db);
 
@@ -76,4 +84,3 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
-

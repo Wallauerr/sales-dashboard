@@ -1,4 +1,18 @@
+import { useId } from "react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import type { ValueType } from "recharts/types/component/DefaultTooltipContent";
+
 import { brlCompact } from "@/lib/format";
+import { BRAND, resolveChartColor } from "@/lib/colors";
 
 interface Props {
   labels: string[];
@@ -8,66 +22,74 @@ interface Props {
   height?: number;
 }
 
-const W = 800;
-const L = 60;
-const R = 16;
-const T = 20;
-const B = 30;
-
-function niceCeil(v: number): number {
-  const safe = Math.max(1, v);
-  const p = Math.pow(10, Math.floor(Math.log10(safe)));
-  const m = safe / p;
-  const nice = m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10;
-  return nice * p;
-}
-
-export default function AccumulatedLine({ labels, values, target, valueFormat = brlCompact, height = 260 }: Props) {
-  const chartW = W - L - R;
-  const chartH = height - T - B;
-  const nice = niceCeil(Math.max(target, ...values));
-  const n = labels.length;
-  const x = (i: number): number => L + (chartW / Math.max(1, n - 1)) * i;
-  const y = (v: number): number => T + chartH - (v / nice) * chartH;
-  const pts = values.map((v, i) => `${x(i)},${y(v)}`).join(" ");
-  const area = `M ${x(0)},${T + chartH} ${values.map((v, i) => `L ${x(i)},${y(v)}`).join(" ")} L ${x(n - 1)},${T + chartH} Z`;
-  const steps = 4;
+export default function AccumulatedLine({
+  labels,
+  values,
+  target,
+  valueFormat = brlCompact,
+  height = 260,
+}: Props) {
+  const gid = useId();
+  const data = labels.map((label, i) => ({ idx: i, label, value: values[i] ?? 0 }));
 
   return (
-    <svg viewBox={`0 0 ${W} ${height}`} className="h-auto w-full" role="img">
-      {Array.from({ length: steps + 1 }, (_, k) => {
-        const v = (nice / steps) * k;
-        return (
-          <g key={k}>
-            <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="currentColor" strokeOpacity={0.1} />
-            <text x={L - 6} y={y(v) + 3} textAnchor="end" className="fill-muted-foreground text-[10px] tabular-nums">
-              {valueFormat(v)}
-            </text>
-          </g>
-        );
-      })}
-      <line
-        x1={L}
-        x2={W - R}
-        y1={y(target)}
-        y2={y(target)}
-        strokeWidth={2}
-        strokeDasharray="6 4"
-        className="stroke-destructive"
-      />
-      <text x={W - R} y={y(target) - 4} textAnchor="end" className="fill-destructive text-[10px]">
-        meta {valueFormat(target)}
-      </text>
-      <path d={area} className="fill-chart-1 opacity-15" />
-      <polyline points={pts} fill="none" strokeWidth={2.5} strokeLinejoin="round" className="stroke-chart-1" />
-      {values.map((v, i) => (
-        <circle key={i} cx={x(i)} cy={y(v)} r={2.5} className="fill-chart-1" />
-      ))}
-      {labels.map((lab, i) => (
-        <text key={lab} x={x(i)} y={height - B + 16} textAnchor="middle" className="fill-muted-foreground text-[10px]">
-          {lab}
-        </text>
-      ))}
-    </svg>
+    <div style={{ height }} className="w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 12, right: 12, left: 8, bottom: 0 }}>
+          <defs>
+            <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={BRAND.gold} stopOpacity={0.35} />
+              <stop offset="95%" stopColor={BRAND.gold} stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <XAxis
+            dataKey="label"
+            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+            axisLine={false}
+            tickLine={false}
+            interval={0}
+          />
+          <YAxis
+            tickFormatter={(v) => valueFormat(Number(v ?? 0))}
+            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+            axisLine={false}
+            tickLine={false}
+            width={64}
+          />
+          <Tooltip
+            formatter={(value: ValueType | undefined, _name: unknown) => [valueFormat(Number(value ?? 0)), "Acumulado"]}
+            cursor={{ stroke: "var(--muted-foreground)", strokeDasharray: "3 3" }}
+            contentStyle={{
+              background: "var(--popover)",
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              fontSize: 12,
+            }}
+            labelStyle={{ color: "var(--foreground)" }}
+          />
+          <ReferenceLine
+            y={target}
+            stroke={resolveChartColor("stroke-destructive")}
+            strokeDasharray="6 4"
+            label={{
+              value: `meta ${valueFormat(target)}`,
+              position: "insideTopRight",
+              fontSize: 11,
+              fill: "var(--destructive)",
+            }}
+          />
+          <Area
+            type="monotone"
+            dataKey="value"
+            stroke={BRAND.gold}
+            strokeWidth={2.5}
+            fill={`url(#${gid})`}
+            dot={{ r: 2.5, fill: BRAND.gold, strokeWidth: 0 }}
+            activeDot={{ r: 4 }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
