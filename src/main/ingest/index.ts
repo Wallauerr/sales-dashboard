@@ -153,5 +153,7 @@ export async function importWorkbook(db: SalesDatabase, filePath: string): Promi
   }
 
   db.logImport(result);
+  db.setMeta("last_import_path", filePath);
+  db.setMeta("last_import_at", new Date().toISOString());
   return result;
 }

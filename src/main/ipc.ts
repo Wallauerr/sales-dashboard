@@ -18,6 +18,11 @@ export function registerIpc(db: SalesDatabase): void {
     return importWorkbook(db, filePath);
   });
 
+  ipcMain.handle("ingest:last-import", () => {
+    const path = db.getMeta("last_import_path");
+    return path ? { path, at: db.getMeta("last_import_at") } : null;
+  });
+
   ipcMain.handle("kpis:get", (_event, ano: number) => {
     return getSnapshot(db, ano);
   });

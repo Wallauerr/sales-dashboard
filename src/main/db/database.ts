@@ -36,8 +36,8 @@ CREATE INDEX IF NOT EXISTS idx_vendas_estado ON vendas (estado);
 CREATE INDEX IF NOT EXISTS idx_vendas_regiao ON vendas (regiao);
 
 CREATE TABLE IF NOT EXISTS meta_config (
-  ano INTEGER PRIMARY KEY,
-  fator REAL NOT NULL DEFAULT 1.15
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS import_log (
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS import_log (
 );
 `;
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 export class SalesDatabase {
   private db: DatabaseSync;
@@ -149,7 +149,23 @@ export class SalesDatabase {
   }
 
   getFator(ano: number): number {
-    const row = this.db.prepare("SELECT fator FROM meta_config WHERE ano = ?").get(ano) as { fator: number } | undefined;
-    return row ? row.fator : 1.15;
+    return Number(this.getMeta(`fator:${ano}`) ?? 1.15);
+  }
+
+  setFator(ano: number, fator: number): void {
+    this.setMeta(`fator:${ano}`, String(fator));
+  }
+
+  getMeta(key: string): string | null {
+    const row = this.db.prepare("SELECT value FROM meta_config WHERE key = ?").get(key) as
+      | { value: string }
+      | undefined;
+    return row ? row.value : null;
+  }
+
+  setMeta(key: string, value: string): void {
+    this.db
+      .prepare("INSERT INTO meta_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+      .run(key, value);
   }
 }

@@ -25,3 +25,10 @@ export function int(v: number): string {
 export function pct(v: number): string {
   return pctFmt.format(v);
 }
+
+const dtFmt = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
+
+export function brlHumanDate(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : dtFmt.format(d);
+}

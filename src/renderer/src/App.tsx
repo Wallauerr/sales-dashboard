@@ -12,7 +12,7 @@ import { KpiCard, KpiCardContent, KpiCardHeader, KpiCardTitle, KpiCardValue } fr
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { brl, brl0, brlCompact, int, pct } from "@/lib/format";
+import { brl, brl0, brlCompact, brlHumanDate, int, pct } from "@/lib/format";
 
 const ANOS = [2024, 2025, 2026];
 const MES_LABEL: Record<Mes, string> = {
@@ -61,6 +61,7 @@ export default function App() {
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
+  const [lastImport, setLastImport] = useState<{ path: string; at: string | null } | null>(null);
 
   const api = window.api;
 
@@ -86,17 +87,31 @@ export default function App() {
     }
   }, [snap, funnelMes]);
 
-  const handleImport = async (): Promise<void> => {
+  const refreshLastImport = useCallback(async () => {
+    if (!api) return;
+    try {
+      setLastImport(await api.lastImport());
+    } catch {
+      setLastImport(null);
+    }
+  }, [api]);
+
+  useEffect(() => {
+    void refreshLastImport();
+  }, [refreshLastImport]);
+
+  const handleImport = async (viaDialog: boolean): Promise<void> => {
     if (!api) return;
     setImporting(true);
     try {
-      const r = await api.importWorkbook();
+      const r = viaDialog ? await api.importWorkbook() : await api.importFromPath(lastImport?.path ?? "");
       if (r) {
         setImportMsg(
-          `${r.filePath.split("/").pop()} — ${int(r.inserted)} linhas importadas` +
+          `${r.filePath.split(/[\\/]/).pop()} — ${int(r.inserted)} linhas importadas` +
             (r.updated ? `, ${int(r.updated)} atualizadas` : "") +
             (r.discarded ? `, ${int(r.discarded)} descartadas` : ""),
         );
+        await refreshLastImport();
         setReload((k) => k + 1);
       }
     } catch (e) {
@@ -145,14 +160,22 @@ export default function App() {
               </button>
             ))}
           </div>
-          <Button onClick={() => void handleImport()} disabled={importing}>
+          <Button onClick={() => void handleImport(true)} disabled={importing}>
             {importing ? "Importando…" : "Importar export do SIGE"}
           </Button>
+          {lastImport ? (
+            <Button variant="outline" onClick={() => void handleImport(false)} disabled={importing}>
+              Reimportar {lastImport.path.split(/[\\/]/).pop()}
+            </Button>
+          ) : null}
         </div>
       </header>
 
       {importMsg ? <p className="text-xs text-muted-foreground">{importMsg}</p> : null}
       {error ? <p className="text-xs text-destructive">Erro: {error}</p> : null}
+      {lastImport && lastImport.at ? (
+        <p className="text-xs text-muted-foreground">última atualização: {brlHumanDate(lastImport.at)}</p>
+      ) : null}
 
       {!snap ? (
         <p className="py-16 text-center text-sm text-muted-foreground">
