@@ -1,29 +1,33 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain } = require("electron");
-const path = require("node:path");
+import { app, BrowserWindow, Menu, dialog, ipcMain } from "electron";
+import { join } from "node:path";
 
 const isMac = process.platform === "darwin";
 
-const createWindow = () => {
+const createWindow = (): void => {
   const win = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: join(__dirname, "../preload/index.js"),
     },
   });
 
-  win.loadFile("index.html");
+  if (process.env.ELECTRON_RENDERER_URL) {
+    win.loadURL(process.env.ELECTRON_RENDERER_URL);
+  } else {
+    win.loadFile(join(__dirname, "../renderer/index.html"));
+  }
 };
 
 const template = [
-  ...(isMac ? [{ role: "appMenu" }] : []),
+  ...(isMac ? [{ role: "appMenu" as const }] : []),
   {
     label: "File",
     submenu: [
       {
         label: "Import Metas Comercial.xlsx…",
         accelerator: "CmdOrCtrl+O",
-        click: async () => {
+        click: async (): Promise<void> => {
           const { canceled, filePaths } = await dialog.showOpenDialog({
             title: "Import export from SIGE Cloud",
             properties: ["openFile"],
@@ -35,13 +39,13 @@ const template = [
           }
         },
       },
-      { type: "separator" },
-      isMac ? { role: "close" } : { role: "quit" },
+      { type: "separator" as const },
+      isMac ? { role: "close" as const } : { role: "quit" as const },
     ],
   },
-  { label: "Edit", role: "editMenu" },
-  { label: "View", role: "viewMenu" },
-  { label: "Window", role: "windowMenu" },
+  { label: "Edit", role: "editMenu" as const },
+  { label: "View", role: "viewMenu" as const },
+  { label: "Window", role: "windowMenu" as const },
 ];
 
 app.whenReady().then(() => {
