@@ -34,6 +34,7 @@ CREATE INDEX IF NOT EXISTS idx_vendas_ano_status ON vendas (ano, status_sistema)
 CREATE INDEX IF NOT EXISTS idx_vendas_vendedor ON vendas (vendedor);
 CREATE INDEX IF NOT EXISTS idx_vendas_estado ON vendas (estado);
 CREATE INDEX IF NOT EXISTS idx_vendas_regiao ON vendas (regiao);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_vendas_codigo ON vendas (codigo);
 
 CREATE TABLE IF NOT EXISTS meta_config (
   key TEXT PRIMARY KEY,
@@ -51,7 +52,7 @@ CREATE TABLE IF NOT EXISTS import_log (
 );
 `;
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 export class SalesDatabase {
   private db: DatabaseSync;
@@ -61,10 +62,18 @@ export class SalesDatabase {
     db.exec("PRAGMA journal_mode = WAL");
     const { user_version } = db.prepare("PRAGMA user_version").get() as { user_version: number };
     if (user_version < SCHEMA_VERSION) {
-      db.exec("DROP TABLE IF EXISTS vendas; DROP TABLE IF EXISTS meta_config; DROP TABLE IF EXISTS import_log;");
+      // Migração v3 -> v4 (reconciliação por codigo): preserva os dados, apenas
+      // elimina eventuais duplicatas mantendo a linha mais recente por codigo.
+      try {
+        db.exec("DELETE FROM vendas WHERE id NOT IN (SELECT MAX(id) FROM vendas GROUP BY codigo)");
+      } catch {
+        // tabela ainda não existe (instalação nova) — o SCHEMA abaixo cria.
+      }
+      db.exec(SCHEMA);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+    } else {
+      db.exec(SCHEMA);
     }
-    db.exec(SCHEMA);
   }
 
   static open(db: DatabaseSync): SalesDatabase {
@@ -140,6 +149,52 @@ export class SalesDatabase {
         row.mes,
         row.ano,
       );
+  }
+
+  upsertSale(row: Parameters<SalesDatabase["insertSale"]>[0]): "inserted" | "updated" {
+    const exists =
+      this.db.prepare("SELECT 1 FROM vendas WHERE codigo = ?").get(row.codigo) !== undefined;
+    if (!exists) {
+      this.insertSale(row);
+      return "inserted";
+    }
+    this.db
+      .prepare(
+        `UPDATE vendas SET
+           data = ?, data_aprov_orcamento = ?, data_aprov_pedido = ?, data_aprov_faturamento = ?,
+           data_emissao_fiscal = ?, empresa = ?, status_sistema = ?, vendedor = ?, categoria = ?,
+           status = ?, origem = ?, cliente = ?, cidade = ?, estado = ?, regiao = ?,
+           transportadora = ?, frete = ?, desconto = ?, comissao = ?, valor_total = ?, nfe = ?,
+           mes = ?, ano = ?
+         WHERE codigo = ?`,
+      )
+      .run(
+        row.data,
+        row.dataAprovOrcamento,
+        row.dataAprovPedido,
+        row.dataAprovFaturamento,
+        row.dataEmissaoFiscal,
+        row.empresa,
+        row.statusSistema,
+        row.vendedor,
+        row.categoria,
+        row.status,
+        row.origem,
+        row.cliente,
+        row.cidade,
+        row.estado,
+        row.regiao,
+        row.transportadora,
+        row.frete,
+        row.desconto,
+        row.comissao,
+        row.valorTotal,
+        row.nfe,
+        row.mes,
+        row.ano,
+        row.codigo,
+      );
+    return "updated";
   }
 
   logImport(result: { filePath: string; totalRows: number; inserted: number; updated: number; discarded: number }): void {
