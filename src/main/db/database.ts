@@ -1,4 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
+import type { CodigoHistory, ImportCodeEvent, ImportRecord, Sale } from "../../shared/types.ts";
+import { saleSchema } from "../../shared/schemas.ts";
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS vendas (
@@ -50,9 +52,23 @@ CREATE TABLE IF NOT EXISTS import_log (
   discarded INTEGER NOT NULL,
   imported_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS import_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  import_id INTEGER NOT NULL REFERENCES import_log(id),
+  codigo TEXT NOT NULL,
+  op TEXT NOT NULL,
+  status_sistema TEXT NOT NULL DEFAULT '',
+  valor_total REAL NOT NULL DEFAULT 0,
+  data TEXT,
+  mes TEXT,
+  ano INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_import_items_codigo ON import_items (codigo, id);
+CREATE INDEX IF NOT EXISTS idx_import_items_import ON import_items (import_id);
 `;
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 export class SalesDatabase {
   private db: DatabaseSync;
@@ -225,10 +241,103 @@ export class SalesDatabase {
     return "updated";
   }
 
-  logImport(result: { filePath: string; totalRows: number; inserted: number; updated: number; discarded: number }): void {
+  logImport(result: { filePath: string; totalRows: number; inserted: number; updated: number; discarded: number }): number {
+    const { lastInsertRowid } = this.db
+      .prepare(
+        "INSERT INTO import_log (file_path, total_rows, inserted, updated, discarded, imported_at) VALUES (?, ?, ?, ?, ?, ?)",
+      )
+      .run(result.filePath, result.totalRows, result.inserted, result.updated, result.discarded, new Date().toISOString());
+    return Number(lastInsertRowid);
+  }
+
+  insertImportItem(item: {
+    importId: number;
+    codigo: string;
+    op: "inserted" | "updated";
+    statusSistema: string;
+    valorTotal: number;
+    data: string | null;
+    mes: string | null;
+    ano: number | null;
+  }): void {
     this.db
-      .prepare("INSERT INTO import_log (file_path, total_rows, inserted, updated, discarded) VALUES (?, ?, ?, ?, ?)")
-      .run(result.filePath, result.totalRows, result.inserted, result.updated, result.discarded);
+      .prepare(
+        "INSERT INTO import_items (import_id, codigo, op, status_sistema, valor_total, data, mes, ano) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      )
+      .run(item.importId, item.codigo, item.op, item.statusSistema, item.valorTotal, item.data, item.mes, item.ano);
+  }
+
+  listImports(): ImportRecord[] {
+    const rows = this.db
+      .prepare("SELECT id, file_path, total_rows, inserted, updated, discarded, imported_at FROM import_log ORDER BY id DESC")
+      .all() as unknown as Record<string, unknown>[];
+    return rows.map((r) => ({
+      id: Number(r.id),
+      filePath: String(r.file_path),
+      totalRows: Number(r.total_rows),
+      inserted: Number(r.inserted),
+      updated: Number(r.updated),
+      discarded: Number(r.discarded),
+      importedAt: String(r.imported_at),
+    }));
+  }
+
+  findVendaByCodigo(codigo: string): Sale | null {
+    const r = this.db.prepare("SELECT * FROM vendas WHERE codigo = ?").get(codigo) as Record<string, unknown> | undefined;
+    if (!r) return null;
+    return saleSchema.parse({
+      codigo: String(r.codigo ?? ""),
+      data: r.data ? String(r.data) : null,
+      dataAprovOrcamento: r.data_aprov_orcamento ? String(r.data_aprov_orcamento) : null,
+      dataAprovPedido: r.data_aprov_pedido ? String(r.data_aprov_pedido) : null,
+      dataAprovFaturamento: r.data_aprov_faturamento ? String(r.data_aprov_faturamento) : null,
+      dataEmissaoFiscal: r.data_emissao_fiscal ? String(r.data_emissao_fiscal) : null,
+      empresa: String(r.empresa ?? ""),
+      statusSistema: String(r.status_sistema ?? ""),
+      vendedor: String(r.vendedor ?? ""),
+      categoria: String(r.categoria ?? ""),
+      status: String(r.status ?? ""),
+      origem: String(r.origem ?? ""),
+      cliente: String(r.cliente ?? ""),
+      cidade: String(r.cidade ?? ""),
+      estado: String(r.estado ?? ""),
+      regiao: String(r.regiao ?? ""),
+      transportadora: String(r.transportadora ?? ""),
+      frete: Number(r.frete) || 0,
+      desconto: Number(r.desconto) || 0,
+      comissao: Number(r.comissao) || 0,
+      valorTotal: Number(r.valor_total) || 0,
+      nfe: String(r.nfe ?? ""),
+      mes: r.mes ? (String(r.mes) as Sale["mes"]) : null,
+      ano: r.ano ? Number(r.ano) : null,
+    });
+  }
+
+  codigoHistoryEvents(codigo: string): ImportCodeEvent[] {
+    const rows = this.db
+      .prepare(
+        `SELECT ii.op, ii.status_sistema, ii.valor_total, ii.data, ii.mes, ii.ano, il.imported_at
+         FROM import_items ii JOIN import_log il ON il.id = ii.import_id
+         WHERE ii.codigo = ? ORDER BY il.id ASC, ii.id ASC`,
+      )
+      .all(codigo) as unknown as Record<string, unknown>[];
+    return rows.map((r) => ({
+      importedAt: String(r.imported_at),
+      op: String(r.op) as ImportCodeEvent["op"],
+      statusSistema: String(r.status_sistema ?? ""),
+      valorTotal: Number(r.valor_total) || 0,
+      data: r.data ? String(r.data) : null,
+      mes: r.mes ? (String(r.mes) as ImportCodeEvent["mes"]) : null,
+      ano: r.ano ? Number(r.ano) : null,
+    }));
+  }
+
+  getCodigoHistory(codigo: string): CodigoHistory {
+    return {
+      codigo,
+      venda: this.findVendaByCodigo(codigo),
+      events: this.codigoHistoryEvents(codigo),
+    };
   }
 
   getFator(ano: number): number {
