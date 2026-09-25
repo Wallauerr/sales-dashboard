@@ -111,6 +111,17 @@ async function main(): Promise<void> {
   check("descartadas == linhas sem codigo", result.discarded, 294);
   show("faturamento 2026 (referência cache, reconciliado)", ref.total2026, 7901673.35);
 
+  const records = db.listImports();
+  check("log de imports registrou 1 import", records.length, 1);
+  check("log do import: inserted == resultado", records[0]?.inserted ?? -1, result.inserted);
+  check("log do import: updated == resultado", records[0]?.updated ?? -1, result.updated);
+  check("log do import: discarded == resultado", records[0]?.discarded ?? -1, result.discarded);
+  const firstCode = (db.raw.prepare("SELECT codigo FROM vendas ORDER BY id LIMIT 1").get() as { codigo: string } | undefined)?.codigo;
+  if (firstCode) {
+    const events = db.getCodigoHistory(firstCode).events.length;
+    check(`codigo ${firstCode} possui histórico de entrada`, events > 0, true);
+  }
+
   const s = getSnapshot(db, ANO);
 
   check("faturamento 2026 total do motor == ref", s.totalPeriodo, ref.total2026, 0.05);

@@ -114,6 +114,28 @@ async function main(): Promise<void> {
   check("quantidade julho", s2.quantidadePorMes.jul, 1);
   check("total do período 2026", s2.totalPeriodo, 7000);
 
+  console.log("\n— Histórico de imports e evolução por codigo —");
+  const imports = db2.listImports();
+  check("log de imports: 2 registros", imports.length, 2);
+  check("log import dia A", { totalRows: imports[1]?.totalRows, inserted: imports[1]?.inserted, updated: imports[1]?.updated, discarded: imports[1]?.discarded }, { totalRows: 2, inserted: 2, updated: 0, discarded: 0 });
+  check("log import dia B", { totalRows: imports[0]?.totalRows, inserted: imports[0]?.inserted, updated: imports[0]?.updated }, { totalRows: 2, inserted: 1, updated: 1 });
+
+  const h900 = db2.getCodigoHistory("900");
+  check("codigo 900: estado atual", { venda: h900.venda?.statusSistema, valor: h900.venda?.valorTotal }, { venda: "Pedido Faturado", valor: 5000 });
+  check(
+    "codigo 900: evolução nos imports",
+    h900.events.map((e) => `${e.op}:${e.statusSistema}`),
+    ["inserted:Orçamento", "updated:Pedido Faturado"],
+  );
+  check(
+    "codigo 900: primeiro evento guarda valor/mês",
+    { valor: h900.events[0]?.valorTotal, mes: h900.events[0]?.mes, ano: h900.events[0]?.ano },
+    { valor: 5000, mes: "mai", ano: 2026 },
+  );
+  check("codigo 901 reexportado sem mudança gera 1 só evento", db2.getCodigoHistory("901").events.length, 1);
+  const h999 = db2.getCodigoHistory("999");
+  check("codigo inexistente", { venda: h999.venda, eventos: h999.events.length }, { venda: null, eventos: 0 });
+
   console.log("SMOKE PASS");
 }
 
