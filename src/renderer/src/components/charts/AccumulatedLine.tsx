@@ -17,7 +17,7 @@ import { BRAND, resolveChartColor } from "@/lib/colors";
 interface Props {
   labels: string[];
   values: number[];
-  target: number;
+  target?: number;
   valueFormat?: (v: number) => string;
   height?: number;
 }
@@ -68,17 +68,19 @@ export default function AccumulatedLine({
             }}
             labelStyle={{ color: "var(--foreground)" }}
           />
-          <ReferenceLine
-            y={target}
-            stroke={resolveChartColor("stroke-destructive")}
-            strokeDasharray="6 4"
-            label={{
-              value: `meta ${valueFormat(target)}`,
-              position: "insideTopRight",
-              fontSize: 11,
-              fill: "var(--destructive)",
-            }}
-          />
+          {target !== undefined && target > 0 ? (
+            <ReferenceLine
+              y={target}
+              stroke={resolveChartColor("stroke-destructive")}
+              strokeDasharray="6 4"
+              label={{
+                value: `meta ${valueFormat(target)}`,
+                position: "insideTopRight",
+                fontSize: 11,
+                fill: "var(--destructive)",
+              }}
+            />
+          ) : null}
           <Area
             type="monotone"
             dataKey="value"

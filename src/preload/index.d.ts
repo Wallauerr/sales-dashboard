@@ -3,8 +3,8 @@ import type {
   ImportRecord,
   ImportResult,
   KpiSnapshot,
-  VendasFilter,
-  VendasPage,
+  SnapshotFilter,
+  VendedorFoto,
 } from "../shared/types";
 
 interface WindowBounds {
@@ -18,8 +18,8 @@ interface Api {
   importWorkbook: () => Promise<ImportResult | null>;
   getImports: () => Promise<ImportRecord[]>;
   getCodigoHistory: (codigo: string) => Promise<CodigoHistory>;
-  getSnapshot: (ano: number) => Promise<KpiSnapshot>;
-  getVendas: (filters: VendasFilter, limit?: number) => Promise<VendasPage>;
+  getSnapshot: (ano: number, filtro?: SnapshotFilter) => Promise<KpiSnapshot>;
+  getFotos: () => Promise<VendedorFoto[]>;
   minimize: () => Promise<void>;
   toggleMaximize: () => Promise<void>;
   closeWindow: () => Promise<void>;

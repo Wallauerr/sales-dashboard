@@ -6,8 +6,6 @@ import {
   type ImportResult,
   type Mes,
   type Sale,
-  type VendasFilter,
-  type VendasPage,
 } from "./schemas.ts";
 
 export type {
@@ -17,13 +15,21 @@ export type {
   ImportResult,
   Mes,
   Sale,
-  VendasFilter,
-  VendasPage,
 };
 
 export const MESES = MESES_LIST;
 
 export const STATUS_FATURAMENTO = ["Pedido", "Pedido Faturado"];
+
+export interface SnapshotFilter {
+  mes?: Mes | null;
+  vendedor?: string | null;
+}
+
+export interface VendedorFoto {
+  vendedor: string;
+  dataUrl: string;
+}
 
 export interface FunnelMonth {
   mes: Mes;
@@ -57,6 +63,7 @@ export interface KpiSnapshot {
   totalPeriodo: number;
   totalHistorico: number;
   participacaoAno: number;
+  participacaoEscopo: number;
   faturamentoPorMes: Record<Mes, number>;
   quantidadePorMes: Record<Mes, number>;
   porVendedor: { vendedor: string; valor: number; share: number }[];

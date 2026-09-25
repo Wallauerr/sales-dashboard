@@ -4,8 +4,8 @@ import type {
   ImportRecord,
   ImportResult,
   KpiSnapshot,
-  VendasFilter,
-  VendasPage,
+  SnapshotFilter,
+  VendedorFoto,
 } from "../shared/types.ts";
 
 export interface WindowBounds {
@@ -19,8 +19,9 @@ const api = {
   importWorkbook: () => ipcRenderer.invoke("ingest:import") as Promise<ImportResult | null>,
   getImports: () => ipcRenderer.invoke("ingest:imports") as Promise<ImportRecord[]>,
   getCodigoHistory: (codigo: string) => ipcRenderer.invoke("ingest:codigo-history", codigo) as Promise<CodigoHistory>,
-  getSnapshot: (ano: number) => ipcRenderer.invoke("kpis:get", ano) as Promise<KpiSnapshot>,
-  getVendas: (filters: VendasFilter, limit?: number) => ipcRenderer.invoke("vendas:list", filters, limit) as Promise<VendasPage>,
+  getSnapshot: (ano: number, filtro?: SnapshotFilter) =>
+    ipcRenderer.invoke("kpis:get", ano, filtro) as Promise<KpiSnapshot>,
+  getFotos: () => ipcRenderer.invoke("fotos:list") as Promise<VendedorFoto[]>,
   minimize: () => ipcRenderer.invoke("win:minimize") as Promise<void>,
   toggleMaximize: () => ipcRenderer.invoke("win:toggle-maximize") as Promise<void>,
   closeWindow: () => ipcRenderer.invoke("win:close") as Promise<void>,

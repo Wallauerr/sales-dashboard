@@ -67,9 +67,15 @@ CREATE TABLE IF NOT EXISTS import_items (
 );
 CREATE INDEX IF NOT EXISTS idx_import_items_codigo ON import_items (codigo, id);
 CREATE INDEX IF NOT EXISTS idx_import_items_import ON import_items (import_id);
+
+CREATE TABLE IF NOT EXISTS vendedor_fotos (
+  vendedor TEXT PRIMARY KEY,
+  mime TEXT NOT NULL DEFAULT 'image/png',
+  img BLOB NOT NULL
+);
 `;
 
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 export class SalesDatabase {
   private db: DatabaseSync;
@@ -331,5 +337,27 @@ export class SalesDatabase {
     this.db
       .prepare("INSERT INTO meta_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
       .run(key, value);
+  }
+
+  saveVendedorFotos(fotos: { vendedor: string; mime: string; img: Uint8Array }[]): void {
+    this.db.exec("BEGIN");
+    try {
+      this.db.exec("DELETE FROM vendedor_fotos");
+      const stmt = this.db.prepare("INSERT INTO vendedor_fotos (vendedor, mime, img) VALUES (?, ?, ?)");
+      for (const f of fotos) stmt.run(f.vendedor, f.mime, f.img);
+      this.db.exec("COMMIT");
+    } catch (err) {
+      this.db.exec("ROLLBACK");
+      throw err;
+    }
+  }
+
+  listVendedorFotos(): { vendedor: string; mime: string; img: Uint8Array }[] {
+    const rows = this.db.prepare("SELECT vendedor, mime, img FROM vendedor_fotos").all() as unknown as {
+      vendedor: string;
+      mime: string;
+      img: Uint8Array;
+    }[];
+    return rows.map((r) => ({ vendedor: r.vendedor, mime: r.mime, img: r.img }));
   }
 }
