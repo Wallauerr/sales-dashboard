@@ -526,13 +526,6 @@ export default function App() {
             <HistoryTab reloadKey={reload} />
           </TabsContent>
         </Tabs>
-
-        <footer className="mt-auto flex items-center justify-between text-xs text-muted-foreground">
-          <span>
-            Electron {api.versions.electron()} · Node {api.versions.node()} · Chrome {api.versions.chrome()}
-          </span>
-          <span>Fonte: Metas Comercial.xlsx (aba Base)</span>
-        </footer>
       </main>
     </div>
   );
