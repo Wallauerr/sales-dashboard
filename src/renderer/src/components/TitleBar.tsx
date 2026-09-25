@@ -14,7 +14,7 @@ export default function TitleBar() {
       <div className="flex min-w-0 items-center gap-2">
         <img src={iconUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />
         <span className="truncate text-[13px] font-semibold tracking-tight font-heading">
-          Sulmag Dashboard
+          Sulmag
         </span>
         <span className="hidden text-[11px] text-white/40 sm:inline">— Metas Comercial</span>
       </div>
@@ -47,3 +47,4 @@ export default function TitleBar() {
     </div>
   );
 }
+
