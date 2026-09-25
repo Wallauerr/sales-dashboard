@@ -11,6 +11,7 @@ import type { HBarDatum } from "@/components/charts/HorizontalBars";
 import RegionMap from "@/components/charts/RegionMap";
 import type { RegionPoint } from "@/components/charts/RegionMap";
 import HistoryTab from "@/components/history/HistoryTab";
+import ConfigTab from "@/components/config/ConfigTab";
 import SellerCards from "@/components/sellers/SellerCards";
 import {
   KpiCard,
@@ -82,7 +83,7 @@ export default function App() {
   const [ano, setAno] = useState(2026);
   const [mes, setMes] = useState<Mes | "todos">("todos");
   const [vendedor, setVendedor] = useState<string | null>(null);
-  const [view, setView] = useState<"dashboard" | "historico">("dashboard");
+  const [view, setView] = useState<"dashboard" | "historico" | "config">("dashboard");
   const maximized = useWindowMaximized();
   const [snap, setSnap] = useState<KpiSnapshot | null>(null);
   const [fotos, setFotos] = useState<Record<string, string>>({});
@@ -218,7 +219,7 @@ export default function App() {
             </p>
             <h1 className="font-heading text-2xl font-semibold tracking-tight">Metas Comercial</h1>
             <p className="text-sm text-muted-foreground">
-              {view === "dashboard" ? "Dashboard de vendas" : "Histórico de vendas"}
+              {view === "dashboard" ? "Dashboard de vendas" : view === "config" ? "Configurações" : "Histórico de vendas"}
             </p>
           </div>
           <div className="no-print flex flex-wrap items-center gap-2">
@@ -279,12 +280,13 @@ export default function App() {
 
         <Tabs
           value={view}
-          onValueChange={(v) => setView(v as "dashboard" | "historico")}
+          onValueChange={(v) => setView(v as "dashboard" | "historico" | "config")}
           className="flex min-h-0 flex-1 flex-col gap-4"
         >
           <TabsList className="w-fit">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="historico">Histórico</TabsTrigger>
+            <TabsTrigger value="config">Configurações</TabsTrigger>
           </TabsList>
           <TabsContent value="dashboard" className="flex flex-col gap-6">
             {!snap ? (
@@ -367,7 +369,11 @@ export default function App() {
                         <KpiCardContent>
                           <KpiCardValue
                             value={brl0(snap.metaAnual)}
-                            hint={`base ${ano - 1} × ${(snap.fator * 100).toFixed(0)}%`}
+                            hint={
+                              snap.metaPersonalizada
+                                ? "personalizada — edite em Configurações"
+                                : `base ${ano - 1} × ${(snap.fator * 100).toFixed(0)}%`
+                            }
                           />
                         </KpiCardContent>
                       </KpiCard>
@@ -674,6 +680,9 @@ export default function App() {
           </TabsContent>
           <TabsContent value="historico">
             <HistoryTab reloadKey={reload} ano={ano} mes={mes} />
+          </TabsContent>
+          <TabsContent value="config">
+            <ConfigTab ano={ano} reloadKey={reload} onSaved={() => setReload((k) => k + 1)} />
           </TabsContent>
         </Tabs>
       </main>
