@@ -30,6 +30,9 @@ const HEADERS = [
   "Comissão (R$)",
   "Valor Total(R$)",
   "NF-e/NFS-e",
+  "Data Aprov Pedido",
+  "Data Aprov Faturamento",
+  "Data Emissão Fiscal",
 ];
 
 const ROWS: unknown[][] = [
@@ -42,6 +45,15 @@ const ROWS: unknown[][] = [
   ["14", "05/02/2026", "", "X", "Pedido", "Ursula", "Neodimio", "", "", "C5", "Curitiba", "PR", "Sul", "", 0, 0, 0, 4000, ""],
 ];
 
+function writeWorkbook(rows: unknown[][]): string {
+  const ws = XLSX.utils.aoa_to_sheet([HEADERS, ...rows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Base");
+  const filePath = join(tmpdir(), `smoke-base-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.xlsx`);
+  writeFileSync(filePath, XLSX.write(wb, { type: "buffer" }));
+  return filePath;
+}
+
 function check(label: string, got: unknown, expected: unknown): void {
   assert.deepEqual(got, expected, `${label}: got ${JSON.stringify(got)}, expected ${JSON.stringify(expected)}`);
   console.log(`PASS ${label}`);
@@ -49,11 +61,7 @@ function check(label: string, got: unknown, expected: unknown): void {
 
 async function main(): Promise<void> {
   const db = SalesDatabase.open(new DatabaseSync(":memory:"));
-  const ws = XLSX.utils.aoa_to_sheet([HEADERS, ...ROWS]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Base");
-  const filePath = join(tmpdir(), `smoke-base-${Date.now()}.xlsx`);
-  writeFileSync(filePath, XLSX.write(wb, { type: "buffer" }));
+  const filePath = writeWorkbook(ROWS);
 
   const result = await importWorkbook(db, filePath);
   check("import inserted", result.inserted, ROWS.length);
@@ -81,6 +89,30 @@ async function main(): Promise<void> {
   check("getVendas faturamento count", fat.total, 4);
   check("getVendas faturamento sum", fat.rows.reduce((a, r) => a + r.valorTotal, 0), 10000);
   check("getVendas order desc", fat.rows[0].codigo, "14");
+
+  console.log("\n— Reconciliação diária por codigo (orçamento evolui para pedido) —");
+  const db2 = SalesDatabase.open(new DatabaseSync(":memory:"));
+  const dayA = writeWorkbook([
+    ["900", "10/05/2026", "10/05/2026", "", "Orçamento", "V1", "Equipamentos", "", "", "CA", "Alegre", "RS", "Sul", "", 0, 0, 0, 5000, "", "", "", ""],
+    ["901", "01/01/2026", "", "", "Pedido Faturado", "V2", "Neodimio", "", "", "CB", "Porto", "RS", "Sul", "", 0, 0, 0, 2000, "", "", "", ""],
+  ]);
+  const dayB = writeWorkbook([
+    ["900", "12/07/2026", "10/05/2026", "", "Pedido Faturado", "V1", "Equipamentos", "", "", "CA", "Alegre", "RS", "Sul", "", 0, 0, 0, 5000, "", "", "12/07/2026", ""],
+    ["902", "11/07/2026", "11/07/2026", "", "Orçamento", "V3", "Follow-Up", "", "", "CC", "Lins", "SP", "Sudeste", "", 0, 0, 0, 400, "", "", "", ""],
+  ]);
+
+  const rA = await importWorkbook(db2, dayA);
+  check("dia A: 2 inseridos", rA.inserted, 2);
+  const rB = await importWorkbook(db2, dayB);
+  check("dia B: 1 novo + 1 atualizado", { inserted: rB.inserted, updated: rB.updated }, { inserted: 1, updated: 1 });
+  check("total de linhas sem duplicar", (db2.raw.prepare("SELECT COUNT(*) AS n FROM vendas").get() as { n: number }).n, 3);
+
+  const s2 = await getSnapshot(db2, 2026);
+  check("faturamento maio zerado (900 saiu do orçamento)", s2.faturamentoPorMes.mai, 0);
+  check("faturamento julho inclui venda aprovada", s2.faturamentoPorMes.jul, 5000);
+  check("funil julho", { orcamento: s2.funilPorMes[6].orcamento, faturado: s2.funilPorMes[6].pedidoFaturado }, { orcamento: 1, faturado: 1 });
+  check("quantidade julho", s2.quantidadePorMes.jul, 1);
+  check("total do período 2026", s2.totalPeriodo, 7000);
 
   console.log("SMOKE PASS");
 }
