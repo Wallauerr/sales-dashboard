@@ -145,6 +145,7 @@ function normalizeRow(raw: RawBaseRow): Sale {
 export async function importWorkbook(db: SalesDatabase, filePath: string): Promise<ImportResult> {
   const rows = readWorkbook(filePath);
   const result: ImportResult = { filePath, totalRows: rows.length, inserted: 0, updated: 0, discarded: 0 };
+  const items: { codigo: string; op: "inserted" | "updated"; statusSistema: string; valorTotal: number; data: string | null; mes: string | null; ano: number | null }[] = [];
 
   db.raw.exec("BEGIN");
   try {
@@ -158,17 +159,24 @@ export async function importWorkbook(db: SalesDatabase, filePath: string): Promi
       // Reconciliação por codigo (número sequencial do orçamento/pedido no SIGE):
       // codigo novo -> insere; existente -> atualiza status/campos. Nada é apagado,
       // então um orçamento que evolui para pedido nunca duplica nas métricas.
-      const op = db.upsertSale(normalizeRow(raw));
-      if (op === "inserted") result.inserted += 1;
-      else if (op === "updated") result.updated += 1;
+      const nr = normalizeRow(raw);
+      const op = db.upsertSale(nr);
+      if (op === "inserted") {
+        result.inserted += 1;
+        items.push({ codigo: nr.codigo, op, statusSistema: nr.statusSistema, valorTotal: nr.valorTotal, data: nr.data, mes: nr.mes, ano: nr.ano });
+      } else if (op === "updated") {
+        result.updated += 1;
+        items.push({ codigo: nr.codigo, op, statusSistema: nr.statusSistema, valorTotal: nr.valorTotal, data: nr.data, mes: nr.mes, ano: nr.ano });
+      }
     }
+    const importId = db.logImport(result);
+    for (const item of items) db.insertImportItem({ importId, ...item });
     db.raw.exec("COMMIT");
   } catch (err) {
     db.raw.exec("ROLLBACK");
     throw err;
   }
 
-  db.logImport(result);
   db.setMeta("last_import_path", filePath);
   db.setMeta("last_import_at", new Date().toISOString());
   return importResultSchema.parse(result);
