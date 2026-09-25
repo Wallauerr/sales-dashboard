@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FileUpIcon, XIcon } from "lucide-react";
+import { ChevronDownIcon, CheckIcon } from "lucide-react";
 
 import type { KpiSnapshot, Mes } from "../../shared/types";
 import { MESES, STATUS_FATURAMENTO } from "../../shared/types";
@@ -23,6 +24,12 @@ import TitleBar from "@/components/TitleBar";
 import WindowResizeHandles from "@/components/WindowResizeHandles";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -232,19 +239,33 @@ export default function App() {
                 </button>
               ))}
             </div>
-            <Select value={mes} onValueChange={(v) => setMes(v as Mes | "todos")}>
-              <SelectTrigger className="w-36 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os meses</SelectItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="h-9 w-36 justify-between gap-2 px-3 text-sm font-normal">
+                  {mesAtivo ? MES_LABEL[mes as Mes] : "Todos os meses"}
+                  <ChevronDownIcon className="size-4 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-36">
+                <DropdownMenuItem
+                  onSelect={() => setMes("todos")}
+                  className="justify-between"
+                >
+                  Todos os meses
+                  {!mesAtivo ? <CheckIcon className="size-4" /> : null}
+                </DropdownMenuItem>
                 {MESES.map((m) => (
-                  <SelectItem key={m} value={m}>
+                  <DropdownMenuItem
+                    key={m}
+                    onSelect={() => setMes(m)}
+                    className="justify-between"
+                  >
                     {MES_LABEL[m]}
-                  </SelectItem>
+                    {mes === m ? <CheckIcon className="size-4" /> : null}
+                  </DropdownMenuItem>
                 ))}
-              </SelectContent>
-            </Select>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button onClick={() => void handleImport()} disabled={importing}>
               <FileUpIcon className="size-4" />
               {importing ? "Importando…" : "Importar export do SIGE"}
