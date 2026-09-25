@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
-import type { CodigoHistory, ImportCodeEvent, ImportRecord, Sale } from "../../shared/types.ts";
-import { saleSchema } from "../../shared/schemas.ts";
+import type { CodigoHistory, ImportCodeEvent, ImportRecord, Mes, Sale } from "../../shared/types.ts";
+import { MESES, saleSchema } from "../../shared/schemas.ts";
 import { rowToSale } from "./rows.ts";
 
 const SCHEMA = `
@@ -337,6 +337,59 @@ export class SalesDatabase {
     this.db
       .prepare("INSERT INTO meta_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
       .run(key, value);
+  }
+
+  clearMeta(key: string): void {
+    this.db.prepare("DELETE FROM meta_config WHERE key = ?").run(key);
+  }
+
+  getMetaAnual(ano: number): number | null {
+    return this.getMetaConfigNumber(`meta_anual:${ano}`);
+  }
+
+  setMetaAnual(ano: number, valor: number | null): void {
+    if (valor === null) {
+      this.clearMeta(`meta_anual:${ano}`);
+    } else {
+      this.setMeta(`meta_anual:${ano}`, String(valor));
+    }
+  }
+
+  getMetasMesOverride(ano: number): Partial<Record<Mes, number>> {
+    const raw = this.getMeta(`metas_mes:${ano}`);
+    if (!raw) return {};
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const out: Partial<Record<Mes, number>> = {};
+      for (const [k, v] of Object.entries(parsed)) {
+        if (MESES.includes(k as Mes) && typeof v === "number" && Number.isFinite(v)) {
+          out[k as Mes] = v;
+        }
+      }
+      return out;
+    } catch {
+      return {};
+    }
+  }
+
+  setMetasMesOverride(ano: number, meses: Partial<Record<Mes, number>>): void {
+    const overrides = MESES.reduce<Partial<Record<Mes, number>>>((acc, mes) => {
+      const v = meses[mes];
+      if (typeof v === "number" && Number.isFinite(v)) acc[mes] = v;
+      return acc;
+    }, {});
+    if (Object.keys(overrides).length === 0) {
+      this.clearMeta(`metas_mes:${ano}`);
+    } else {
+      this.setMeta(`metas_mes:${ano}`, JSON.stringify(overrides));
+    }
+  }
+
+  private getMetaConfigNumber(key: string): number | null {
+    const raw = this.getMeta(key);
+    if (raw === null) return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
   }
 
   saveVendedorFotos(fotos: { vendedor: string; mime: string; img: Uint8Array }[]): void {
