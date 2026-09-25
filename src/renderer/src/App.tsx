@@ -134,9 +134,8 @@ export default function App() {
       const r = viaDialog ? await api.importWorkbook() : await api.importFromPath(lastImport?.path ?? "");
       if (r) {
         setImportMsg(
-          `${r.filePath.split(/[\\/]/).pop()} — ${int(r.inserted)} linhas importadas` +
-            (r.updated ? `, ${int(r.updated)} atualizadas` : "") +
-            (r.discarded ? `, ${int(r.discarded)} descartadas` : ""),
+          `${r.filePath.split(/[\\/]/).pop()} — ${int(r.inserted)} novos, ${int(r.updated)} atualizados` +
+            (r.discarded ? `, ${int(r.discarded)} descartados` : ""),
         );
         await refreshLastImport();
         setReload((k) => k + 1);
