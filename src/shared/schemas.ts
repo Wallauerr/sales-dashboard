@@ -83,3 +83,9 @@ export const codigoHistorySchema = z.object({
   events: z.array(importCodeEventSchema),
 });
 export type CodigoHistory = z.infer<typeof codigoHistorySchema>;
+
+export const metasSetInputSchema = z.object({
+  anual: z.number().nonnegative().nullable().default(null),
+  meses: z.object(Object.fromEntries(MESES.map((mes) => [mes, z.number().nonnegative().optional()]))),
+});
+export type MetasSetInput = z.infer<typeof metasSetInputSchema>;

@@ -5,6 +5,7 @@ import {
   type ImportRecord,
   type ImportResult,
   type Mes,
+  type MetasSetInput,
   type Sale,
 } from "./schemas.ts";
 
@@ -14,6 +15,7 @@ export type {
   ImportRecord,
   ImportResult,
   Mes,
+  MetasSetInput,
   Sale,
 };
 
@@ -51,6 +53,18 @@ export interface MetasMes {
   restanteMes: number;
 }
 
+export interface MetaConfigView {
+  ano: number;
+  fator: number;
+  baseAno: number;
+  metaAnual: number;
+  metaAnualAuto: number;
+  anualCustom: number | null;
+  mesesCustom: Partial<Record<Mes, number>>;
+  metasAuto: Record<Mes, number>;
+  metasEfetivas: Record<Mes, number>;
+}
+
 export interface TicketMedio {
   produto: string;
   valor: number;
@@ -74,6 +88,8 @@ export interface KpiSnapshot {
   ticketMedio: TicketMedio[];
   metaAnual: number;
   metaAnualBase: number;
+  metaAnualAuto: number;
+  metaPersonalizada: boolean;
   fator: number;
   metasPorMes: MetasMes[];
   acumuladoPorMes: Record<Mes, number>;
