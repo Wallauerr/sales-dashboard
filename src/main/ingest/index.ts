@@ -4,6 +4,7 @@ import type { ImportResult, Mes, Sale } from "../../shared/types.ts";
 import { MESES } from "../../shared/types.ts";
 import { importResultSchema, saleSchema } from "../../shared/schemas.ts";
 import type { SalesDatabase } from "../db/database.ts";
+import { extractWorkbookPhotos } from "../photos/extract.ts";
 import { canonicalEstado, canonicalRegion, monthKey, parseDate, referenceDate, statusRaw, titleCase, uppercase, toISO } from "./normalize.ts";
 
 interface RawBaseRow {
@@ -176,6 +177,15 @@ export async function importWorkbook(db: SalesDatabase, filePath: string): Promi
   } catch (err) {
     db.raw.exec("ROLLBACK");
     throw err;
+  }
+
+  // Fotos dos vendedores embutidas na própria planilha. Best-effort: se a
+  // extração falhar (arquivo sem imagens/âncoras diferentes), o import não
+  // quebra — os cards caem no avatar de iniciais.
+  try {
+    db.saveVendedorFotos(extractWorkbookPhotos(filePath));
+  } catch {
+    db.saveVendedorFotos([]);
   }
 
   return importResultSchema.parse(result);
