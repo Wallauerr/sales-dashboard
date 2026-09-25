@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { InboxIcon, SearchIcon, XIcon } from "lucide-react";
 
-import type { CodigoHistory, ImportRecord } from "../../../../shared/types";
+import type { CodigoHistory, ImportRecord, Mes } from "../../../../shared/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,11 @@ import { cn } from "@/lib/utils";
 import { brl0, brlHumanDate, int } from "@/lib/format";
 import { MES_LABEL, fileName, statusLabel } from "@/lib/labels";
 
+const MES_NUM: Record<Mes, string> = {
+  jan: "01", fev: "02", mar: "03", abr: "04", mai: "05", jun: "06",
+  jul: "07", ago: "08", set: "09", out: "10", nov: "11", dez: "12",
+};
+
 function StatusBadge({ status }: { status: string }) {
   return (
     <Badge
@@ -33,7 +38,15 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export default function HistoryTab({ reloadKey }: { reloadKey: number }) {
+export default function HistoryTab({
+  reloadKey,
+  ano,
+  mes,
+}: {
+  reloadKey: number;
+  ano: number;
+  mes: Mes | "todos";
+}) {
   const [imports, setImports] = useState<ImportRecord[]>([]);
   const [loadingImports, setLoadingImports] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -42,6 +55,15 @@ export default function HistoryTab({ reloadKey }: { reloadKey: number }) {
   const [searching, setSearching] = useState(false);
   const [result, setResult] = useState<CodigoHistory | null>(null);
   const [searched, setSearched] = useState<string | null>(null);
+
+  const filteredImports = useMemo(() => {
+    const year = `${ano}-`;
+    return imports.filter((i) => {
+      if (!i.importedAt.startsWith(year)) return false;
+      if (mes === "todos") return true;
+      return i.importedAt.slice(5, 7) === MES_NUM[mes];
+    });
+  }, [imports, ano, mes]);
 
   const loadImports = useCallback(async () => {
     if (!window.api) return;
@@ -84,18 +106,33 @@ export default function HistoryTab({ reloadKey }: { reloadKey: number }) {
   return (
     <div className="flex flex-col gap-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-row items-center justify-between gap-3">
           <CardTitle>Importações realizadas</CardTitle>
+          {mes === "todos" ? (
+            <span className="text-xs text-muted-foreground">só de {ano}</span>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              só de {MES_LABEL[mes]}/{ano}
+            </span>
+          )}
         </CardHeader>
         <CardContent>
           {err ? <p className="mb-3 text-xs text-destructive">Erro: {err}</p> : null}
           {loadingImports ? (
             <p className="py-8 text-center text-sm text-muted-foreground">Carregando…</p>
-          ) : imports.length === 0 ? (
+          ) : filteredImports.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-8 text-center text-sm text-muted-foreground">
               <InboxIcon className="size-8 opacity-40" />
-              <p>Nenhum import registrado ainda.</p>
-              <p className="text-xs">Use o botão "Importar export do SIGE" para alimentar o app.</p>
+              <p>
+                {imports.length === 0
+                  ? "Nenhum import registrado ainda."
+                  : "Nenhum import no período selecionado."}
+              </p>
+              <p className="text-xs">
+                {imports.length === 0
+                  ? 'Use o botão "Importar export do SIGE" para alimentar o app.'
+                  : "Ajuste o filtro de ano/mês para ver os imports de outro período."}
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto rounded-md border">
@@ -111,7 +148,7 @@ export default function HistoryTab({ reloadKey }: { reloadKey: number }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {imports.map((i) => (
+                  {filteredImports.map((i) => (
                     <TableRow key={i.id}>
                       <TableCell className="tabular-nums">{brlHumanDate(i.importedAt)}</TableCell>
                       <TableCell className="max-w-72 truncate" title={i.filePath}>

@@ -673,7 +673,7 @@ export default function App() {
             )}
           </TabsContent>
           <TabsContent value="historico">
-            <HistoryTab reloadKey={reload} />
+            <HistoryTab reloadKey={reload} ano={ano} mes={mes} />
           </TabsContent>
         </Tabs>
       </main>
