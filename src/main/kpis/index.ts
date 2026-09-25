@@ -1,4 +1,13 @@
-import type { FunnelMonth, KpiSnapshot, Mes, MetasMes, SnapshotFilter, TicketMedio } from "../../shared/types.ts";
+import type {
+  FunnelMonth,
+  KpiSnapshot,
+  Mes,
+  MetaConfigView,
+  MetasMes,
+  MetasSetInput,
+  SnapshotFilter,
+  TicketMedio,
+} from "../../shared/types.ts";
 import { MESES, STATUS_FATURAMENTO } from "../../shared/types.ts";
 import type { SalesDatabase } from "../db/database.ts";
 
@@ -163,12 +172,20 @@ export function getSnapshot(db: SalesDatabase, ano: number, filtro: SnapshotFilt
   const totalBase = MESES.reduce((acc, m) => acc + faturamentoBase[m], 0);
   const totalAno = MESES.reduce((acc, m) => acc + faturamentoGlobal[m], 0);
   const fator = db.getFator(ano);
-  const metaAnual = totalBase * fator;
   const metaAnualBase = totalBase;
+  const metaAnualAuto = totalBase * fator;
+
+  // Metas personalizadas: a meta anual pode ser fixada pelo usuário (metas:set)
+  // e/ou meses individuais podem ter meta própria. Sem override, o mês usa a meta
+  // automática (ano anterior × fator) — ou a anual personalizada distribuída pela
+  // participação de cada mês no ano anterior.
+  const anualCustom = db.getMetaAnual(ano);
+  const mesesCustom = db.getMetasMesOverride(ano);
+  const shareDeBase = (mes: Mes): number => (totalBase ? faturamentoBase[mes] / totalBase : 1 / MESES.length);
 
   const metasPorMes: MetasMes[] = MESES.map((mes) => {
     const faturamentoAnoAnterior = faturamentoBase[mes];
-    const meta = faturamentoAnoAnterior * fator;
+    const meta = mesesCustom[mes] ?? (anualCustom ?? metaAnualAuto) * shareDeBase(mes);
     const atual = faturamentoGlobal[mes];
     return {
       mes,
@@ -179,6 +196,9 @@ export function getSnapshot(db: SalesDatabase, ano: number, filtro: SnapshotFilt
       restanteMes: meta - atual,
     };
   });
+
+  const metaAnual = metasPorMes.reduce((acc, m) => acc + m.meta, 0);
+  const metaPersonalizada = anualCustom !== null || Object.keys(mesesCustom).length > 0;
 
   const acumuladoPorMes = {} as Record<Mes, number>;
   const restanteAnoPorMes = {} as Record<Mes, number>;
@@ -205,9 +225,42 @@ export function getSnapshot(db: SalesDatabase, ano: number, filtro: SnapshotFilt
     ticketMedio: ticketMedio(db, ano, filtro),
     metaAnual: Number(metaAnual.toFixed(2)),
     metaAnualBase: Number(metaAnualBase.toFixed(2)),
+    metaAnualAuto: Number(metaAnualAuto.toFixed(2)),
+    metaPersonalizada,
     fator,
     metasPorMes,
     acumuladoPorMes,
     restanteAnoPorMes,
   };
+}
+
+export function getMetaConfig(db: SalesDatabase, ano: number): MetaConfigView {
+  const baseAno = ano - 1;
+  const faturamentoBase = faturamentoPorMes(db, baseAno);
+  const totalBase = MESES.reduce((acc, m) => acc + faturamentoBase[m], 0);
+  const fator = db.getFator(ano);
+  const metaAnualAuto = totalBase * fator;
+  const anualCustom = db.getMetaAnual(ano);
+  const mesesCustom = db.getMetasMesOverride(ano);
+  const shareDeBase = (mes: Mes): number => (totalBase ? faturamentoBase[mes] / totalBase : 1 / MESES.length);
+
+  const metasEfetivas = MESES.map((mes) => mesesCustom[mes] ?? (anualCustom ?? metaAnualAuto) * shareDeBase(mes));
+  const metasAuto = Object.fromEntries(MESES.map((m) => [m, faturamentoBase[m] * fator])) as Record<Mes, number>;
+
+  return {
+    ano,
+    fator,
+    baseAno: totalBase,
+    metaAnual: Number(metasEfetivas.reduce((a, b) => a + b, 0).toFixed(2)),
+    metaAnualAuto: Number(metaAnualAuto.toFixed(2)),
+    anualCustom,
+    mesesCustom,
+    metasAuto,
+    metasEfetivas: Object.fromEntries(MESES.map((m, i) => [m, metasEfetivas[i]])) as Record<Mes, number>,
+  };
+}
+
+export function setMetaConfig(db: SalesDatabase, ano: number, input: MetasSetInput): void {
+  db.setMetaAnual(ano, input.anual);
+  db.setMetasMesOverride(ano, input.meses);
 }
