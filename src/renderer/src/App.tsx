@@ -23,6 +23,14 @@ import {
 import ThemeToggle from "@/components/ThemeToggle";
 import TitleBar from "@/components/TitleBar";
 import WindowResizeHandles from "@/components/WindowResizeHandles";
+import {
+  WidthProvider,
+  ReactGridLayout as GridLayout,
+  type Layout,
+  type LayoutItem,
+  type LegacyReactGridLayoutProps,
+} from "react-grid-layout/legacy";
+import "react-grid-layout/css/styles.css";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -53,6 +61,36 @@ import { MES_LABEL, fileName } from "@/lib/labels";
 import { useWindowMaximized } from "@/lib/useWindowMaximized";
 
 const ANOS = [2024, 2025, 2026];
+
+const DASHBOARD_LAYOUT_KEY = "sd:dashboard-layout:v1";
+const DashboardGrid = WidthProvider<LegacyReactGridLayoutProps>(GridLayout);
+
+const DEFAULT_DASHBOARD_LAYOUT: LayoutItem[] = [
+  { i: "fat-mensal", x: 0, y: 0, w: 12, h: 16, minW: 3, minH: 5 },
+  { i: "acumulado", x: 0, y: 16, w: 6, h: 15, minW: 3, minH: 5 },
+  { i: "fechamento", x: 6, y: 16, w: 6, h: 15, minW: 3, minH: 5 },
+  { i: "funil", x: 0, y: 31, w: 6, h: 12, minW: 3, minH: 5 },
+  { i: "regioes", x: 6, y: 31, w: 6, h: 16, minW: 3, minH: 5 },
+  { i: "estados", x: 0, y: 47, w: 4, h: 14, minW: 3, minH: 5 },
+  { i: "ticket", x: 4, y: 47, w: 4, h: 14, minW: 3, minH: 5 },
+  { i: "historico", x: 8, y: 47, w: 4, h: 10, minW: 3, minH: 5 },
+];
+
+function loadDashboardLayout(): Layout {
+  try {
+    const raw = localStorage.getItem(DASHBOARD_LAYOUT_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Layout;
+      if (Array.isArray(parsed)) {
+        const byKey = new Map(parsed.map((it) => [it.i, it]));
+        return DEFAULT_DASHBOARD_LAYOUT.map((d) => byKey.get(d.i) ?? d);
+      }
+    }
+  } catch {
+    // layout corrompido: volta ao padrão
+  }
+  return DEFAULT_DASHBOARD_LAYOUT;
+}
 
 function funnelItems(mesIndex: number, snap: KpiSnapshot): HBarDatum[] {
   const f = snap.funilPorMes[mesIndex];
@@ -101,6 +139,25 @@ export default function App() {
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
+  const [dashboardLayout, setDashboardLayout] = useState<Layout>(loadDashboardLayout);
+
+  const persistLayout = useCallback((next: Layout) => {
+    setDashboardLayout(next);
+    try {
+      localStorage.setItem(DASHBOARD_LAYOUT_KEY, JSON.stringify(next));
+    } catch {
+      // sem persistência: layout apenas na sessão
+    }
+  }, []);
+
+  const resetDashboardLayout = useCallback(() => {
+    setDashboardLayout(DEFAULT_DASHBOARD_LAYOUT);
+    try {
+      localStorage.removeItem(DASHBOARD_LAYOUT_KEY);
+    } catch {
+      // ignora
+    }
+  }, []);
 
   const api = window.api;
 
@@ -289,12 +346,24 @@ export default function App() {
               </DialogTrigger>
               <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
                 <DialogHeader>
-                  <DialogTitle>Configurações — Metas comerciais</DialogTitle>
+                  <DialogTitle>Configurações</DialogTitle>
                   <DialogDescription>
-                    Ajuste as metas; o dashboard reflete na hora.
+                    Ajuste as metas e o layout; o dashboard reflete na hora.
                   </DialogDescription>
                 </DialogHeader>
                 <ConfigTab ano={ano} reloadKey={reload} onSaved={() => setReload((k) => k + 1)} />
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Layout da dashboard</p>
+                    <p className="text-xs text-muted-foreground">
+                      Arraste os gráficos pela barra de título e redimensione pelo canto; o layout
+                      fica salvo neste computador.
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={resetDashboardLayout}>
+                    Restaurar padrão
+                  </Button>
+                </div>
               </DialogContent>
             </Dialog>
           </div>
@@ -493,47 +562,63 @@ export default function App() {
                   </CardContent>
                 </Card>
 
-                {!mesAtivo ? (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>
-                        {vendedor ? `Faturamento mensal — ${vendedor}` : "Faturamento mensal × meta"}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-col gap-2">
-                      <GroupedBars
-                        labels={MESES.map((m) => MES_LABEL[m])}
-                        series={[
-                          {
-                            name: "Realizado",
-                            kind: "bar",
-                            colorClass: "fill-chart-1",
-                            values: MESES.map((m) => snap.faturamentoPorMes[m]),
-                          },
-                          ...(!vendedor
-                            ? [
-                                {
-                                  name: "Meta",
-                                  kind: "marker" as const,
-                                  colorClass: "stroke-chart-3",
-                                  values: MESES.map((_m, i) => snap.metasPorMes[i].meta),
-                                },
-                              ]
-                            : []),
-                        ]}
-                        onBarClick={(i) => setMes(MESES[i])}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Clique em uma barra para filtrar o mês.
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : null}
+                <p className="no-print text-xs text-muted-foreground">
+                  Arraste os gráficos pela barra de título e redimensione pelo canto inferior; o
+                  layout fica salvo neste computador.
+                </p>
 
-                {!mesAtivo ? (
-                  <div className="grid gap-6 lg:grid-cols-2">
-                    <Card>
-                      <CardHeader>
+                <DashboardGrid
+                  className="no-print"
+                  layout={dashboardLayout}
+                  cols={12}
+                  rowHeight={24}
+                  margin={[16, 16]}
+                  draggableHandle=".card-drag-handle"
+                  draggableCancel="[data-slot='select-trigger'], select"
+                  isResizable
+                  resizeHandles={["se"]}
+                  onLayoutChange={persistLayout}
+                >
+                  {!mesAtivo ? (
+                    <Card key="fat-mensal" className="h-full">
+                      <CardHeader className="card-drag-handle cursor-move">
+                        <CardTitle>
+                          {vendedor ? `Faturamento mensal — ${vendedor}` : "Faturamento mensal × meta"}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex flex-col gap-2">
+                        <GroupedBars
+                          labels={MESES.map((m) => MES_LABEL[m])}
+                          series={[
+                            {
+                              name: "Realizado",
+                              kind: "bar",
+                              colorClass: "fill-chart-1",
+                              values: MESES.map((m) => snap.faturamentoPorMes[m]),
+                            },
+                            ...(!vendedor
+                              ? [
+                                  {
+                                    name: "Meta",
+                                    kind: "marker" as const,
+                                    colorClass: "stroke-chart-3",
+                                    values: MESES.map((_m, i) => snap.metasPorMes[i].meta),
+                                  },
+                                ]
+                              : []),
+                          ]}
+                          onBarClick={(i) => setMes(MESES[i])}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Clique em uma barra para filtrar o mês.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ) : null}
+
+                  {!mesAtivo ? (
+                    <Card key="acumulado" className="h-full">
+                      <CardHeader className="card-drag-handle cursor-move">
                         <CardTitle>
                           {vendedor ? `Acumulado ${ano} — ${vendedor}` : "Acumulado anual × meta"}
                         </CardTitle>
@@ -546,14 +631,17 @@ export default function App() {
                         />
                       </CardContent>
                     </Card>
-                    <Card>
-                      <CardHeader>
+                  ) : null}
+
+                  {!mesAtivo ? (
+                    <Card key="fechamento" className="h-full">
+                      <CardHeader className="card-drag-handle cursor-move">
                         <CardTitle>Nº de fechamento por mês</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <GroupedBars
                           labels={MESES.map((m) => MES_LABEL[m])}
-                          height={260}
+                          height={240}
                           valueFormat={(v) => int(v)}
                           series={[
                             {
@@ -572,12 +660,10 @@ export default function App() {
                         />
                       </CardContent>
                     </Card>
-                  </div>
-                ) : null}
+                  ) : null}
 
-                <div className="grid gap-6 lg:grid-cols-2">
-                  <Card>
-                    <CardHeader className="flex-row items-center justify-between gap-2">
+                  <Card key="funil" className="h-full">
+                    <CardHeader className="card-drag-handle cursor-move flex-row items-center justify-between gap-2">
                       <CardTitle>Funil de vendas</CardTitle>
                       <Select value={funnelMes ?? "dez"} onValueChange={(v) => setFunnelMes(v as Mes)}>
                         <SelectTrigger className="h-8 w-28 text-xs">
@@ -601,8 +687,8 @@ export default function App() {
                     </CardContent>
                   </Card>
 
-                  <Card>
-                    <CardHeader>
+                  <Card key="regioes" className="h-full">
+                    <CardHeader className="card-drag-handle cursor-move">
                       <CardTitle>Regiões</CardTitle>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-4">
@@ -617,11 +703,9 @@ export default function App() {
                       />
                     </CardContent>
                   </Card>
-                </div>
 
-                <div className="grid gap-6 lg:grid-cols-3">
-                  <Card>
-                    <CardHeader>
+                  <Card key="estados" className="h-full">
+                    <CardHeader className="card-drag-handle cursor-move">
                       <CardTitle>Estados</CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -637,8 +721,8 @@ export default function App() {
                     </CardContent>
                   </Card>
 
-                  <Card>
-                    <CardHeader>
+                  <Card key="ticket" className="h-full">
+                    <CardHeader className="card-drag-handle cursor-move">
                       <CardTitle>Ticket médio por produto</CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -663,8 +747,8 @@ export default function App() {
                     </CardContent>
                   </Card>
 
-                  <Card>
-                    <CardHeader>
+                  <Card key="historico" className="h-full">
+                    <CardHeader className="card-drag-handle cursor-move">
                       <CardTitle>Histórico</CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -698,7 +782,7 @@ export default function App() {
                       </div>
                     </CardContent>
                   </Card>
-                </div>
+                </DashboardGrid>
               </div>
             )}
           </TabsContent>
