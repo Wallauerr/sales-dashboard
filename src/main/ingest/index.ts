@@ -4,7 +4,7 @@ import type { ImportResult, Mes, Sale } from "../../shared/types.ts";
 import { MESES } from "../../shared/types.ts";
 import { importResultSchema, saleSchema } from "../../shared/schemas.ts";
 import type { SalesDatabase } from "../db/database.ts";
-import { canonicalEstado, canonicalRegion, monthKey, parseDate, statusRaw, titleCase, uppercase, toISO } from "./normalize.ts";
+import { canonicalEstado, canonicalRegion, monthKey, parseDate, referenceDate, statusRaw, titleCase, uppercase, toISO } from "./normalize.ts";
 
 interface RawBaseRow {
   "Código": string;
@@ -104,7 +104,13 @@ function normalizeRow(raw: RawBaseRow): Sale {
     Number.isInteger(anoCache) &&
     anoCache >= 2000 &&
     anoCache <= 2099;
-  const dEng = dataAprovOrcamento ?? data;
+  const dEng = referenceDate(statusRaw(String(raw["Status Sistema"] ?? "")), {
+    orcamento: dataAprovOrcamento,
+    pedido: dataAprovPedido,
+    faturamento: dataAprovFaturamento,
+    emissaoFiscal: dataEmissaoFiscal,
+    base: data,
+  });
   const mes: Mes | null = cacheValido ? mesCache : dEng ? monthKey(dEng) : null;
   const ano: number | null = cacheValido ? anoCache : dEng ? dEng.getFullYear() : null;
 
@@ -142,10 +148,19 @@ export async function importWorkbook(db: SalesDatabase, filePath: string): Promi
 
   db.raw.exec("BEGIN");
   try {
-    db.clear();
     for (const raw of rows) {
-      db.insertSale(normalizeRow(raw));
-      result.inserted += 1;
+      // Linhas sem código (lixo/artefatos da planilha) não têm como reconciliar:
+      // são descartadas para não duplicar a cada reimport.
+      if (!String(raw["Código"] ?? "").trim()) {
+        result.discarded += 1;
+        continue;
+      }
+      // Reconciliação por codigo (número sequencial do orçamento/pedido no SIGE):
+      // codigo novo -> insere; existente -> atualiza status/campos. Nada é apagado,
+      // então um orçamento que evolui para pedido nunca duplica nas métricas.
+      const op = db.upsertSale(normalizeRow(raw));
+      if (op === "inserted") result.inserted += 1;
+      else result.updated += 1;
     }
     db.raw.exec("COMMIT");
   } catch (err) {
