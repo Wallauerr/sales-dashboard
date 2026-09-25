@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { ImportResult, KpiSnapshot, VendasFilter, VendasPage } from "../shared/types.ts";
+import type {
+  CodigoHistory,
+  ImportRecord,
+  ImportResult,
+  KpiSnapshot,
+  VendasFilter,
+  VendasPage,
+} from "../shared/types.ts";
 
 export interface WindowBounds {
   x: number;
@@ -18,6 +25,8 @@ const api = {
   importWorkbook: () => ipcRenderer.invoke("ingest:import") as Promise<ImportResult | null>,
   importFromPath: (filePath: string) => ipcRenderer.invoke("ingest:import-from-path", filePath) as Promise<ImportResult>,
   lastImport: () => ipcRenderer.invoke("ingest:last-import") as Promise<{ path: string; at: string | null } | null>,
+  getImports: () => ipcRenderer.invoke("ingest:imports") as Promise<ImportRecord[]>,
+  getCodigoHistory: (codigo: string) => ipcRenderer.invoke("ingest:codigo-history", codigo) as Promise<CodigoHistory>,
   getSnapshot: (ano: number) => ipcRenderer.invoke("kpis:get", ano) as Promise<KpiSnapshot>,
   getVendas: (filters: VendasFilter, limit?: number) => ipcRenderer.invoke("vendas:list", filters, limit) as Promise<VendasPage>,
   exportPdf: (ano: number) => ipcRenderer.invoke("app:export-pdf", ano) as Promise<string | null>,
