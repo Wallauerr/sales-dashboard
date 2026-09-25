@@ -7,7 +7,7 @@ import * as XLSX from "xlsx";
 
 import { SalesDatabase } from "../src/main/db/database.ts";
 import { importWorkbook } from "../src/main/ingest/index.ts";
-import { getSnapshot } from "../src/main/kpis/index.ts";
+import { getSnapshot, getMetaConfig, setMetaConfig } from "../src/main/kpis/index.ts";
 import { buildWorkbookWithPhoto } from "./photo-fixture.ts";
 
 const HEADERS = [
@@ -81,6 +81,43 @@ async function main(): Promise<void> {
 
   const sorted = [...s.porVendedor].sort((a, b) => b.valor - a.valor);
   check("vendedores top", sorted[0], { vendedor: "Ursula", valor: 4000, share: 0.4 });
+
+  console.log("\n— Metas personalizadas (configuração) —");
+  db.setMetaAnual(2026, 4600);
+  const sAnual = await getSnapshot(db, 2026);
+  check(
+    "meta anual personalizada reflete no snapshot",
+    { metaAnual: sAnual.metaAnual, metaAnualAuto: sAnual.metaAnualAuto, metaPersonalizada: sAnual.metaPersonalizada },
+    { metaAnual: 4600, metaAnualAuto: 2300, metaPersonalizada: true },
+  );
+  const cfg = getMetaConfig(db, 2026);
+  check(
+    "config view com meta anual custom",
+    { anual: cfg.anualCustom, metaAnual: cfg.metaAnual, metaAnualAuto: cfg.metaAnualAuto, baseAno: cfg.baseAno, fator: cfg.fator },
+    { anual: 4600, metaAnual: 4600, metaAnualAuto: 2300, baseAno: 2000, fator: 1.15 },
+  );
+  check(
+    "meta anual distribui proporcional ao ano anterior",
+    { jan: cfg.metasEfetivas.jan, fev: cfg.metasEfetivas.fev, autoJan: cfg.metasAuto.jan },
+    { jan: 2300, fev: 2300, autoJan: 1150 },
+  );
+
+  setMetaConfig(db, 2026, { anual: null, meses: { jan: 3000 } });
+  const sMes = await getSnapshot(db, 2026);
+  check(
+    "meta mensal override soma com automática dos demais",
+    { metaAnual: sMes.metaAnual, metaJan: sMes.metasPorMes[0].meta, metaFev: sMes.metasPorMes[1].meta },
+    { metaAnual: 4150, metaJan: 3000, metaFev: 1150 },
+  );
+
+  setMetaConfig(db, 2026, { anual: null, meses: {} });
+  const sRestaurada = await getSnapshot(db, 2026);
+  check(
+    "restaurar automático zera personalização",
+    { metaAnual: sRestaurada.metaAnual, metaPersonalizada: sRestaurada.metaPersonalizada, metaJan: sRestaurada.metasPorMes[0].meta },
+    { metaAnual: 2300, metaPersonalizada: false, metaJan: 1150 },
+  );
+  check("limpa chaves de meta", db.getMeta(`metas_mes:2026`) === null && db.getMeta(`meta_anual:2026`) === null, true);
 
   console.log("\n— Reconciliação diária por codigo (orçamento evolui para pedido) —");
   const db2 = SalesDatabase.open(new DatabaseSync(":memory:"));
