@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { InboxIcon, SearchIcon, XIcon } from "lucide-react";
 
-import type { CodigoHistory, ImportRecord, Mes } from "../../../../shared/types";
+import type { CodigoHistory, ImportRecord } from "../../../../shared/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,19 +16,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { brl0, brlHumanDate, int } from "@/lib/format";
-
-const MES_LABEL: Record<Mes, string> = {
-  jan: "Jan", fev: "Fev", mar: "Mar", abr: "Abr", mai: "Mai", jun: "Jun",
-  jul: "Jul", ago: "Ago", set: "Set", out: "Out", nov: "Nov", dez: "Dez",
-};
-
-function statusLabel(status: string): string {
-  return status === "Pedido Nao Faturado" ? "Pedido Não Faturado" : status;
-}
-
-function fileBase(path: string): string {
-  return path.split(/[\\/]/).pop() ?? path;
-}
+import { MES_LABEL, fileName, statusLabel } from "@/lib/labels";
 
 function StatusBadge({ status }: { status: string }) {
   return (
@@ -127,7 +115,7 @@ export default function HistoryTab({ reloadKey }: { reloadKey: number }) {
                     <TableRow key={i.id}>
                       <TableCell className="tabular-nums">{brlHumanDate(i.importedAt)}</TableCell>
                       <TableCell className="max-w-72 truncate" title={i.filePath}>
-                        {fileBase(i.filePath)}
+                        {fileName(i.filePath)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{int(i.totalRows)}</TableCell>
                       <TableCell className="text-right tabular-nums">{int(i.inserted)}</TableCell>

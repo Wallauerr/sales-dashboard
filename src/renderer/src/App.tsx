@@ -38,16 +38,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { brl, brl0, brlCompact, brlHumanDate, int, pct } from "@/lib/format";
+import { MES_LABEL, fileName } from "@/lib/labels";
 import { useWindowMaximized } from "@/lib/useWindowMaximized";
 
 const ANOS = [2024, 2025, 2026];
-const MES_LABEL: Record<Mes, string> = {
-  jan: "Jan", fev: "Fev", mar: "Mar", abr: "Abr", mai: "Mai", jun: "Jun",
-  jul: "Jul", ago: "Ago", set: "Set", out: "Out", nov: "Nov", dez: "Dez",
-};
 
-function funnelItems(mes: number, snap: KpiSnapshot): HBarDatum[] {
-  const f = snap.funilPorMes[mes];
+function funnelItems(mesIndex: number, snap: KpiSnapshot): HBarDatum[] {
+  const f = snap.funilPorMes[mesIndex];
   const rows = [
     { label: "Orçamento", v: f.orcamento, color: "bg-chart-1" },
     { label: "Pedido", v: f.pedido, color: "bg-chart-2" },
@@ -104,11 +101,11 @@ export default function App() {
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }, [ano, api, reload]);
+  }, [ano, api]);
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, reload]);
 
   useEffect(() => {
     if (snap && funnelMes === null) {
@@ -137,7 +134,7 @@ export default function App() {
       const r = viaDialog ? await api.importWorkbook() : await api.importFromPath(lastImport?.path ?? "");
       if (r) {
         setImportMsg(
-          `${r.filePath.split(/[\\/]/).pop()} — ${int(r.inserted)} novos, ${int(r.updated)} atualizados` +
+          `${fileName(r.filePath)} — ${int(r.inserted)} novos, ${int(r.updated)} atualizados` +
             (r.discarded ? `, ${int(r.discarded)} descartados` : ""),
         );
         await refreshLastImport();
@@ -232,7 +229,7 @@ export default function App() {
             {lastImport ? (
               <Button variant="outline" onClick={() => void handleImport(false)} disabled={importing}>
                 <RefreshCwIcon className="size-4" />
-                Reimportar {lastImport.path.split(/[\\/]/).pop()}
+                Reimportar {fileName(lastImport.path)}
               </Button>
             ) : null}
             <Button variant="outline" onClick={() => void handleExportPdf()} disabled={exporting}>
