@@ -2,15 +2,6 @@ import type { FunnelMonth, KpiSnapshot, Mes, MetasMes, TicketMedio } from "../..
 import { MESES, STATUS_FATURAMENTO } from "../../shared/types.ts";
 import type { SalesDatabase } from "../db/database.ts";
 
-const STATUS_FUNIL = [
-  "Orçamento",
-  "Pedido",
-  "Pedido Aprovado Sem Faturamento",
-  "Pedido Cancelado",
-  "Pedido Faturado",
-  "Pedido Nao Faturado",
-] as const;
-
 const PRODUTOS_VENDEDORES: Record<string, string[]> = {
   Equipamentos: ["Bruno Keller", "Iago Gernhardt Benedetto", "Sul Magnéticos Equipamentos Industriais Eireli", "Vinicius Horn"],
   Neodimio: ["Rosemeri", "Ursula"],
@@ -25,58 +16,50 @@ const REGIAO_MAPA: Record<string, { x: number; y: number }> = {
   Sul: { x: 60, y: 10 },
 };
 
-function faturamentoPorMes(db: SalesDatabase, ano: number): Record<Mes, number> {
+const IN_FATURAMENTO = `status_sistema IN (${STATUS_FATURAMENTO.map(() => "?").join(", ")})`;
+
+function metricasPorMes(db: SalesDatabase, ano: number, expr: "SUM(valor_total)" | "COUNT(*)"): Record<Mes, number> {
   const rows = db.raw
-    .prepare(
-      `SELECT mes, SUM(valor_total) AS valor FROM vendas
-       WHERE ano = ? AND status_sistema IN ('Pedido', 'Pedido Faturado')
-       GROUP BY mes`,
-    )
-    .all(ano) as { mes: string | null; valor: number }[];
+    .prepare(`SELECT mes, ${expr} AS v FROM vendas WHERE ano = ? AND ${IN_FATURAMENTO} GROUP BY mes`)
+    .all(ano, ...STATUS_FATURAMENTO) as { mes: string | null; v: number }[];
   const out = Object.fromEntries(MESES.map((m) => [m, 0])) as Record<Mes, number>;
   for (const r of rows) {
     const key = r.mes as Mes;
-    if (Object.prototype.hasOwnProperty.call(out, key)) out[key] = r.valor;
+    if (Object.prototype.hasOwnProperty.call(out, key)) out[key] = r.v;
   }
   return out;
+}
+
+function faturamentoPorMes(db: SalesDatabase, ano: number): Record<Mes, number> {
+  return metricasPorMes(db, ano, "SUM(valor_total)");
 }
 
 function quantidadePorMes(db: SalesDatabase, ano: number): Record<Mes, number> {
-  const rows = db.raw
+  return metricasPorMes(db, ano, "COUNT(*)");
+}
+
+const COLUNA_GRUPO = { vendedor: "vendedor", estado: "estado", regiao: "regiao" } as const;
+
+function somaPor(db: SalesDatabase, ano: number, coluna: keyof typeof COLUNA_GRUPO): { chave: string; valor: number }[] {
+  const campo = COLUNA_GRUPO[coluna];
+  return db.raw
     .prepare(
-      `SELECT mes, COUNT(*) AS qtd FROM vendas
-       WHERE ano = ? AND status_sistema IN ('Pedido', 'Pedido Faturado')
-       GROUP BY mes`,
+      `SELECT ${campo} AS chave, SUM(valor_total) AS valor FROM vendas
+       WHERE ano = ? AND ${IN_FATURAMENTO} GROUP BY ${campo} ORDER BY valor DESC`,
     )
-    .all(ano) as { mes: string | null; qtd: number }[];
-  const out = Object.fromEntries(MESES.map((m) => [m, 0])) as Record<Mes, number>;
-  for (const r of rows) {
-    const key = r.mes as Mes;
-    if (Object.prototype.hasOwnProperty.call(out, key)) out[key] = r.qtd;
-  }
-  return out;
+    .all(ano, ...STATUS_FATURAMENTO) as { chave: string; valor: number }[];
+}
+
+function shareDe(valor: number, total: number): number {
+  return total ? valor / total : 0;
 }
 
 function porVendedor(db: SalesDatabase, ano: number, total: number): { vendedor: string; valor: number; share: number }[] {
-  const rows = db.raw
-    .prepare(
-      `SELECT vendedor, SUM(valor_total) AS valor FROM vendas
-       WHERE ano = ? AND status_sistema IN ('Pedido', 'Pedido Faturado')
-       GROUP BY vendedor ORDER BY valor DESC`,
-    )
-    .all(ano) as { vendedor: string; valor: number }[];
-  return rows.map((r) => ({ vendedor: r.vendedor, valor: r.valor, share: total ? r.valor / total : 0 }));
+  return somaPor(db, ano, "vendedor").map((r) => ({ vendedor: r.chave, valor: r.valor, share: shareDe(r.valor, total) }));
 }
 
 function porEstado(db: SalesDatabase, ano: number, total: number): { estado: string; valor: number; share: number }[] {
-  const rows = db.raw
-    .prepare(
-      `SELECT estado, SUM(valor_total) AS valor FROM vendas
-       WHERE ano = ? AND status_sistema IN ('Pedido', 'Pedido Faturado')
-       GROUP BY estado ORDER BY valor DESC`,
-    )
-    .all(ano) as { estado: string; valor: number }[];
-  return rows.map((r) => ({ estado: r.estado, valor: r.valor, share: total ? r.valor / total : 0 }));
+  return somaPor(db, ano, "estado").map((r) => ({ estado: r.chave, valor: r.valor, share: shareDe(r.valor, total) }));
 }
 
 function porRegiao(
@@ -84,68 +67,55 @@ function porRegiao(
   ano: number,
   total: number,
 ): { regiao: string; valor: number; share: number; x: number; y: number }[] {
-  const rows = db.raw
-    .prepare(
-      `SELECT regiao, SUM(valor_total) AS valor FROM vendas
-       WHERE ano = ? AND status_sistema IN ('Pedido', 'Pedido Faturado')
-       GROUP BY regiao ORDER BY valor DESC`,
-    )
-    .all(ano) as { regiao: string; valor: number }[];
-  return rows.map((r) => ({
-    regiao: r.regiao,
+  return somaPor(db, ano, "regiao").map((r) => ({
+    regiao: r.chave,
     valor: r.valor,
-    share: total ? r.valor / total : 0,
-    ...(REGIAO_MAPA[r.regiao] ?? { x: 0, y: 0 }),
+    share: shareDe(r.valor, total),
+    ...(REGIAO_MAPA[r.chave] ?? { x: 0, y: 0 }),
   }));
 }
 
+function countStatus(db: SalesDatabase, ano: number, mes: Mes, status: string): number {
+  const r = db.raw
+    .prepare("SELECT COUNT(*) AS n FROM vendas WHERE ano = ? AND mes = ? AND status_sistema = ?")
+    .get(ano, mes, status) as { n: number };
+  return r.n;
+}
+
 function funilPorMes(db: SalesDatabase, ano: number): FunnelMonth[] {
-  const months = MESES.map((mes) => {
-    const row = {
+  return MESES.map((mes) => {
+    const orcamento = countStatus(db, ano, mes, "Orçamento");
+    const pedido = countStatus(db, ano, mes, "Pedido");
+    const pedidoAprovadoSemFaturamento = countStatus(db, ano, mes, "Pedido Aprovado Sem Faturamento");
+    const pedidoCancelado = countStatus(db, ano, mes, "Pedido Cancelado");
+    const pedidoFaturado = countStatus(db, ano, mes, "Pedido Faturado");
+    const pedidoNaoFaturado = countStatus(db, ano, mes, "Pedido Nao Faturado");
+    return {
       mes,
-      orcamento: 0,
-      pedido: 0,
-      pedidoAprovadoSemFaturamento: 0,
-      pedidoCancelado: 0,
-      pedidoFaturado: 0,
-      pedidoNaoFaturado: 0,
-      total: 0,
+      orcamento,
+      pedido,
+      pedidoAprovadoSemFaturamento,
+      pedidoCancelado,
+      pedidoFaturado,
+      pedidoNaoFaturado,
+      total: orcamento + pedido + pedidoAprovadoSemFaturamento + pedidoCancelado + pedidoFaturado + pedidoNaoFaturado,
     } as FunnelMonth;
-    const count = (status: string): number => {
-      const r = db.raw
-        .prepare("SELECT COUNT(*) AS n FROM vendas WHERE ano = ? AND mes = ? AND status_sistema = ?")
-        .get(ano, mes, status) as { n: number };
-      return r.n;
-    };
-    row.orcamento = count("Orçamento");
-    row.pedido = count("Pedido");
-    row.pedidoAprovadoSemFaturamento = count("Pedido Aprovado Sem Faturamento");
-    row.pedidoCancelado = count("Pedido Cancelado");
-    row.pedidoFaturado = count("Pedido Faturado");
-    row.pedidoNaoFaturado = count("Pedido Nao Faturado");
-    row.total = STATUS_FUNIL.reduce((acc, st) => acc + count(st), 0);
-    return row;
   });
-  return months;
 }
 
 function numeroFechamento(db: SalesDatabase, ano: number): Record<Mes, { orcamento: number; pedido: number }> {
   const out = {} as Record<Mes, { orcamento: number; pedido: number }>;
   for (const mes of MESES) {
-    const count = (status: string): number =>
-      (db.raw
-        .prepare("SELECT COUNT(*) AS n FROM vendas WHERE ano = ? AND mes = ? AND status_sistema = ?")
-        .get(ano, mes, status) as { n: number }).n;
-    const orcamento = count("Orçamento") + count("Pedido Aprovado Sem Faturamento");
-    const pedido = count("Pedido") + count("Pedido Cancelado") + count("Pedido Faturado");
+    const orcamento = countStatus(db, ano, mes, "Orçamento") + countStatus(db, ano, mes, "Pedido Aprovado Sem Faturamento");
+    const pedido = countStatus(db, ano, mes, "Pedido") + countStatus(db, ano, mes, "Pedido Cancelado") + countStatus(db, ano, mes, "Pedido Faturado");
     out[mes] = { orcamento, pedido };
   }
   return out;
 }
 
 function ticketMedio(db: SalesDatabase, ano: number): TicketMedio[] {
-  const out: TicketMedio[] = [];
   const placeholders = STATUS_FATURAMENTO.map(() => "?").join(", ");
+  const out: TicketMedio[] = [];
   for (const [produto, vendedores] of Object.entries(PRODUTOS_VENDEDORES)) {
     const q = `SELECT COALESCE(SUM(valor_total), 0) AS valor, COUNT(*) AS volume FROM vendas
                WHERE ano = ? AND status_sistema IN (${placeholders})
@@ -161,11 +131,8 @@ export function getSnapshot(db: SalesDatabase, ano: number): KpiSnapshot {
   const totalPeriodo = MESES.reduce((acc, m) => acc + faturamento[m], 0);
   const totalHistorico =
     (db.raw
-      .prepare(
-        `SELECT COALESCE(SUM(valor_total),0) AS v FROM vendas
-         WHERE status_sistema IN ('Pedido','Pedido Faturado')`,
-      )
-      .get() as { v: number }).v;
+      .prepare(`SELECT COALESCE(SUM(valor_total),0) AS v FROM vendas WHERE ${IN_FATURAMENTO}`)
+      .get(...STATUS_FATURAMENTO) as { v: number }).v;
 
   const baseAno = ano - 1;
   const faturamentoBase = faturamentoPorMes(db, baseAno);
