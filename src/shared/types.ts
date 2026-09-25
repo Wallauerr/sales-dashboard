@@ -1,5 +1,8 @@
 import {
   MESES as MESES_LIST,
+  type CodigoHistory,
+  type ImportCodeEvent,
+  type ImportRecord,
   type ImportResult,
   type Mes,
   type Sale,
@@ -7,7 +10,16 @@ import {
   type VendasPage,
 } from "./schemas.ts";
 
-export type { ImportResult, Mes, Sale, VendasFilter, VendasPage };
+export type {
+  CodigoHistory,
+  ImportCodeEvent,
+  ImportRecord,
+  ImportResult,
+  Mes,
+  Sale,
+  VendasFilter,
+  VendasPage,
+};
 
 export const MESES = MESES_LIST;
 
