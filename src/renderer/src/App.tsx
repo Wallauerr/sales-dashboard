@@ -14,6 +14,7 @@ import type { HBarDatum } from "@/components/charts/HorizontalBars";
 import RegionMap from "@/components/charts/RegionMap";
 import type { RegionPoint } from "@/components/charts/RegionMap";
 import VendasTable from "@/components/detail/VendasTable";
+import HistoryTab from "@/components/history/HistoryTab";
 import { KpiCard, KpiCardContent, KpiCardHeader, KpiCardTitle, KpiCardValue } from "@/components/kpi/KpiCard";
 import ThemeToggle from "@/components/ThemeToggle";
 import TitleBar from "@/components/TitleBar";
@@ -34,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { brl, brl0, brlCompact, brlHumanDate, int, pct } from "@/lib/format";
 import { useWindowMaximized } from "@/lib/useWindowMaximized";
@@ -79,6 +81,7 @@ function regionPoints(snap: KpiSnapshot): RegionPoint[] {
 
 export default function App() {
   const [ano, setAno] = useState(2026);
+  const [view, setView] = useState<"dashboard" | "historico">("dashboard");
   const maximized = useWindowMaximized();
   const [snap, setSnap] = useState<KpiSnapshot | null>(null);
   const [funnelMes, setFunnelMes] = useState<Mes | null>(null);
@@ -246,12 +249,18 @@ export default function App() {
           <p className="text-xs text-muted-foreground no-print">última atualização: {brlHumanDate(lastImport.at)}</p>
         ) : null}
 
-        {!snap ? (
-          <p className="py-16 text-center text-sm text-muted-foreground">
-            Carregando… (rode "Importar export do SIGE" para carregar os dados)
-          </p>
-        ) : (
-          <div className="flex flex-col gap-6">
+        <Tabs value={view} onValueChange={(v) => setView(v as "dashboard" | "historico")} className="flex min-h-0 flex-1 flex-col gap-4">
+          <TabsList className="w-fit">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="historico">Histórico</TabsTrigger>
+          </TabsList>
+          <TabsContent value="dashboard" className="flex flex-col gap-6">
+            {!snap ? (
+              <p className="py-16 text-center text-sm text-muted-foreground">
+                Carregando… (rode "Importar export do SIGE" para carregar os dados)
+              </p>
+            ) : (
+              <div className="flex flex-col gap-6">
             <p className="hidden items-center justify-between text-xs text-muted-foreground print:flex">
               <span>
                 Relatório Metas Comercial — {ano} · emitido em {brlHumanDate(new Date().toISOString())}
@@ -514,7 +523,12 @@ export default function App() {
               </Card>
             </div>
           </div>
-        )}
+            )}
+          </TabsContent>
+          <TabsContent value="historico">
+            <HistoryTab reloadKey={reload} />
+          </TabsContent>
+        </Tabs>
 
         <footer className="mt-auto flex items-center justify-between text-xs text-muted-foreground">
           <span>
