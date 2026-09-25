@@ -163,9 +163,10 @@ export async function importWorkbook(db: SalesDatabase, filePath: string): Promi
       const op = db.upsertSale(nr);
       if (op === "inserted") {
         result.inserted += 1;
-        items.push({ codigo: nr.codigo, op, statusSistema: nr.statusSistema, valorTotal: nr.valorTotal, data: nr.data, mes: nr.mes, ano: nr.ano });
       } else if (op === "updated") {
         result.updated += 1;
+      }
+      if (op !== "unchanged") {
         items.push({ codigo: nr.codigo, op, statusSistema: nr.statusSistema, valorTotal: nr.valorTotal, data: nr.data, mes: nr.mes, ano: nr.ano });
       }
     }

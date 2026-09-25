@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { brl0 } from "@/lib/format";
+import { statusLabel } from "@/lib/labels";
 
 const STATUS_OPCOES = [
   { value: "__all__", label: "Todos status" },
@@ -37,10 +38,6 @@ function parseData(d: string | null): string {
   const parts = d.split(/[\/\-]/);
   if (parts.length !== 3) return d;
   return /^\d{4}$/.test(parts[0]) ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
-}
-
-function statusLabel(status: string): string {
-  return status === "Pedido Nao Faturado" ? "Pedido Não Faturado" : status;
 }
 
 export default function VendasTable({ ano, initial }: Props) {

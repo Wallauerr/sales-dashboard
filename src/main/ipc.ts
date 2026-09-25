@@ -7,13 +7,9 @@ import type { SalesDatabase } from "./db/database.ts";
 
 export function registerIpc(db: SalesDatabase): void {
   ipcMain.handle("ingest:import", async () => {
-    const { canceled, filePaths } = await dialog.showOpenDialog({
-      title: "Import export from SIGE Cloud",
-      properties: ["openFile"],
-      filters: [{ name: "Excel workbooks", extensions: ["xlsx"] }],
-    });
-    if (canceled || filePaths.length === 0) return null;
-    return importWorkbook(db, filePaths[0]);
+    const filePath = await pickWorkbookPath();
+    if (!filePath) return null;
+    return importWorkbook(db, filePath);
   });
 
   ipcMain.handle("ingest:import-from-path", (_event, filePath: string) => {
@@ -58,15 +54,14 @@ export function registerIpc(db: SalesDatabase): void {
     await writeFile(filePath, pdf);
     return filePath;
   });
+}
 
-  ipcMain.handle("dialog:open-file", async () => {
-    const win = BrowserWindow.getFocusedWindow();
-    if (!win) return null;
-    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
-      title: "Import export from SIGE Cloud",
-      properties: ["openFile"],
-      filters: [{ name: "Excel workbooks", extensions: ["xlsx"] }],
-    });
-    return canceled ? null : filePaths[0];
+async function pickWorkbookPath(): Promise<string | null> {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    title: "Importar export do SIGE",
+    properties: ["openFile"],
+    filters: [{ name: "Planilhas Excel", extensions: ["xlsx"] }],
   });
+  if (canceled || filePaths.length === 0) return null;
+  return filePaths[0];
 }
