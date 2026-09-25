@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  DownloadIcon,
-  FileUpIcon,
-  RefreshCwIcon,
-} from "lucide-react";
+import { FileUpIcon } from "lucide-react";
 
 import type { KpiSnapshot, Mes } from "../../shared/types";
 import { MESES, STATUS_FATURAMENTO } from "../../shared/types";
@@ -37,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { brl, brl0, brlCompact, brlHumanDate, int, pct } from "@/lib/format";
+import { brl, brl0, brlCompact, int, pct } from "@/lib/format";
 import { MES_LABEL, fileName } from "@/lib/labels";
 import { useWindowMaximized } from "@/lib/useWindowMaximized";
 
@@ -86,9 +82,7 @@ export default function App() {
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
-  const [lastImport, setLastImport] = useState<{ path: string; at: string | null } | null>(null);
   const [detail, setDetail] = useState<{ mes?: Mes; vendedor?: string; regiao?: string } | null>(null);
-  const [exporting, setExporting] = useState(false);
 
   const api = window.api;
 
@@ -114,49 +108,22 @@ export default function App() {
     }
   }, [snap, funnelMes]);
 
-  const refreshLastImport = useCallback(async () => {
-    if (!api) return;
-    try {
-      setLastImport(await api.lastImport());
-    } catch {
-      setLastImport(null);
-    }
-  }, [api]);
-
-  useEffect(() => {
-    void refreshLastImport();
-  }, [refreshLastImport]);
-
-  const handleImport = async (viaDialog: boolean): Promise<void> => {
+  const handleImport = async (): Promise<void> => {
     if (!api) return;
     setImporting(true);
     try {
-      const r = viaDialog ? await api.importWorkbook() : await api.importFromPath(lastImport?.path ?? "");
+      const r = await api.importWorkbook();
       if (r) {
         setImportMsg(
           `${fileName(r.filePath)} — ${int(r.inserted)} novos, ${int(r.updated)} atualizados` +
             (r.discarded ? `, ${int(r.discarded)} descartados` : ""),
         );
-        await refreshLastImport();
         setReload((k) => k + 1);
       }
     } catch (e) {
       setImportMsg(e instanceof Error ? `Erro: ${e.message}` : String(e));
     } finally {
       setImporting(false);
-    }
-  };
-
-  const handleExportPdf = async (): Promise<void> => {
-    if (!api) return;
-    setExporting(true);
-    try {
-      const path = await api.exportPdf(ano);
-      if (path) setImportMsg(`Relatório PDF salvo: ${path}`);
-    } catch (e) {
-      setImportMsg(e instanceof Error ? `Erro: ${e.message}` : String(e));
-    } finally {
-      setExporting(false);
     }
   };
 
@@ -222,19 +189,9 @@ export default function App() {
                 </button>
               ))}
             </div>
-            <Button onClick={() => void handleImport(true)} disabled={importing}>
+            <Button onClick={() => void handleImport()} disabled={importing}>
               <FileUpIcon className="size-4" />
               {importing ? "Importando…" : "Importar export do SIGE"}
-            </Button>
-            {lastImport ? (
-              <Button variant="outline" onClick={() => void handleImport(false)} disabled={importing}>
-                <RefreshCwIcon className="size-4" />
-                Reimportar {fileName(lastImport.path)}
-              </Button>
-            ) : null}
-            <Button variant="outline" onClick={() => void handleExportPdf()} disabled={exporting}>
-              <DownloadIcon className="size-4" />
-              {exporting ? "Gerando PDF…" : "Exportar PDF"}
             </Button>
             <ThemeToggle />
           </div>
@@ -242,9 +199,6 @@ export default function App() {
 
         {importMsg ? <p className="text-xs text-muted-foreground no-print">{importMsg}</p> : null}
         {error ? <p className="text-xs text-destructive no-print">Erro: {error}</p> : null}
-        {lastImport && lastImport.at ? (
-          <p className="text-xs text-muted-foreground no-print">última atualização: {brlHumanDate(lastImport.at)}</p>
-        ) : null}
 
         <Tabs value={view} onValueChange={(v) => setView(v as "dashboard" | "historico")} className="flex min-h-0 flex-1 flex-col gap-4">
           <TabsList className="w-fit">
@@ -258,15 +212,6 @@ export default function App() {
               </p>
             ) : (
               <div className="flex flex-col gap-6">
-            <p className="hidden items-center justify-between text-xs text-muted-foreground print:flex">
-              <span>
-                Relatório Metas Comercial — {ano} · emitido em {brlHumanDate(new Date().toISOString())}
-              </span>
-              <span>
-                {int(totalQtd)} vendas · {brl0(snap.totalPeriodo)} · meta {brl0(snap.metaAnual)}
-              </span>
-            </p>
-
             <Dialog
               open={detail !== null}
               onOpenChange={(open) => {
