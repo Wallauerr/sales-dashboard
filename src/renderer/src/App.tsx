@@ -232,35 +232,19 @@ export default function App() {
                 </button>
               ))}
             </div>
-            <div className="flex rounded-lg border bg-muted p-0.5">
-              <button
-                type="button"
-                onClick={() => setMes("todos")}
-                className={cn(
-                  "rounded-md px-2 py-1 text-sm font-medium",
-                  !mesAtivo
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Todos
-              </button>
-              {MESES.map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMes(m)}
-                  className={cn(
-                    "rounded-md px-2 py-1 text-sm font-medium",
-                    mes === m
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {MES_LABEL[m]}
-                </button>
-              ))}
-            </div>
+            <Select value={mes} onValueChange={(v) => setMes(v as Mes | "todos")}>
+              <SelectTrigger className="w-36 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os meses</SelectItem>
+                {MESES.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {MES_LABEL[m]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button onClick={() => void handleImport()} disabled={importing}>
               <FileUpIcon className="size-4" />
               {importing ? "Importando…" : "Importar export do SIGE"}
