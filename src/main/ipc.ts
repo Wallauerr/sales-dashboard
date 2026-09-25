@@ -1,6 +1,7 @@
 import { dialog, ipcMain } from "electron";
 import type { SnapshotFilter } from "../shared/types.ts";
-import { getSnapshot } from "./kpis/index.ts";
+import { metasSetInputSchema } from "../shared/schemas.ts";
+import { getSnapshot, getMetaConfig, setMetaConfig } from "./kpis/index.ts";
 import { importWorkbook } from "./ingest/index.ts";
 import type { SalesDatabase } from "./db/database.ts";
 
@@ -28,6 +29,15 @@ export function registerIpc(db: SalesDatabase): void {
       vendedor: f.vendedor,
       dataUrl: `data:${f.mime};base64,${Buffer.from(f.img).toString("base64")}`,
     }));
+  });
+
+  ipcMain.handle("metas:get", (_event, ano: number) => {
+    return getMetaConfig(db, Number(ano));
+  });
+
+  ipcMain.handle("metas:set", (_event, ano: number, input: unknown) => {
+    setMetaConfig(db, Number(ano), metasSetInputSchema.parse(input));
+    return getMetaConfig(db, Number(ano));
   });
 }
 

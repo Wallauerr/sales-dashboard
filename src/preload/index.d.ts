@@ -3,6 +3,8 @@ import type {
   ImportRecord,
   ImportResult,
   KpiSnapshot,
+  MetaConfigView,
+  MetasSetInput,
   SnapshotFilter,
   VendedorFoto,
 } from "../shared/types";
@@ -20,6 +22,8 @@ interface Api {
   getCodigoHistory: (codigo: string) => Promise<CodigoHistory>;
   getSnapshot: (ano: number, filtro?: SnapshotFilter) => Promise<KpiSnapshot>;
   getFotos: () => Promise<VendedorFoto[]>;
+  getMetaConfig: (ano: number) => Promise<MetaConfigView>;
+  setMetaConfig: (ano: number, input: MetasSetInput) => Promise<MetaConfigView>;
   minimize: () => Promise<void>;
   toggleMaximize: () => Promise<void>;
   closeWindow: () => Promise<void>;
