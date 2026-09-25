@@ -21,7 +21,6 @@ const api = {
     chrome: () => process.versions.chrome,
     electron: () => process.versions.electron,
   },
-  ping: () => ipcRenderer.invoke("ping") as Promise<string>,
   importWorkbook: () => ipcRenderer.invoke("ingest:import") as Promise<ImportResult | null>,
   importFromPath: (filePath: string) => ipcRenderer.invoke("ingest:import-from-path", filePath) as Promise<ImportResult>,
   lastImport: () => ipcRenderer.invoke("ingest:last-import") as Promise<{ path: string; at: string | null } | null>,

@@ -20,7 +20,6 @@ interface Api {
     chrome: () => string;
     electron: () => string;
   };
-  ping: () => Promise<string>;
   importWorkbook: () => Promise<ImportResult | null>;
   importFromPath: (filePath: string) => Promise<ImportResult>;
   lastImport: () => Promise<{ path: string; at: string | null } | null>;

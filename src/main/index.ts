@@ -71,7 +71,6 @@ app.whenReady().then(() => {
 
   registerIpc(db);
 
-  ipcMain.handle("ping", () => "pong");
   createWindow();
 
   app.on("activate", () => {
