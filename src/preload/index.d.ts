@@ -1,4 +1,11 @@
-import type { ImportResult, KpiSnapshot, VendasFilter, VendasPage } from "../shared/types";
+import type {
+  CodigoHistory,
+  ImportRecord,
+  ImportResult,
+  KpiSnapshot,
+  VendasFilter,
+  VendasPage,
+} from "../shared/types";
 
 interface WindowBounds {
   x: number;
@@ -17,6 +24,8 @@ interface Api {
   importWorkbook: () => Promise<ImportResult | null>;
   importFromPath: (filePath: string) => Promise<ImportResult>;
   lastImport: () => Promise<{ path: string; at: string | null } | null>;
+  getImports: () => Promise<ImportRecord[]>;
+  getCodigoHistory: (codigo: string) => Promise<CodigoHistory>;
   getSnapshot: (ano: number) => Promise<KpiSnapshot>;
   getVendas: (filters: VendasFilter, limit?: number) => Promise<VendasPage>;
   exportPdf: (ano: number) => Promise<string | null>;

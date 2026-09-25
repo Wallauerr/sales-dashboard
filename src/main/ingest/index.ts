@@ -4,7 +4,7 @@ import type { ImportResult, Mes, Sale } from "../../shared/types.ts";
 import { MESES } from "../../shared/types.ts";
 import { importResultSchema, saleSchema } from "../../shared/schemas.ts";
 import type { SalesDatabase } from "../db/database.ts";
-import { canonicalEstado, canonicalRegion, monthKey, parseDate, statusRaw, titleCase, uppercase, toISO } from "./normalize.ts";
+import { canonicalEstado, canonicalRegion, monthKey, parseDate, referenceDate, statusRaw, titleCase, uppercase, toISO } from "./normalize.ts";
 
 interface RawBaseRow {
   "Código": string;
@@ -104,7 +104,13 @@ function normalizeRow(raw: RawBaseRow): Sale {
     Number.isInteger(anoCache) &&
     anoCache >= 2000 &&
     anoCache <= 2099;
-  const dEng = dataAprovOrcamento ?? data;
+  const dEng = referenceDate(statusRaw(String(raw["Status Sistema"] ?? "")), {
+    orcamento: dataAprovOrcamento,
+    pedido: dataAprovPedido,
+    faturamento: dataAprovFaturamento,
+    emissaoFiscal: dataEmissaoFiscal,
+    base: data,
+  });
   const mes: Mes | null = cacheValido ? mesCache : dEng ? monthKey(dEng) : null;
   const ano: number | null = cacheValido ? anoCache : dEng ? dEng.getFullYear() : null;
 
@@ -139,21 +145,38 @@ function normalizeRow(raw: RawBaseRow): Sale {
 export async function importWorkbook(db: SalesDatabase, filePath: string): Promise<ImportResult> {
   const rows = readWorkbook(filePath);
   const result: ImportResult = { filePath, totalRows: rows.length, inserted: 0, updated: 0, discarded: 0 };
+  const items: { codigo: string; op: "inserted" | "updated"; statusSistema: string; valorTotal: number; data: string | null; mes: string | null; ano: number | null }[] = [];
 
   db.raw.exec("BEGIN");
   try {
-    db.clear();
     for (const raw of rows) {
-      db.insertSale(normalizeRow(raw));
-      result.inserted += 1;
+      // Linhas sem código (lixo/artefatos da planilha) não têm como reconciliar:
+      // são descartadas para não duplicar a cada reimport.
+      if (!String(raw["Código"] ?? "").trim()) {
+        result.discarded += 1;
+        continue;
+      }
+      // Reconciliação por codigo (número sequencial do orçamento/pedido no SIGE):
+      // codigo novo -> insere; existente -> atualiza status/campos. Nada é apagado,
+      // então um orçamento que evolui para pedido nunca duplica nas métricas.
+      const nr = normalizeRow(raw);
+      const op = db.upsertSale(nr);
+      if (op === "inserted") {
+        result.inserted += 1;
+        items.push({ codigo: nr.codigo, op, statusSistema: nr.statusSistema, valorTotal: nr.valorTotal, data: nr.data, mes: nr.mes, ano: nr.ano });
+      } else if (op === "updated") {
+        result.updated += 1;
+        items.push({ codigo: nr.codigo, op, statusSistema: nr.statusSistema, valorTotal: nr.valorTotal, data: nr.data, mes: nr.mes, ano: nr.ano });
+      }
     }
+    const importId = db.logImport(result);
+    for (const item of items) db.insertImportItem({ importId, ...item });
     db.raw.exec("COMMIT");
   } catch (err) {
     db.raw.exec("ROLLBACK");
     throw err;
   }
 
-  db.logImport(result);
   db.setMeta("last_import_path", filePath);
   db.setMeta("last_import_at", new Date().toISOString());
   return importResultSchema.parse(result);

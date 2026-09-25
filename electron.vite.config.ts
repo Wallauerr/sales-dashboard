@@ -15,6 +15,7 @@ export default defineConfig({
       alias: {
         "@": fileURLToPath(new URL("./src/renderer/src", import.meta.url)),
       },
+      dedupe: ["react", "react-dom"],
     },
     plugins: [react(), tailwindcss()],
   },

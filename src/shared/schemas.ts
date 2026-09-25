@@ -69,3 +69,32 @@ export const vendasPageSchema = z.object({
   total: z.number(),
 });
 export type VendasPage = z.infer<typeof vendasPageSchema>;
+
+export const importRecordSchema = z.object({
+  id: z.number(),
+  filePath: z.string(),
+  totalRows: z.number(),
+  inserted: z.number(),
+  updated: z.number(),
+  discarded: z.number(),
+  importedAt: z.string(),
+});
+export type ImportRecord = z.infer<typeof importRecordSchema>;
+
+export const importCodeEventSchema = z.object({
+  importedAt: z.string(),
+  op: z.enum(["inserted", "updated"]),
+  statusSistema: z.string(),
+  valorTotal: z.number(),
+  data: z.string().nullable(),
+  mes: mesSchema.nullable(),
+  ano: z.number().nullable(),
+});
+export type ImportCodeEvent = z.infer<typeof importCodeEventSchema>;
+
+export const codigoHistorySchema = z.object({
+  codigo: z.string(),
+  venda: saleSchema.nullable(),
+  events: z.array(importCodeEventSchema),
+});
+export type CodigoHistory = z.infer<typeof codigoHistorySchema>;

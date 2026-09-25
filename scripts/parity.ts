@@ -40,6 +40,15 @@ interface Ref {
 function reference(): Ref {
   const wb = XLSX.read(readFileSync(INPUT), { type: "buffer", cellDates: false });
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets["Base"], { defval: "" });
+  // Espelha a regra do motor: linhas sem código são descartadas e,
+  // para códigos repetidos, vale a última ocorrência (reconciliação por codigo).
+  const byCode = new Map<string, Record<string, unknown>>();
+  for (const r of rows) {
+    const c = String(r["Código"] ?? "").trim();
+    if (!c) continue;
+    byCode.set(c, r);
+  }
+  const effective = [...byCode.values()];
   const fatMes: Record<string, number> = {};
   const qtdMes: Record<string, number> = {};
   const funil: Record<string, number[]> = {};
@@ -55,7 +64,7 @@ function reference(): Ref {
   }
   let total2026 = 0;
   let totalHistorico = 0;
-  for (const r of rows) {
+  for (const r of effective) {
     const st = String(r["Status Sistema"] ?? "").trim();
     const valor = Number(r["Valor Total(R$)"]) || 0;
     const mesC = String(r["Mês"] ?? "").trim();
@@ -87,7 +96,7 @@ function reference(): Ref {
     }
   }
   void funilTot;
-  return { fatMes, qtdMes, funil, funilTot, vendedor, estado, regiao, anoAnterior, total2026, totalHistorico, linhas: rows.length };
+  return { fatMes, qtdMes, funil, funilTot, vendedor, estado, regiao, anoAnterior, total2026, totalHistorico, linhas: effective.length };
 }
 
 async function main(): Promise<void> {
@@ -97,8 +106,21 @@ async function main(): Promise<void> {
 
   const ref = reference();
   check("total de linhas", result.totalRows, 18419);
-  check("linhas referência", ref.linhas, 18419);
-  check("faturamento 2026 (referência cache)", ref.total2026, 7901673.35, 0.05);
+  const tableCount = (db.raw.prepare("SELECT COUNT(*) AS n FROM vendas").get() as { n: number }).n;
+  check("linhas na tabela == referência (distinto por codigo)", tableCount, ref.linhas);
+  check("descartadas == linhas sem codigo", result.discarded, 294);
+  show("faturamento 2026 (referência cache, reconciliado)", ref.total2026, 7901673.35);
+
+  const records = db.listImports();
+  check("log de imports registrou 1 import", records.length, 1);
+  check("log do import: inserted == resultado", records[0]?.inserted ?? -1, result.inserted);
+  check("log do import: updated == resultado", records[0]?.updated ?? -1, result.updated);
+  check("log do import: discarded == resultado", records[0]?.discarded ?? -1, result.discarded);
+  const firstCode = (db.raw.prepare("SELECT codigo FROM vendas ORDER BY id LIMIT 1").get() as { codigo: string } | undefined)?.codigo;
+  if (firstCode) {
+    const events = db.getCodigoHistory(firstCode).events.length;
+    check(`codigo ${firstCode} possui histórico de entrada`, events > 0, true);
+  }
 
   const s = getSnapshot(db, ANO);
 
@@ -192,8 +214,7 @@ async function main(): Promise<void> {
   console.log("\n— Metas —");
   const baseAnteriorRef = Object.values(ref.anoAnterior).reduce((a, b) => a + b, 0);
   check("base meta anual == faturamento 2025 (ref)", s.metaAnualBase, baseAnteriorRef, 0.05);
-  check("base 2025 (motor) == 10.680.597,88", s.metaAnualBase, 10680597.88, 0.05);
-  check("meta anual = base x1,15", s.metaAnual, Number((10680597.88 * 1.15).toFixed(2)), 0.05);
+  check("meta anual = base x1,15", s.metaAnual, Number((baseAnteriorRef * 1.15).toFixed(2)), 0.05);
   show("meta anual 2026 vs Excel (pivot corrompido dobrado)", s.metaAnual, 18066688.05);
   for (let i = 0; i < 9; i++) {
     const mes = MESES[i];

@@ -25,6 +25,14 @@ export function registerIpc(db: SalesDatabase): void {
     return path ? { path, at: db.getMeta("last_import_at") } : null;
   });
 
+  ipcMain.handle("ingest:imports", () => {
+    return db.listImports();
+  });
+
+  ipcMain.handle("ingest:codigo-history", (_event, codigo: string) => {
+    return db.getCodigoHistory(String(codigo ?? "").trim());
+  });
+
   ipcMain.handle("kpis:get", (_event, ano: number) => {
     return getSnapshot(db, ano);
   });
