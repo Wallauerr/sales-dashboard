@@ -15,11 +15,6 @@ interface WindowBounds {
 }
 
 interface Api {
-  versions: {
-    node: () => string;
-    chrome: () => string;
-    electron: () => string;
-  };
   importWorkbook: () => Promise<ImportResult | null>;
   importFromPath: (filePath: string) => Promise<ImportResult>;
   lastImport: () => Promise<{ path: string; at: string | null } | null>;
