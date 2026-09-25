@@ -55,21 +55,6 @@ export const importResultSchema = z.object({
 });
 export type ImportResult = z.infer<typeof importResultSchema>;
 
-export const vendasFilterSchema = z.object({
-  ano: z.number().int(),
-  mes: mesSchema.nullable().optional(),
-  vendedor: z.string().optional(),
-  regiao: z.string().optional(),
-  statusSistema: z.string().optional(),
-});
-export type VendasFilter = z.infer<typeof vendasFilterSchema>;
-
-export const vendasPageSchema = z.object({
-  rows: z.array(saleSchema),
-  total: z.number(),
-});
-export type VendasPage = z.infer<typeof vendasPageSchema>;
-
 export const importRecordSchema = z.object({
   id: z.number(),
   filePath: z.string(),

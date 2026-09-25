@@ -6,8 +6,6 @@ import {
   type ImportResult,
   type Mes,
   type Sale,
-  type VendasFilter,
-  type VendasPage,
 } from "./schemas.ts";
 
 export type {
@@ -17,8 +15,6 @@ export type {
   ImportResult,
   Mes,
   Sale,
-  VendasFilter,
-  VendasPage,
 };
 
 export const MESES = MESES_LIST;

@@ -4,8 +4,6 @@ import type {
   ImportResult,
   KpiSnapshot,
   SnapshotFilter,
-  VendasFilter,
-  VendasPage,
   VendedorFoto,
 } from "../shared/types";
 
@@ -22,7 +20,6 @@ interface Api {
   getCodigoHistory: (codigo: string) => Promise<CodigoHistory>;
   getSnapshot: (ano: number, filtro?: SnapshotFilter) => Promise<KpiSnapshot>;
   getFotos: () => Promise<VendedorFoto[]>;
-  getVendas: (filters: VendasFilter, limit?: number) => Promise<VendasPage>;
   minimize: () => Promise<void>;
   toggleMaximize: () => Promise<void>;
   closeWindow: () => Promise<void>;

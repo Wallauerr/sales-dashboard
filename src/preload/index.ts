@@ -5,8 +5,6 @@ import type {
   ImportResult,
   KpiSnapshot,
   SnapshotFilter,
-  VendasFilter,
-  VendasPage,
   VendedorFoto,
 } from "../shared/types.ts";
 
@@ -24,7 +22,6 @@ const api = {
   getSnapshot: (ano: number, filtro?: SnapshotFilter) =>
     ipcRenderer.invoke("kpis:get", ano, filtro) as Promise<KpiSnapshot>,
   getFotos: () => ipcRenderer.invoke("fotos:list") as Promise<VendedorFoto[]>,
-  getVendas: (filters: VendasFilter, limit?: number) => ipcRenderer.invoke("vendas:list", filters, limit) as Promise<VendasPage>,
   minimize: () => ipcRenderer.invoke("win:minimize") as Promise<void>,
   toggleMaximize: () => ipcRenderer.invoke("win:toggle-maximize") as Promise<void>,
   closeWindow: () => ipcRenderer.invoke("win:close") as Promise<void>,
