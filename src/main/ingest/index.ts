@@ -160,7 +160,7 @@ export async function importWorkbook(db: SalesDatabase, filePath: string): Promi
       // então um orçamento que evolui para pedido nunca duplica nas métricas.
       const op = db.upsertSale(normalizeRow(raw));
       if (op === "inserted") result.inserted += 1;
-      else result.updated += 1;
+      else if (op === "updated") result.updated += 1;
     }
     db.raw.exec("COMMIT");
   } catch (err) {

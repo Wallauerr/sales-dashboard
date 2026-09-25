@@ -151,13 +151,41 @@ export class SalesDatabase {
       );
   }
 
-  upsertSale(row: Parameters<SalesDatabase["insertSale"]>[0]): "inserted" | "updated" {
-    const exists =
-      this.db.prepare("SELECT 1 FROM vendas WHERE codigo = ?").get(row.codigo) !== undefined;
-    if (!exists) {
+  upsertSale(row: Parameters<SalesDatabase["insertSale"]>[0]): "inserted" | "updated" | "unchanged" {
+    const existing = this.db.prepare("SELECT * FROM vendas WHERE codigo = ?").get(row.codigo) as
+      | Record<string, unknown>
+      | undefined;
+    if (!existing) {
       this.insertSale(row);
       return "inserted";
     }
+    const fields: [string, unknown][] = [
+      ["data", row.data],
+      ["data_aprov_orcamento", row.dataAprovOrcamento],
+      ["data_aprov_pedido", row.dataAprovPedido],
+      ["data_aprov_faturamento", row.dataAprovFaturamento],
+      ["data_emissao_fiscal", row.dataEmissaoFiscal],
+      ["empresa", row.empresa],
+      ["status_sistema", row.statusSistema],
+      ["vendedor", row.vendedor],
+      ["categoria", row.categoria],
+      ["status", row.status],
+      ["origem", row.origem],
+      ["cliente", row.cliente],
+      ["cidade", row.cidade],
+      ["estado", row.estado],
+      ["regiao", row.regiao],
+      ["transportadora", row.transportadora],
+      ["frete", row.frete],
+      ["desconto", row.desconto],
+      ["comissao", row.comissao],
+      ["valor_total", row.valorTotal],
+      ["nfe", row.nfe],
+      ["mes", row.mes],
+      ["ano", row.ano],
+    ];
+    const unchanged = fields.every(([key, value]) => existing[key] === value);
+    if (unchanged) return "unchanged";
     this.db
       .prepare(
         `UPDATE vendas SET
