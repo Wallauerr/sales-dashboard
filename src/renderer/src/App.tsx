@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FileUpIcon, XIcon } from "lucide-react";
+import { FileUpIcon, SettingsIcon, XIcon } from "lucide-react";
 import { ChevronDownIcon, CheckIcon } from "lucide-react";
 
 import type { KpiSnapshot, Mes } from "../../shared/types";
@@ -39,6 +39,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { brl, brl0, brlCompact, int, pct } from "@/lib/format";
 import { MES_LABEL, fileName } from "@/lib/labels";
@@ -83,7 +91,8 @@ export default function App() {
   const [ano, setAno] = useState(2026);
   const [mes, setMes] = useState<Mes | "todos">("todos");
   const [vendedor, setVendedor] = useState<string | null>(null);
-  const [view, setView] = useState<"dashboard" | "historico" | "config">("dashboard");
+  const [view, setView] = useState<"dashboard" | "historico">("dashboard");
+  const [configOpen, setConfigOpen] = useState(false);
   const maximized = useWindowMaximized();
   const [snap, setSnap] = useState<KpiSnapshot | null>(null);
   const [fotos, setFotos] = useState<Record<string, string>>({});
@@ -219,7 +228,7 @@ export default function App() {
             </p>
             <h1 className="font-heading text-2xl font-semibold tracking-tight">Metas Comercial</h1>
             <p className="text-sm text-muted-foreground">
-              {view === "dashboard" ? "Dashboard de vendas" : view === "config" ? "Configurações" : "Histórico de vendas"}
+              {view === "dashboard" ? "Dashboard de vendas" : "Histórico de vendas"}
             </p>
           </div>
           <div className="no-print flex flex-wrap items-center gap-2">
@@ -272,6 +281,22 @@ export default function App() {
               {importing ? "Importando…" : "Importar export do SIGE"}
             </Button>
             <ThemeToggle />
+            <Dialog open={configOpen} onOpenChange={setConfigOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="Abrir Configurações">
+                  <SettingsIcon className="size-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
+                <DialogHeader>
+                  <DialogTitle>Configurações — Metas comerciais</DialogTitle>
+                  <DialogDescription>
+                    Ajuste as metas; o dashboard reflete na hora.
+                  </DialogDescription>
+                </DialogHeader>
+                <ConfigTab ano={ano} reloadKey={reload} onSaved={() => setReload((k) => k + 1)} />
+              </DialogContent>
+            </Dialog>
           </div>
         </header>
 
@@ -280,13 +305,12 @@ export default function App() {
 
         <Tabs
           value={view}
-          onValueChange={(v) => setView(v as "dashboard" | "historico" | "config")}
+          onValueChange={(v) => setView(v as "dashboard" | "historico")}
           className="flex min-h-0 flex-1 flex-col gap-4"
         >
           <TabsList className="w-fit">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="historico">Histórico</TabsTrigger>
-            <TabsTrigger value="config">Configurações</TabsTrigger>
           </TabsList>
           <TabsContent value="dashboard" className="flex flex-col gap-6">
             {!snap ? (
@@ -680,9 +704,6 @@ export default function App() {
           </TabsContent>
           <TabsContent value="historico">
             <HistoryTab reloadKey={reload} ano={ano} mes={mes} />
-          </TabsContent>
-          <TabsContent value="config">
-            <ConfigTab ano={ano} reloadKey={reload} onSaved={() => setReload((k) => k + 1)} />
           </TabsContent>
         </Tabs>
       </main>
