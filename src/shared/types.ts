@@ -30,6 +30,11 @@ export interface SnapshotFilter {
   vendedor?: string | null;
 }
 
+export interface VendedorFoto {
+  vendedor: string;
+  dataUrl: string;
+}
+
 export interface FunnelMonth {
   mes: Mes;
   orcamento: number;

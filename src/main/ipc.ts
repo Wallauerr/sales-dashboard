@@ -1,4 +1,5 @@
 import { dialog, ipcMain } from "electron";
+import type { SnapshotFilter } from "../shared/types.ts";
 import { getSnapshot } from "./kpis/index.ts";
 import { importWorkbook } from "./ingest/index.ts";
 import { getVendas } from "./vendas/index.ts";
@@ -19,8 +20,15 @@ export function registerIpc(db: SalesDatabase): void {
     return db.getCodigoHistory(String(codigo ?? "").trim());
   });
 
-  ipcMain.handle("kpis:get", (_event, ano: number) => {
-    return getSnapshot(db, ano);
+  ipcMain.handle("kpis:get", (_event, ano: number, filtro: SnapshotFilter = {}) => {
+    return getSnapshot(db, ano, filtro);
+  });
+
+  ipcMain.handle("fotos:list", () => {
+    return db.listVendedorFotos().map((f) => ({
+      vendedor: f.vendedor,
+      dataUrl: `data:${f.mime};base64,${Buffer.from(f.img).toString("base64")}`,
+    }));
   });
 
   ipcMain.handle("vendas:list", (_event, filters: Parameters<typeof getVendas>[1], limit?: number) => {
