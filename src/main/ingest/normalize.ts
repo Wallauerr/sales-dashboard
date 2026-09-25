@@ -56,6 +56,36 @@ export function statusRaw(status: string): string {
   return status.trim();
 }
 
+/**
+ * Data de referência para o mês/ano da venda, conforme o status atual:
+ * orçamento usa a data do orçamento, pedido a da aprovação do pedido,
+ * faturado a do faturamento/emissão fiscal — assim uma venda aprovada
+ * em julho (nascida como orçamento em maio) conta nas métricas de julho.
+ */
+export function referenceDate(status: string, dates: { orcamento: Date | null; pedido: Date | null; faturamento: Date | null; emissaoFiscal: Date | null; base: Date | null }): Date | null {
+  const s = status.trim();
+  let candidates: (Date | null)[];
+  switch (s) {
+    case "Orçamento":
+      candidates = [dates.orcamento, dates.base];
+      break;
+    case "Pedido":
+    case "Pedido Aprovado Sem Faturamento":
+      candidates = [dates.pedido, dates.orcamento, dates.base];
+      break;
+    case "Pedido Faturado":
+      candidates = [dates.faturamento, dates.emissaoFiscal, dates.pedido, dates.base];
+      break;
+    case "Pedido Cancelado":
+    case "Pedido Nao Faturado":
+      candidates = [dates.base, dates.orcamento];
+      break;
+    default:
+      candidates = [dates.orcamento, dates.base];
+  }
+  return candidates.find((d) => d !== null) ?? null;
+}
+
 const ESTADO_REGIAO: Record<string, string> = {
   AC: "Norte",
   AP: "Norte",
