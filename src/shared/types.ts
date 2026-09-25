@@ -25,6 +25,11 @@ export const MESES = MESES_LIST;
 
 export const STATUS_FATURAMENTO = ["Pedido", "Pedido Faturado"];
 
+export interface SnapshotFilter {
+  mes?: Mes | null;
+  vendedor?: string | null;
+}
+
 export interface FunnelMonth {
   mes: Mes;
   orcamento: number;
@@ -57,6 +62,7 @@ export interface KpiSnapshot {
   totalPeriodo: number;
   totalHistorico: number;
   participacaoAno: number;
+  participacaoEscopo: number;
   faturamentoPorMes: Record<Mes, number>;
   quantidadePorMes: Record<Mes, number>;
   porVendedor: { vendedor: string; valor: number; share: number }[];
