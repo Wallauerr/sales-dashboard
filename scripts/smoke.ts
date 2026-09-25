@@ -9,6 +9,7 @@ import { SalesDatabase } from "../src/main/db/database.ts";
 import { importWorkbook } from "../src/main/ingest/index.ts";
 import { getSnapshot } from "../src/main/kpis/index.ts";
 import { getVendas } from "../src/main/vendas/index.ts";
+import { buildWorkbookWithPhoto } from "./photo-fixture.ts";
 
 const HEADERS = [
   "Código",
@@ -134,6 +135,26 @@ async function main(): Promise<void> {
   check("codigo 901 reexportado sem mudança gera 1 só evento", db2.getCodigoHistory("901").events.length, 1);
   const h999 = db2.getCodigoHistory("999");
   check("codigo inexistente", { venda: h999.venda, eventos: h999.events.length }, { venda: null, eventos: 0 });
+
+  console.log("\n— Filtros de escopo (mês e vendedor) —");
+  const sUrsula = await getSnapshot(db, 2026, { vendedor: "Ursula" });
+  check("filtro vendedor faturamento", sUrsula.totalPeriodo, 4000);
+  check("filtro vendedor mantém lista completa", sUrsula.porVendedor.some((v) => v.vendedor === "Ursula"), true);
+  const sFev = await getSnapshot(db, 2026, { mes: "fev" });
+  check("filtro mês faturamento", sFev.totalPeriodo, 4000);
+  check("filtro mês zera outros meses", Object.values(sFev.faturamentoPorMes).filter((v) => v > 0).length, 1);
+  const sUrsulaFev = await getSnapshot(db, 2026, { mes: "fev", vendedor: "Ursula" });
+  check("filtro mês+vendedor", sUrsulaFev.totalPeriodo, 4000);
+
+  console.log("\n— Fotos embutidas na planilha (xlsx com imagem ancorada) —");
+  const fotoPath = join(tmpdir(), `smoke-foto-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.xlsx`);
+  writeFileSync(fotoPath, buildWorkbookWithPhoto());
+  await importWorkbook(db, fotoPath);
+  const fotos = db.listVendedorFotos();
+  check("foto extraída para Rosemeri", fotos[0]?.vendedor, "Rosemeri");
+  check("foto com mime png", fotos[0]?.mime, "image/png");
+  check("foto não vazia", (fotos[0]?.img.length ?? 0) > 0, true);
+  check("apenas fotos mapeadas", (fotos[0]?.img.length ?? 0) > 0 && fotos.every((f) => f.vendedor), true);
 
   console.log("SMOKE PASS");
 }
