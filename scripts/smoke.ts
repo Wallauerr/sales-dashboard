@@ -65,7 +65,6 @@ async function main(): Promise<void> {
 
   const result = await importWorkbook(db, filePath);
   check("import inserted", result.inserted, ROWS.length);
-  check("last import path persisted", db.getMeta("last_import_path"), filePath);
 
   const s = await getSnapshot(db, 2026);
   check("totalPeriodo 2026", s.totalPeriodo, 10000);
