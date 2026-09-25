@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FileUpIcon } from "lucide-react";
+import { FileUpIcon, XIcon } from "lucide-react";
 
 import type { KpiSnapshot, Mes } from "../../shared/types";
 import { MESES, STATUS_FATURAMENTO } from "../../shared/types";
@@ -9,8 +9,8 @@ import HorizontalBars from "@/components/charts/HorizontalBars";
 import type { HBarDatum } from "@/components/charts/HorizontalBars";
 import RegionMap from "@/components/charts/RegionMap";
 import type { RegionPoint } from "@/components/charts/RegionMap";
-import VendasTable from "@/components/detail/VendasTable";
 import HistoryTab from "@/components/history/HistoryTab";
+import SellerCards from "@/components/sellers/SellerCards";
 import {
   KpiCard,
   KpiCardContent,
@@ -23,13 +23,6 @@ import TitleBar from "@/components/TitleBar";
 import WindowResizeHandles from "@/components/WindowResizeHandles";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -80,17 +73,17 @@ function regionPoints(snap: KpiSnapshot): RegionPoint[] {
 
 export default function App() {
   const [ano, setAno] = useState(2026);
+  const [mes, setMes] = useState<Mes | "todos">("todos");
+  const [vendedor, setVendedor] = useState<string | null>(null);
   const [view, setView] = useState<"dashboard" | "historico">("dashboard");
   const maximized = useWindowMaximized();
   const [snap, setSnap] = useState<KpiSnapshot | null>(null);
+  const [fotos, setFotos] = useState<Record<string, string>>({});
   const [funnelMes, setFunnelMes] = useState<Mes | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
-  const [detail, setDetail] = useState<{ mes?: Mes; vendedor?: string; regiao?: string } | null>(
-    null,
-  );
 
   const api = window.api;
 
@@ -98,16 +91,33 @@ export default function App() {
     if (!api) return;
     setError(null);
     try {
-      const s = await api.getSnapshot(ano);
+      const s = await api.getSnapshot(ano, {
+        mes: mes === "todos" ? null : mes,
+        vendedor,
+      });
       setSnap(s);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }, [ano, api]);
+  }, [ano, mes, vendedor, api]);
+
+  const loadFotos = useCallback(async () => {
+    if (!api) return;
+    try {
+      const list = await api.getFotos();
+      setFotos(Object.fromEntries(list.map((f) => [f.vendedor, f.dataUrl])));
+    } catch {
+      // as fotos são best-effort; sem elas, mostra iniciais
+    }
+  }, [api]);
 
   useEffect(() => {
     void load();
   }, [load, reload]);
+
+  useEffect(() => {
+    void loadFotos();
+  }, [loadFotos, reload]);
 
   useEffect(() => {
     if (snap && funnelMes === null) {
@@ -135,11 +145,6 @@ export default function App() {
     }
   };
 
-  const totalQtd = useMemo(
-    () => (snap ? MESES.reduce((acc, m) => acc + snap.quantidadePorMes[m], 0) : 0),
-    [snap],
-  );
-
   if (!api) {
     return (
       <div className="app-root flex h-dvh flex-col overflow-hidden rounded-[10px] bg-background text-foreground">
@@ -153,16 +158,38 @@ export default function App() {
     );
   }
 
-  const metaPct = snap && snap.metaAnual > 0 ? snap.totalPeriodo / snap.metaAnual : 0;
+  const mesAtivo = mes !== "todos";
+  const mesIndex = mesAtivo ? MESES.indexOf(mes as Mes) : -1;
+  const metaMes = snap && mesAtivo ? snap.metasPorMes[mesIndex].meta : 0;
+  const faturamentoMes = snap && mesAtivo ? snap.faturamentoPorMes[mes as Mes] : 0;
+  const metaPct =
+    snap && !vendedor && !mesAtivo && snap.metaAnual > 0 ? snap.totalPeriodo / snap.metaAnual : 0;
+  const metaMesPct = mesAtivo && metaMes > 0 ? (faturamentoMes ?? 0) / metaMes : 0;
   const restanteAno = snap ? snap.restanteAnoPorMes.dez : 0;
+  const restanteMes = mesAtivo ? Math.max(metaMes - (faturamentoMes ?? 0), 0) : 0;
+
+  const totalQtd = useMemo(() => {
+    if (!snap) return 0;
+    if (mesAtivo) return snap.quantidadePorMes[mes as Mes];
+    return MESES.reduce((acc, m) => acc + snap.quantidadePorMes[m], 0);
+  }, [snap, mesAtivo, mes]);
 
   const runRate = useMemo(() => {
-    if (!snap || !snap.totalPeriodo || snap.totalPeriodo <= 0) return null;
+    if (!snap || mesAtivo || vendedor || !snap.totalPeriodo || snap.totalPeriodo <= 0) return null;
     const now = new Date();
     const elapsed = now.getFullYear() === ano ? now.getMonth() + 1 : 12;
     if (elapsed <= 0) return null;
     return { projection: (snap.totalPeriodo / elapsed) * 12, elapsed };
-  }, [snap, ano]);
+  }, [snap, ano, mesAtivo, vendedor]);
+
+  const kgrid = vendedor ? "lg:grid-cols-3" : mesAtivo ? "lg:grid-cols-6" : "lg:grid-cols-7";
+  const quantHint = vendedor
+    ? mesAtivo
+      ? `vendas de ${vendedor} em ${MES_LABEL[mes as Mes]} (1 por linha)`
+      : `vendas de ${vendedor} (1 por linha)`
+    : mesAtivo
+      ? `vendas em ${MES_LABEL[mes as Mes]} (1 por linha)`
+      : "vendas no ano (1 por linha)";
 
   return (
     <div
@@ -205,6 +232,35 @@ export default function App() {
                 </button>
               ))}
             </div>
+            <div className="flex rounded-lg border bg-muted p-0.5">
+              <button
+                type="button"
+                onClick={() => setMes("todos")}
+                className={cn(
+                  "rounded-md px-2 py-1 text-sm font-medium",
+                  !mesAtivo
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                Todos
+              </button>
+              {MESES.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMes(m)}
+                  className={cn(
+                    "rounded-md px-2 py-1 text-sm font-medium",
+                    mes === m
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {MES_LABEL[m]}
+                </button>
+              ))}
+            </div>
             <Button onClick={() => void handleImport()} disabled={importing}>
               <FileUpIcon className="size-4" />
               {importing ? "Importando…" : "Importar export do SIGE"}
@@ -232,29 +288,53 @@ export default function App() {
               </p>
             ) : (
               <div className="flex flex-col gap-6">
-                <Dialog
-                  open={detail !== null}
-                  onOpenChange={(open) => {
-                    if (!open) setDetail(null);
-                  }}
-                >
-                  <DialogContent className="max-h-[85vh] gap-0 overflow-hidden p-0 sm:max-w-5xl">
-                    <DialogHeader className="border-b px-6 py-4 pr-12 text-left">
-                      <DialogTitle>Linhas de venda — {ano}</DialogTitle>
-                      <DialogDescription>
-                        Detalhamento da venda por mês, vendedor ou região.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="min-h-0 overflow-y-auto p-6 pt-4">
-                      {detail ? <VendasTable ano={ano} initial={detail} /> : null}
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                {(vendedor || mesAtivo) && (
+                  <div className="no-print flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">Filtrando por:</span>
+                    {mesAtivo ? (
+                      <button
+                        type="button"
+                        onClick={() => setMes("todos")}
+                        className="flex items-center gap-1 rounded-full border bg-muted px-3 py-1 text-xs font-medium hover:bg-muted/70"
+                      >
+                        Mês: {MES_LABEL[mes as Mes]}
+                        <XIcon className="size-3" />
+                      </button>
+                    ) : null}
+                    {vendedor ? (
+                      <button
+                        type="button"
+                        onClick={() => setVendedor(null)}
+                        className="flex items-center gap-1 rounded-full border bg-muted px-3 py-1 text-xs font-medium hover:bg-muted/70"
+                      >
+                        Vendedor: {vendedor}
+                        <XIcon className="size-3" />
+                      </button>
+                    ) : null}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setMes("todos");
+                        setVendedor(null);
+                      }}
+                    >
+                      Limpar filtros
+                    </Button>
+                  </div>
+                )}
 
-                <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-7">
+                <section className={cn("grid grid-cols-2 gap-4 sm:grid-cols-3", kgrid)}>
                   <KpiCard>
                     <KpiCardHeader>
-                      <KpiCardTitle>Faturamento {ano}</KpiCardTitle>
+                      <KpiCardTitle>
+                        Faturamento{" "}
+                        {vendedor
+                          ? `${vendedor}${mesAtivo ? ` · ${MES_LABEL[mes as Mes]}` : ""}`
+                          : mesAtivo
+                            ? `${MES_LABEL[mes as Mes]} ${ano}`
+                            : ano}
+                      </KpiCardTitle>
                     </KpiCardHeader>
                     <KpiCardContent>
                       <KpiCardValue
@@ -263,147 +343,208 @@ export default function App() {
                       />
                     </KpiCardContent>
                   </KpiCard>
-                  <KpiCard>
-                    <KpiCardHeader>
-                      <KpiCardTitle>Meta anual</KpiCardTitle>
-                    </KpiCardHeader>
-                    <KpiCardContent>
-                      <KpiCardValue
-                        value={brl0(snap.metaAnual)}
-                        hint={`base ${ano - 1} × ${(snap.fator * 100).toFixed(0)}%`}
-                      />
-                    </KpiCardContent>
-                  </KpiCard>
-                  <KpiCard>
-                    <KpiCardHeader>
-                      <KpiCardTitle>% da meta</KpiCardTitle>
-                    </KpiCardHeader>
-                    <KpiCardContent>
-                      <KpiCardValue value={pct(metaPct)} hint="realizado ÷ meta" />
-                    </KpiCardContent>
-                  </KpiCard>
-                  <KpiCard>
-                    <KpiCardHeader>
-                      <KpiCardTitle>Restante p/ meta</KpiCardTitle>
-                    </KpiCardHeader>
-                    <KpiCardContent>
-                      <KpiCardValue
-                        value={restanteAno > 0 ? brl0(restanteAno) : "—"}
-                        hint={restanteAno > 0 ? "no acumulado de dez" : "meta atingida"}
-                      />
-                    </KpiCardContent>
-                  </KpiCard>
+
+                  {!vendedor ? (
+                    mesAtivo ? (
+                      <KpiCard>
+                        <KpiCardHeader>
+                          <KpiCardTitle>Meta {MES_LABEL[mes as Mes]}</KpiCardTitle>
+                        </KpiCardHeader>
+                        <KpiCardContent>
+                          <KpiCardValue value={brl0(metaMes)} hint="meta do mês (empresa)" />
+                        </KpiCardContent>
+                      </KpiCard>
+                    ) : (
+                      <KpiCard>
+                        <KpiCardHeader>
+                          <KpiCardTitle>Meta anual</KpiCardTitle>
+                        </KpiCardHeader>
+                        <KpiCardContent>
+                          <KpiCardValue
+                            value={brl0(snap.metaAnual)}
+                            hint={`base ${ano - 1} × ${(snap.fator * 100).toFixed(0)}%`}
+                          />
+                        </KpiCardContent>
+                      </KpiCard>
+                    )
+                  ) : null}
+
+                  {!vendedor ? (
+                    <KpiCard>
+                      <KpiCardHeader>
+                        <KpiCardTitle>% da meta</KpiCardTitle>
+                      </KpiCardHeader>
+                      <KpiCardContent>
+                        <KpiCardValue
+                          value={pct(mesAtivo ? metaMesPct : metaPct)}
+                          hint={mesAtivo ? "realizado do mês ÷ meta" : "realizado ÷ meta"}
+                        />
+                      </KpiCardContent>
+                    </KpiCard>
+                  ) : null}
+
+                  {!vendedor ? (
+                    <KpiCard>
+                      <KpiCardHeader>
+                        <KpiCardTitle>{mesAtivo ? "Restante p/ meta do mês" : "Restante p/ meta"}</KpiCardTitle>
+                      </KpiCardHeader>
+                      <KpiCardContent>
+                        <KpiCardValue
+                          value={mesAtivo ? (restanteMes > 0 ? brl0(restanteMes) : "—") : restanteAno > 0 ? brl0(restanteAno) : "—"}
+                          hint={mesAtivo ? (restanteMes > 0 ? "no mês" : "meta atingida") : restanteAno > 0 ? "no acumulado de dez" : "meta atingida"}
+                        />
+                      </KpiCardContent>
+                    </KpiCard>
+                  ) : null}
+
                   <KpiCard>
                     <KpiCardHeader>
                       <KpiCardTitle>Quantidade</KpiCardTitle>
                     </KpiCardHeader>
                     <KpiCardContent>
-                      <KpiCardValue value={int(totalQtd)} hint="vendas no ano (1 por linha)" />
+                      <KpiCardValue value={int(totalQtd)} hint={quantHint} />
                     </KpiCardContent>
                   </KpiCard>
+
                   <KpiCard>
                     <KpiCardHeader>
                       <KpiCardTitle>Participação</KpiCardTitle>
                     </KpiCardHeader>
                     <KpiCardContent>
                       <KpiCardValue
-                        value={pct(snap.participacaoAno)}
+                        value={pct(snap.participacaoEscopo)}
                         hint={`de ${brlCompact(snap.totalHistorico)}`}
                       />
                     </KpiCardContent>
                   </KpiCard>
-                  <KpiCard>
-                    <KpiCardHeader>
-                      <KpiCardTitle>Projeção (run-rate)</KpiCardTitle>
-                    </KpiCardHeader>
-                    <KpiCardContent>
-                      <KpiCardValue
-                        value={runRate ? brl0(runRate.projection) : "—"}
-                        hint={
-                          runRate
-                            ? `${brl0(snap.totalPeriodo / runRate.elapsed)}/mês med em ${runRate.elapsed === 12 ? "ano fechado" : `${runRate.elapsed} meses`}`
-                            : "sem dados"
-                        }
-                      />
-                    </KpiCardContent>
-                  </KpiCard>
+
+                  {!vendedor && !mesAtivo ? (
+                    <KpiCard>
+                      <KpiCardHeader>
+                        <KpiCardTitle>Projeção (run-rate)</KpiCardTitle>
+                      </KpiCardHeader>
+                      <KpiCardContent>
+                        <KpiCardValue
+                          value={runRate ? brl0(runRate.projection) : "—"}
+                          hint={
+                            runRate
+                              ? `${brl0(snap.totalPeriodo / runRate.elapsed)}/mês med em ${runRate.elapsed === 12 ? "ano fechado" : `${runRate.elapsed} meses`}`
+                              : "sem dados"
+                          }
+                        />
+                      </KpiCardContent>
+                    </KpiCard>
+                  ) : null}
                 </section>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Faturamento mensal × meta</CardTitle>
+                <Card className="no-print">
+                  <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <CardTitle>Vendedores — faturamento {ano}</CardTitle>
+                      <p className="text-xs text-muted-foreground">
+                        Clique em um vendedor para filtrar todo o dashboard; clique de novo para
+                        limpar o filtro.
+                      </p>
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <GroupedBars
-                      labels={MESES.map((m) => MES_LABEL[m])}
-                      series={[
-                        {
-                          name: "Realizado",
-                          kind: "bar",
-                          colorClass: "fill-chart-1",
-                          values: MESES.map((m) => snap.faturamentoPorMes[m]),
-                        },
-                        {
-                          name: "Meta",
-                          kind: "marker",
-                          colorClass: "stroke-chart-3",
-                          values: MESES.map((_m, i) => snap.metasPorMes[i].meta),
-                        },
-                      ]}
-                      onBarClick={(i) => setDetail({ mes: MESES[i] })}
+                    <SellerCards
+                      ano={ano}
+                      vendedores={snap.porVendedor}
+                      fotos={fotos}
+                      selected={vendedor}
+                      onSelect={setVendedor}
                     />
                   </CardContent>
                 </Card>
 
-                <div className="grid gap-6 lg:grid-cols-2">
+                {!mesAtivo ? (
                   <Card>
                     <CardHeader>
-                      <CardTitle>Acumulado anual × meta</CardTitle>
+                      <CardTitle>
+                        {vendedor ? `Faturamento mensal — ${vendedor}` : "Faturamento mensal × meta"}
+                      </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <AccumulatedLine
-                        labels={MESES.map((m) => MES_LABEL[m])}
-                        values={MESES.map((m) => snap.acumuladoPorMes[m])}
-                        target={snap.metaAnual}
-                      />
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Nº de fechamento por mês</CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex flex-col gap-2">
                       <GroupedBars
                         labels={MESES.map((m) => MES_LABEL[m])}
-                        height={260}
-                        valueFormat={(v) => int(v)}
                         series={[
                           {
-                            name: "Orçamentos",
+                            name: "Realizado",
                             kind: "bar",
-                            colorClass: "fill-chart-2",
-                            values: MESES.map((m) => snap.numeroFechamento[m].orcamento),
+                            colorClass: "fill-chart-1",
+                            values: MESES.map((m) => snap.faturamentoPorMes[m]),
                           },
-                          {
-                            name: "Pedidos",
-                            kind: "bar",
-                            colorClass: "fill-chart-3",
-                            values: MESES.map((m) => snap.numeroFechamento[m].pedido),
-                          },
+                          ...(!vendedor
+                            ? [
+                                {
+                                  name: "Meta",
+                                  kind: "marker" as const,
+                                  colorClass: "stroke-chart-3",
+                                  values: MESES.map((_m, i) => snap.metasPorMes[i].meta),
+                                },
+                              ]
+                            : []),
                         ]}
+                        onBarClick={(i) => setMes(MESES[i])}
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Clique em uma barra para filtrar o mês.
+                      </p>
                     </CardContent>
                   </Card>
-                </div>
+                ) : null}
 
-                <div className="grid gap-6 lg:grid-cols-3">
+                {!mesAtivo ? (
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>
+                          {vendedor ? `Acumulado ${ano} — ${vendedor}` : "Acumulado anual × meta"}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <AccumulatedLine
+                          labels={MESES.map((m) => MES_LABEL[m])}
+                          values={MESES.map((m) => snap.acumuladoPorMes[m])}
+                          target={vendedor ? undefined : snap.metaAnual}
+                        />
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Nº de fechamento por mês</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <GroupedBars
+                          labels={MESES.map((m) => MES_LABEL[m])}
+                          height={260}
+                          valueFormat={(v) => int(v)}
+                          series={[
+                            {
+                              name: "Orçamentos",
+                              kind: "bar",
+                              colorClass: "fill-chart-2",
+                              values: MESES.map((m) => snap.numeroFechamento[m].orcamento),
+                            },
+                            {
+                              name: "Pedidos",
+                              kind: "bar",
+                              colorClass: "fill-chart-3",
+                              values: MESES.map((m) => snap.numeroFechamento[m].pedido),
+                            },
+                          ]}
+                        />
+                      </CardContent>
+                    </Card>
+                  </div>
+                ) : null}
+
+                <div className="grid gap-6 lg:grid-cols-2">
                   <Card>
                     <CardHeader className="flex-row items-center justify-between gap-2">
                       <CardTitle>Funil de vendas</CardTitle>
-                      <Select
-                        value={funnelMes ?? "dez"}
-                        onValueChange={(v) => setFunnelMes(v as Mes)}
-                      >
+                      <Select value={funnelMes ?? "dez"} onValueChange={(v) => setFunnelMes(v as Mes)}>
                         <SelectTrigger className="h-8 w-28 text-xs">
                           <SelectValue />
                         </SelectTrigger>
@@ -421,24 +562,6 @@ export default function App() {
                         data={funnelItems(MESES.indexOf(funnelMes ?? "jan"), snap)}
                         showValue
                         colorClass="bg-chart-1"
-                      />
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Vendedores — faturamento {ano}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <HorizontalBars
-                        data={snap.porVendedor.map((v) => ({
-                          label: v.vendedor,
-                          value: v.valor,
-                          sub: pct(v.share),
-                          colorClass: "bg-chart-5",
-                        }))}
-                        format={brl0}
-                        onSelect={(d) => setDetail({ vendedor: d.label })}
                       />
                     </CardContent>
                   </Card>
@@ -552,4 +675,3 @@ export default function App() {
     </div>
   );
 }
-

@@ -8,7 +8,6 @@ import * as XLSX from "xlsx";
 import { SalesDatabase } from "../src/main/db/database.ts";
 import { importWorkbook } from "../src/main/ingest/index.ts";
 import { getSnapshot } from "../src/main/kpis/index.ts";
-import { getVendas } from "../src/main/vendas/index.ts";
 import { buildWorkbookWithPhoto } from "./photo-fixture.ts";
 
 const HEADERS = [
@@ -82,13 +81,6 @@ async function main(): Promise<void> {
 
   const sorted = [...s.porVendedor].sort((a, b) => b.valor - a.valor);
   check("vendedores top", sorted[0], { vendedor: "Ursula", valor: 4000, share: 0.4 });
-
-  assert.throws(() => getVendas(db, { ano: "2026" }), /expected number/);
-  assert.throws(() => getVendas(db, { ano: 2026, mes: "janeiro" }), /expected number|invalid_enum_value|expected.*jan/);
-  const fat = getVendas(db, { ano: 2026, statusSistema: "__fat__" }, 100);
-  check("getVendas faturamento count", fat.total, 4);
-  check("getVendas faturamento sum", fat.rows.reduce((a, r) => a + r.valorTotal, 0), 10000);
-  check("getVendas order desc", fat.rows[0].codigo, "14");
 
   console.log("\n— Reconciliação diária por codigo (orçamento evolui para pedido) —");
   const db2 = SalesDatabase.open(new DatabaseSync(":memory:"));
