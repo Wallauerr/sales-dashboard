@@ -25,13 +25,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { WindowResizeHandles } from '@/components/window-resize-handles'
 import { chartColor } from '@/lib/colors'
@@ -47,15 +40,31 @@ const ANOS = [2024, 2025, 2026]
 function funnelItems(mesIndex: number, snap: KpiSnapshot): HBarDatum[] {
   const f = snap.funilPorMes[mesIndex]
   const rows = [
-    { label: 'Orçamento', v: f.orcamento },
-    { label: 'Pedido', v: f.pedido },
-    { label: 'Pedido Aprovado S/F', v: f.pedidoAprovadoSemFaturamento },
-    { label: 'Pedido Cancelado', v: f.pedidoCancelado },
-    { label: 'Pedido Faturado', v: f.pedidoFaturado },
-    { label: 'Pedido Não Faturado', v: f.pedidoNaoFaturado },
+    { singular: 'Orçamento', plural: 'Orçamentos', v: f.orcamento },
+    { singular: 'Pedido', plural: 'Pedidos', v: f.pedido },
+    {
+      singular: 'Pedido Aprovado S/F',
+      plural: 'Pedidos Aprovados S/F',
+      v: f.pedidoAprovadoSemFaturamento,
+    },
+    {
+      singular: 'Pedido Cancelado',
+      plural: 'Pedidos Cancelados',
+      v: f.pedidoCancelado,
+    },
+    {
+      singular: 'Pedido Faturado',
+      plural: 'Pedidos Faturados',
+      v: f.pedidoFaturado,
+    },
+    {
+      singular: 'Pedido Não Faturado',
+      plural: 'Pedidos Não Faturados',
+      v: f.pedidoNaoFaturado,
+    },
   ]
   return rows.map((r, i) => ({
-    label: r.label,
+    label: r.v > 1 ? r.plural : r.singular,
     value: r.v,
     color: i < 5 ? chartColor(i + 1) : 'var(--destructive)',
   }))
@@ -87,7 +96,6 @@ export function App() {
   const maximized = useWindowMaximized()
   const [snap, setSnap] = useState<KpiSnapshot | null>(null)
   const [fotos, setFotos] = useState<Record<string, string>>({})
-  const [funnelMes, setFunnelMes] = useState<Mes | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const [importMsg, setImportMsg] = useState<string | null>(null)
@@ -128,13 +136,6 @@ export function App() {
     if (!reload) return
     refresh()
   }, [reload, refresh])
-
-  useEffect(() => {
-    if (snap && funnelMes === null) {
-      const last = MESES.findLast((_m, i) => snap.funilPorMes[i].total > 0)
-      setFunnelMes(last ?? 'dez')
-    }
-  }, [snap, funnelMes])
 
   const handleImport = async (): Promise<void> => {
     if (!api) return
@@ -616,30 +617,23 @@ export function App() {
 
                 <div className="grid gap-6 lg:grid-cols-2">
                   <Card>
-                    <CardHeader className="flex-row items-center justify-between gap-2">
+                    <CardHeader>
                       <CardTitle>Funil de vendas</CardTitle>
-                      <Select
-                        value={funnelMes ?? 'dez'}
-                        onValueChange={v => setFunnelMes(v as Mes)}>
-                        <SelectTrigger className="h-8 w-28 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {MESES.map(m => (
-                            <SelectItem key={m} value={m}>
-                              {MES_LABEL[m]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                     </CardHeader>
                     <CardContent>
                       <HorizontalBars
                         data={funnelItems(
-                          MESES.indexOf(funnelMes ?? 'jan'),
+                          MESES.indexOf(
+                            mes === 'todos'
+                              ? (MESES.findLast(
+                                  (_m, i) => snap.funilPorMes[i].total > 0,
+                                ) ?? 'dez')
+                              : mes,
+                          ),
                           snap,
                         )}
                         showValue
+                        valueFormat={int}
                       />
                     </CardContent>
                   </Card>
