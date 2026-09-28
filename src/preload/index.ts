@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer } from 'electron'
 import type {
   CodigoHistory,
   ImportRecord,
@@ -6,36 +6,46 @@ import type {
   KpiSnapshot,
   SnapshotFilter,
   VendedorFoto,
-} from "../shared/types.ts";
+} from '../shared/types.ts'
 
 export interface WindowBounds {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  x: number
+  y: number
+  width: number
+  height: number
 }
 
 const api = {
-  importWorkbook: () => ipcRenderer.invoke("ingest:import") as Promise<ImportResult | null>,
-  getImports: () => ipcRenderer.invoke("ingest:imports") as Promise<ImportRecord[]>,
-  getCodigoHistory: (codigo: string) => ipcRenderer.invoke("ingest:codigo-history", codigo) as Promise<CodigoHistory>,
+  importWorkbook: () =>
+    ipcRenderer.invoke('ingest:import') as Promise<ImportResult | null>,
+  getImports: () =>
+    ipcRenderer.invoke('ingest:imports') as Promise<ImportRecord[]>,
+  getCodigoHistory: (codigo: string) =>
+    ipcRenderer.invoke(
+      'ingest:codigo-history',
+      codigo,
+    ) as Promise<CodigoHistory>,
   getSnapshot: (ano: number, filtro?: SnapshotFilter) =>
-    ipcRenderer.invoke("kpis:get", ano, filtro) as Promise<KpiSnapshot>,
-  getFotos: () => ipcRenderer.invoke("fotos:list") as Promise<VendedorFoto[]>,
-  minimize: () => ipcRenderer.invoke("win:minimize") as Promise<void>,
-  toggleMaximize: () => ipcRenderer.invoke("win:toggle-maximize") as Promise<void>,
-  closeWindow: () => ipcRenderer.invoke("win:close") as Promise<void>,
-  getBounds: () => ipcRenderer.invoke("win:get-bounds") as Promise<WindowBounds>,
-  setBounds: (bounds: WindowBounds) => ipcRenderer.send("win:set-bounds", bounds),
+    ipcRenderer.invoke('kpis:get', ano, filtro) as Promise<KpiSnapshot>,
+  getFotos: () => ipcRenderer.invoke('fotos:list') as Promise<VendedorFoto[]>,
+  minimize: () => ipcRenderer.invoke('win:minimize') as Promise<void>,
+  toggleMaximize: () =>
+    ipcRenderer.invoke('win:toggle-maximize') as Promise<void>,
+  closeWindow: () => ipcRenderer.invoke('win:close') as Promise<void>,
+  getBounds: () =>
+    ipcRenderer.invoke('win:get-bounds') as Promise<WindowBounds>,
+  setBounds: (bounds: WindowBounds) =>
+    ipcRenderer.send('win:set-bounds', bounds),
   onMaximized: (callback: (maximized: boolean) => void) => {
-    const listener = (_e: Electron.IpcRendererEvent, value: boolean): void => callback(value);
-    ipcRenderer.on("win:maximized", listener);
+    const listener = (_e: Electron.IpcRendererEvent, value: boolean): void =>
+      callback(value)
+    ipcRenderer.on('win:maximized', listener)
     return () => {
-      ipcRenderer.off("win:maximized", listener);
-    };
+      ipcRenderer.off('win:maximized', listener)
+    }
   },
-};
+}
 
-contextBridge.exposeInMainWorld("api", api);
+contextBridge.exposeInMainWorld('api', api)
 
-export type Api = typeof api;
+export type Api = typeof api
