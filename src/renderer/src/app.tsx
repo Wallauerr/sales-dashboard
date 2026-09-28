@@ -253,7 +253,7 @@ export function App() {
                   type="button"
                   onClick={() => setAno(a)}
                   className={cn(
-                    'rounded-md px-3 py-1 text-sm font-medium',
+                    'rounded-md px-3 py-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     a === ano
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:text-foreground',
@@ -329,7 +329,7 @@ export function App() {
                       <button
                         type="button"
                         onClick={() => setMes('todos')}
-                        className="flex items-center gap-1 rounded-full border bg-muted px-3 py-1 text-xs font-medium hover:bg-muted/70">
+                        className="flex items-center gap-1 rounded-full border bg-muted px-3 py-1 text-xs font-medium outline-none hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring">
                         Mês: {MES_LABEL[mes as Mes]}
                         <XIcon className="size-3" />
                       </button>
@@ -338,7 +338,7 @@ export function App() {
                       <button
                         type="button"
                         onClick={() => setVendedor(null)}
-                        className="flex items-center gap-1 rounded-full border bg-muted px-3 py-1 text-xs font-medium hover:bg-muted/70">
+                        className="flex items-center gap-1 rounded-full border bg-muted px-3 py-1 text-xs font-medium outline-none hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring">
                         Vendedor: {vendedor}
                         <XIcon className="size-3" />
                       </button>

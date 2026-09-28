@@ -47,7 +47,7 @@ export function SellerCards({
                 : `Filtrar o dashboard por ${v.vendedor}`
             }
             className={cn(
-              'group flex flex-col items-center gap-2 rounded-lg border bg-card p-3 text-center transition-all',
+              'group flex flex-col items-center gap-2 rounded-lg border bg-card p-3 text-center outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring',
               active
                 ? 'border-primary bg-primary/10 ring-1 ring-primary'
                 : 'border-border hover:border-primary/60 hover:bg-muted/40',
