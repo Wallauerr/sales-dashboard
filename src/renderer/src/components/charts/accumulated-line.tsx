@@ -1,20 +1,27 @@
-import { CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis } from "recharts";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ReferenceLine,
+  XAxis,
+  YAxis,
+} from 'recharts'
 
 import {
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
-import { brl0, brlCompact } from "@/lib/format";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/chart'
+import { brl0, brlCompact } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 interface AccumulatedLineProps {
-  labels: string[];
-  values: number[];
-  target?: number;
-  valueFormat?: (v: number) => string;
-  className?: string;
+  labels: string[]
+  values: number[]
+  target?: number
+  valueFormat?: (v: number) => string
+  className?: string
 }
 
 export function AccumulatedLine({
@@ -24,27 +31,33 @@ export function AccumulatedLine({
   valueFormat = brl0,
   className,
 }: AccumulatedLineProps) {
-  const data = labels.map((label, i) => ({ label, acumulado: values[i] ?? 0 }));
+  const data = labels.map((label, i) => ({ label, acumulado: values[i] ?? 0 }))
 
   const config = {
-    acumulado: { label: "Acumulado", color: "var(--chart-2)" },
-    meta: { label: "Meta", color: "var(--chart-3)" },
-  } satisfies ChartConfig;
+    acumulado: { label: 'Acumulado', color: 'var(--chart-2)' },
+    meta: { label: 'Meta', color: 'var(--chart-3)' },
+  } satisfies ChartConfig
 
   return (
-    <ChartContainer config={config} className={cn("h-[260px] w-full", className)}>
+    <ChartContainer
+      config={config}
+      className={cn('h-[260px] w-full', className)}>
       <LineChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="var(--border)"
+          vertical={false}
+        />
         <XAxis
           dataKey="label"
-          tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+          tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
           axisLine={false}
           tickLine={false}
           interval={0}
         />
         <YAxis
-          tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-          tickFormatter={(v) => brlCompact(Number(v))}
+          tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+          tickFormatter={v => brlCompact(Number(v))}
           width={64}
           axisLine={false}
           tickLine={false}
@@ -52,7 +65,7 @@ export function AccumulatedLine({
         <ChartTooltip
           content={
             <ChartTooltipContent
-              formatter={(value) => [valueFormat(Number(value)), "Acumulado"]}
+              formatter={value => [valueFormat(Number(value)), 'Acumulado']}
             />
           }
         />
@@ -70,14 +83,14 @@ export function AccumulatedLine({
             stroke="var(--color-meta)"
             strokeDasharray="6 4"
             label={{
-              value: "Meta",
-              position: "right",
+              value: 'Meta',
+              position: 'right',
               fontSize: 11,
-              fill: "var(--muted-foreground)",
+              fill: 'var(--muted-foreground)',
             }}
           />
         ) : null}
       </LineChart>
     </ChartContainer>
-  );
+  )
 }

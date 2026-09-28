@@ -1,30 +1,30 @@
-import { Bar, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from "recharts";
+import { Bar, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from 'recharts'
 
 import {
+  type ChartConfig,
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
-import { brlCompact } from "@/lib/format";
-import { chartColor } from "@/lib/colors";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/chart'
+import { chartColor } from '@/lib/colors'
+import { brlCompact } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 export interface BarsSeries {
-  name: string;
-  values: number[];
-  kind?: "bar" | "line";
-  color?: string;
+  name: string
+  values: number[]
+  kind?: 'bar' | 'line'
+  color?: string
 }
 
 interface GroupedBarsProps {
-  labels: string[];
-  series: BarsSeries[];
-  valueFormat?: (v: number) => string;
-  className?: string;
-  onClick?: (index: number) => void;
+  labels: string[]
+  series: BarsSeries[]
+  valueFormat?: (v: number) => string
+  className?: string
+  onClick?: (index: number) => void
 }
 
 export function GroupedBars({
@@ -36,44 +36,54 @@ export function GroupedBars({
 }: GroupedBarsProps) {
   const data = labels.map((label, i) => ({
     label,
-    ...Object.fromEntries(series.map((s) => [s.name, s.values[i] ?? 0])),
-  }));
+    ...Object.fromEntries(series.map(s => [s.name, s.values[i] ?? 0])),
+  }))
 
   const config = Object.fromEntries(
     series.map((s, i) => [
       s.name,
       { label: s.name, color: s.color ?? chartColor((i % 5) + 1) },
     ]),
-  ) satisfies ChartConfig;
+  ) satisfies ChartConfig
 
-  const bars = series.filter((s) => s.kind !== "line");
-  const lines = series.filter((s) => s.kind === "line");
+  const bars = series.filter(s => s.kind !== 'line')
+  const lines = series.filter(s => s.kind === 'line')
 
   return (
-    <ChartContainer config={config} className={cn("h-[280px] w-full", className)}>
-      <ComposedChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+    <ChartContainer
+      config={config}
+      className={cn('h-[280px] w-full', className)}>
+      <ComposedChart
+        data={data}
+        margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="var(--border)"
+          vertical={false}
+        />
         <XAxis
           dataKey="label"
-          tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+          tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
           axisLine={false}
           tickLine={false}
           interval={0}
         />
         <YAxis
-          tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-          tickFormatter={(v) => valueFormat(Number(v))}
+          tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+          tickFormatter={v => valueFormat(Number(v))}
           width={64}
           axisLine={false}
           tickLine={false}
         />
         <ChartTooltip
           content={
-            <ChartTooltipContent formatter={(value) => [valueFormat(Number(value)), ""]} />
+            <ChartTooltipContent
+              formatter={value => [valueFormat(Number(value)), '']}
+            />
           }
         />
         <ChartLegend content={<ChartLegendContent />} />
-        {bars.map((s) => (
+        {bars.map(s => (
           <Bar
             key={s.name}
             dataKey={s.name}
@@ -83,13 +93,13 @@ export function GroupedBars({
             onClick={
               onClick
                 ? (_data: unknown, index: number) => {
-                    onClick(index);
+                    onClick(index)
                   }
                 : undefined
             }
           />
         ))}
-        {lines.map((s) => (
+        {lines.map(s => (
           <Line
             key={s.name}
             type="monotone"
@@ -102,5 +112,5 @@ export function GroupedBars({
         ))}
       </ComposedChart>
     </ChartContainer>
-  );
+  )
 }

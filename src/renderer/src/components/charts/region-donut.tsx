@@ -1,29 +1,29 @@
-import { Cell, Pie, PieChart } from "recharts";
+import { Cell, Pie, PieChart } from 'recharts'
 
 import {
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
-import { brl0, brlCompact, pct } from "@/lib/format";
-import { chartColor } from "@/lib/colors";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/chart'
+import { chartColor } from '@/lib/colors'
+import { brl0, brlCompact, pct } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 export interface DonutDatum {
-  label: string;
-  value: number;
-  share?: number;
-  color?: string;
+  label: string
+  value: number
+  share?: number
+  color?: string
 }
 
 interface RegionDonutProps {
-  data: DonutDatum[];
-  valueFormat?: (v: number) => string;
-  className?: string;
+  data: DonutDatum[]
+  valueFormat?: (v: number) => string
+  className?: string
 }
 
-const PALETTE = [1, 2, 3, 4, 5];
+const PALETTE = [1, 2, 3, 4, 5]
 
 export function RegionDonut({
   data,
@@ -33,12 +33,15 @@ export function RegionDonut({
   const config = Object.fromEntries(
     data.map((datum, i) => [
       i,
-      { label: datum.label, color: datum.color ?? chartColor(PALETTE[i % PALETTE.length]) },
+      {
+        label: datum.label,
+        color: datum.color ?? chartColor(PALETTE[i % PALETTE.length]),
+      },
     ]),
-  ) satisfies ChartConfig;
+  ) satisfies ChartConfig
 
   return (
-    <div className={cn("flex flex-col gap-3", className)}>
+    <div className={cn('flex flex-col gap-3', className)}>
       <ChartContainer config={config} className="h-[220px] w-full">
         <PieChart>
           <Pie
@@ -48,15 +51,19 @@ export function RegionDonut({
             innerRadius={58}
             outerRadius={86}
             paddingAngle={2}
-            strokeWidth={2}
-          >
-            {data.map((_, i) => (
-              <Cell key={i} fill={`var(--color-${i})`} />
+            strokeWidth={2}>
+            {data.map((datum, i) => (
+              <Cell key={datum.label} fill={`var(--color-${i})`} />
             ))}
           </Pie>
           <ChartTooltip
             content={
-              <ChartTooltipContent formatter={(value, name) => [valueFormat(Number(value)), String(name)]} />
+              <ChartTooltipContent
+                formatter={(value, name) => [
+                  valueFormat(Number(value)),
+                  String(name),
+                ]}
+              />
             }
           />
         </PieChart>
@@ -64,22 +71,24 @@ export function RegionDonut({
 
       <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5">
         {data.map((datum, i) => {
-          const color = (config[i] as { color?: string } | undefined)?.color;
+          const color = (config[i] as { color?: string } | undefined)?.color
           return (
-            <div key={i} className="flex items-center gap-1.5 text-xs">
+            <div
+              key={datum.label}
+              className="flex items-center gap-1.5 text-xs">
               <span
                 className="size-2.5 rounded-[2px]"
-                style={{ backgroundColor: color ?? "var(--chart-1)" }}
+                style={{ backgroundColor: color ?? 'var(--chart-1)' }}
               />
               <span className="text-muted-foreground">{datum.label}</span>
               <span className="font-medium tabular-nums">
                 {brlCompact(datum.value)}
-                {datum.share !== undefined ? ` · ${pct(datum.share)}` : ""}
+                {datum.share !== undefined ? ` · ${pct(datum.share)}` : ''}
               </span>
             </div>
-          );
+          )
         })}
       </div>
     </div>
-  );
+  )
 }
