@@ -309,10 +309,19 @@ export function App() {
           value={view}
           onValueChange={v => setView(v as 'dashboard' | 'historico')}
           className="flex min-h-0 flex-1 flex-col gap-4">
-          <TabsList className="w-fit">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="historico">Histórico</TabsTrigger>
-          </TabsList>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <TabsList className="w-fit">
+              <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+              <TabsTrigger value="historico">Histórico</TabsTrigger>
+            </TabsList>
+            <SellerCards
+              ano={ano}
+              vendedores={snap?.porVendedor ?? []}
+              fotos={fotos}
+              selected={vendedor}
+              onSelect={setVendedor}
+            />
+          </div>
           <TabsContent value="dashboard" className="flex flex-col gap-6">
             {!snap ? (
               <p className="py-16 text-center text-sm text-muted-foreground">
@@ -501,27 +510,6 @@ export function App() {
                     </KpiCard>
                   ) : null}
                 </section>
-
-                <Card className="no-print">
-                  <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <CardTitle>Vendedores — faturamento {ano}</CardTitle>
-                      <p className="text-xs text-muted-foreground">
-                        Clique em um vendedor para filtrar todo o dashboard;
-                        clique de novo para limpar o filtro.
-                      </p>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <SellerCards
-                      ano={ano}
-                      vendedores={snap.porVendedor}
-                      fotos={fotos}
-                      selected={vendedor}
-                      onSelect={setVendedor}
-                    />
-                  </CardContent>
-                </Card>
 
                 {!mesAtivo ? (
                   <Card>

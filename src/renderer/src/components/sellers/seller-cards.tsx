@@ -37,7 +37,7 @@ export function SellerCards({
   onSelect,
 }: Props) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
+    <div className="flex flex-wrap items-center justify-end gap-2">
       {vendedores.map(v => {
         const active = selected === v.vendedor
         const foto = fotos[v.vendedor]
@@ -47,38 +47,46 @@ export function SellerCards({
               <button
                 type="button"
                 onClick={() => onSelect(active ? null : v.vendedor)}
+                aria-label={`${v.vendedor}, ${brl0(v.valor)} (${pct(v.share)} de ${ano})`}
                 className={cn(
-                  'group flex flex-col items-center gap-2 rounded-lg border bg-card p-3 text-center outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring',
+                  'rounded-full outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring',
                   active
-                    ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                    : 'border-border hover:border-primary/60 hover:bg-muted/40',
+                    ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                    : 'opacity-80 hover:opacity-100',
                 )}>
                 {foto ? (
                   <img
                     src={foto}
-                    alt={v.vendedor}
-                    className="size-16 rounded-full border object-cover shadow-sm ring-1 ring-border"
+                    alt=""
+                    className="size-9 rounded-full border object-cover shadow-sm ring-1 ring-border"
                   />
                 ) : (
-                  <span className="flex size-16 items-center justify-center rounded-full bg-primary/10 text-sm font-bold tracking-wide text-primary">
+                  <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-xs font-bold tracking-wide text-primary">
                     {initials(v.vendedor)}
                   </span>
                 )}
-                <span className="line-clamp-2 min-h-8 text-xs font-medium leading-tight">
-                  {v.vendedor}
-                </span>
-                <span className="text-base font-semibold tabular-nums">
-                  {brl0(v.valor)}
-                </span>
-                <span className="text-[11px] text-muted-foreground">
-                  {pct(v.share)} de {ano}
-                </span>
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={2}>
-              {active
-                ? 'Clique para limpar o filtro de vendedor'
-                : `Filtrar o dashboard por ${v.vendedor}`}
+              <div className="flex min-w-44 flex-col gap-1">
+                <span className="font-medium">{v.vendedor}</span>
+                <span className="flex items-baseline justify-between gap-4">
+                  <span className="text-primary-foreground/70">Total</span>
+                  <span className="font-semibold tabular-nums">
+                    {brl0(v.valor)}
+                  </span>
+                </span>
+                <span className="flex items-baseline justify-between gap-4">
+                  <span className="text-primary-foreground/70">
+                    Participação
+                  </span>
+                  <span className="tabular-nums">{pct(v.share)}</span>
+                </span>
+                <span className="mt-1 border-t border-border pt-1 text-[11px] text-primary-foreground/60">
+                  {active ? 'Clique p/ limpar o filtro' : 'Clique p/ filtrar'} ·{' '}
+                  {ano}
+                </span>
+              </div>
             </TooltipContent>
           </Tooltip>
         )
