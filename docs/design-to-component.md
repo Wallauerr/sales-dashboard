@@ -136,7 +136,7 @@ ring-ring                                 → focus ring
 chart-1 … chart-5                         → cores de dados (gráficos)
 ```
 
-Para SVG (charts), resolva a cor com `resolveChartColor` (`@/lib/colors`) e use classes `fill-chart-1` / `stroke-chart-2`.
+Para dados programáticos de SVG (charts), resolva a cor com `chartColor(n)` (`@/lib/colors`, retorna `var(--chart-N)`); em componentes passados por `chartConfig`/`ChartStyle`, use `var(--chart-N)`.
 
 ---
 
