@@ -6,17 +6,17 @@ import type { HBarDatum } from '@/components/charts/horizontal-bars'
 import { HorizontalBars } from '@/components/charts/horizontal-bars'
 import type { DonutDatum } from '@/components/charts/region-donut'
 import { RegionDonut } from '@/components/charts/region-donut'
-import HistoryTab from '@/components/history/HistoryTab'
+import { HistoryTab } from '@/components/history/history-tab'
 import {
   KpiCard,
   KpiCardContent,
   KpiCardHeader,
   KpiCardTitle,
   KpiCardValue,
-} from '@/components/kpi/KpiCard'
-import SellerCards from '@/components/sellers/SellerCards'
-import ThemeToggle from '@/components/ThemeToggle'
-import TitleBar from '@/components/TitleBar'
+} from '@/components/kpi/kpi-card'
+import { SellerCards } from '@/components/sellers/seller-cards'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { TitleBar } from '@/components/title-bar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import WindowResizeHandles from '@/components/WindowResizeHandles'
+import { WindowResizeHandles } from '@/components/window-resize-handles'
 import { chartColor } from '@/lib/colors'
 import { brl, brl0, brlCompact, int, pct } from '@/lib/format'
 import { fileName, MES_LABEL } from '@/lib/labels'
@@ -79,7 +79,7 @@ function regionDonutData(snap: KpiSnapshot): DonutDatum[] {
   }))
 }
 
-export default function App() {
+export function App() {
   const [ano, setAno] = useState(2026)
   const [mes, setMes] = useState<Mes | 'todos'>('todos')
   const [vendedor, setVendedor] = useState<string | null>(null)

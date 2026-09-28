@@ -46,7 +46,7 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-export default function HistoryTab({
+export function HistoryTab({
   reloadKey,
   ano,
   mes,

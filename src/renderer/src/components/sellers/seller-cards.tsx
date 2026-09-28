@@ -24,7 +24,7 @@ function initials(name: string): string {
     .toUpperCase()
 }
 
-export default function SellerCards({
+export function SellerCards({
   ano,
   vendedores,
   fotos,

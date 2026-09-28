@@ -19,7 +19,7 @@ function getInitialTheme(): 'light' | 'dark' {
     : 'light'
 }
 
-export default function ThemeToggle({ className }: Props) {
+export function ThemeToggle({ className }: Props) {
   const [theme, setTheme] = useState<'light' | 'dark'>(getInitialTheme)
 
   useEffect(() => {

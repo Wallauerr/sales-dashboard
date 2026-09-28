@@ -57,7 +57,7 @@ interface DragState {
   bounds: { x: number; y: number; width: number; height: number }
 }
 
-export default function WindowResizeHandles() {
+export function WindowResizeHandles() {
   const maximized = useWindowMaximized()
   const drag = useRef<DragState | null>(null)
   const raf = useRef(0)
