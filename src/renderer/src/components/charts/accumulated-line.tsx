@@ -42,7 +42,7 @@ export function AccumulatedLine({
     <ChartContainer
       config={config}
       className={cn('h-[260px] w-full', className)}>
-      <LineChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+      <LineChart data={data} margin={{ top: 2, right: 2, left: 2, bottom: 0 }}>
         <CartesianGrid
           strokeDasharray="3 3"
           stroke="var(--border)"
@@ -65,7 +65,7 @@ export function AccumulatedLine({
         <ChartTooltip
           content={
             <ChartTooltipContent
-              formatter={value => [valueFormat(Number(value)), 'Acumulado']}
+              formatter={value => [valueFormat(Number(value))]}
             />
           }
         />
@@ -83,10 +83,10 @@ export function AccumulatedLine({
             stroke="var(--color-meta)"
             strokeDasharray="6 4"
             label={{
-              value: 'Meta',
-              position: 'right',
+              value: `Meta ${valueFormat(target)}`,
+              position: 'top',
               fontSize: 11,
-              fill: 'var(--muted-foreground)',
+              fill: 'var(--color-meta)',
             }}
           />
         ) : null}
