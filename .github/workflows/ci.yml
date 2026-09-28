@@ -9,13 +9,17 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: npm run typecheck
-      - run: npm run build
-      - run: npm test
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run checks (Biome + TypeScript)
+        run: npm run check:ci
+      - name: Build
+        run: npm run build
+      - name: Smoke test
+        run: npm test

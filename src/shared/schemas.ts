@@ -1,22 +1,22 @@
-import { z } from "zod";
+import { z } from 'zod'
 
 export const MESES = [
-  "jan",
-  "fev",
-  "mar",
-  "abr",
-  "mai",
-  "jun",
-  "jul",
-  "ago",
-  "set",
-  "out",
-  "nov",
-  "dez",
-] as const;
+  'jan',
+  'fev',
+  'mar',
+  'abr',
+  'mai',
+  'jun',
+  'jul',
+  'ago',
+  'set',
+  'out',
+  'nov',
+  'dez',
+] as const
 
-export const mesSchema = z.enum(MESES);
-export type Mes = z.infer<typeof mesSchema>;
+export const mesSchema = z.enum(MESES)
+export type Mes = z.infer<typeof mesSchema>
 
 export const saleSchema = z.object({
   codigo: z.string(),
@@ -43,8 +43,8 @@ export const saleSchema = z.object({
   nfe: z.string(),
   mes: mesSchema.nullable(),
   ano: z.number().nullable(),
-});
-export type Sale = z.infer<typeof saleSchema>;
+})
+export type Sale = z.infer<typeof saleSchema>
 
 export const importResultSchema = z.object({
   filePath: z.string(),
@@ -52,8 +52,8 @@ export const importResultSchema = z.object({
   inserted: z.number(),
   updated: z.number(),
   discarded: z.number(),
-});
-export type ImportResult = z.infer<typeof importResultSchema>;
+})
+export type ImportResult = z.infer<typeof importResultSchema>
 
 export const importRecordSchema = z.object({
   id: z.number(),
@@ -63,23 +63,23 @@ export const importRecordSchema = z.object({
   updated: z.number(),
   discarded: z.number(),
   importedAt: z.string(),
-});
-export type ImportRecord = z.infer<typeof importRecordSchema>;
+})
+export type ImportRecord = z.infer<typeof importRecordSchema>
 
 export const importCodeEventSchema = z.object({
   importedAt: z.string(),
-  op: z.enum(["inserted", "updated"]),
+  op: z.enum(['inserted', 'updated']),
   statusSistema: z.string(),
   valorTotal: z.number(),
   data: z.string().nullable(),
   mes: mesSchema.nullable(),
   ano: z.number().nullable(),
-});
-export type ImportCodeEvent = z.infer<typeof importCodeEventSchema>;
+})
+export type ImportCodeEvent = z.infer<typeof importCodeEventSchema>
 
 export const codigoHistorySchema = z.object({
   codigo: z.string(),
   venda: saleSchema.nullable(),
   events: z.array(importCodeEventSchema),
-});
-export type CodigoHistory = z.infer<typeof codigoHistorySchema>;
+})
+export type CodigoHistory = z.infer<typeof codigoHistorySchema>
