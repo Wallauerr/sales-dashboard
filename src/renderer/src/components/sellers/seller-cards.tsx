@@ -1,3 +1,4 @@
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Tooltip,
   TooltipContent,
@@ -54,17 +55,12 @@ export function SellerCards({
                     ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
                     : 'opacity-80 hover:opacity-100',
                 )}>
-                {foto ? (
-                  <img
-                    src={foto}
-                    alt=""
-                    className="size-9 rounded-full border object-cover shadow-sm ring-1 ring-border"
-                  />
-                ) : (
-                  <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-xs font-bold tracking-wide text-primary">
+                <Avatar className="size-9 border shadow-sm ring-1 ring-border">
+                  {foto ? <AvatarImage src={foto} alt="" /> : null}
+                  <AvatarFallback className="bg-primary/10 text-xs font-bold tracking-wide text-primary">
                     {initials(v.vendedor)}
-                  </span>
-                )}
+                  </AvatarFallback>
+                </Avatar>
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={2}>
