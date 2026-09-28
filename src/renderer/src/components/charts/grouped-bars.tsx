@@ -100,7 +100,7 @@ export function GroupedBars({
       className={cn('h-[280px] w-full', className)}>
       <ComposedChart
         data={data}
-        margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+        margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
         <CartesianGrid
           strokeDasharray="3 3"
           stroke="var(--border)"
