@@ -19,6 +19,7 @@ export interface HBarDatum {
 interface HorizontalBarsProps {
   data: HBarDatum[]
   valueFormat?: (v: number) => string
+  valueLabel?: string
   showValue?: boolean
   className?: string
 }
@@ -26,6 +27,7 @@ interface HorizontalBarsProps {
 export function HorizontalBars({
   data,
   valueFormat = brlCompact,
+  valueLabel = 'Valor',
   showValue = false,
   className,
 }: HorizontalBarsProps) {
@@ -40,7 +42,7 @@ export function HorizontalBars({
       <BarChart
         data={data}
         layout="vertical"
-        margin={{ top: 0, right: showValue ? 16 : 8, left: 0, bottom: 0 }}
+        margin={{ top: 0, right: showValue ? 48 : 8, left: 0, bottom: 0 }}
         barCategoryGap={6}>
         <XAxis type="number" hide />
         <YAxis
@@ -55,9 +57,9 @@ export function HorizontalBars({
           content={
             <ChartTooltipContent
               hideLabel
-              formatter={(value, name) => [
+              formatter={(value, _name, item) => [
                 valueFormat(Number(value)),
-                name === 'value' ? 'Valor' : String(name),
+                ` ${item?.payload?.label ?? valueLabel}`,
               ]}
             />
           }
