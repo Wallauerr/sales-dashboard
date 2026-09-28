@@ -3,13 +3,13 @@ import { CopyIcon, MinusIcon, SquareIcon, XIcon } from 'lucide-react'
 import { useWindowMaximized } from '@/lib/useWindowMaximized'
 import iconUrl from '../assets/icon.png'
 
-export default function TitleBar() {
+export function TitleBar() {
   const maximized = useWindowMaximized()
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: barra de título arrastável nativa do Electron; duplo clique maximiza via API
     <div
-      className="app-region-drag relative z-40 flex h-9 shrink-0 items-center justify-between border-b border-white/10 bg-[#0b0b0d] pl-3 text-white select-none"
+      className="app-region-drag relative z-40 flex h-9 shrink-0 items-center justify-between border-b border-border bg-background pl-3 text-foreground select-none"
       onDoubleClick={() => void window.api?.toggleMaximize?.()}>
       <div className="flex min-w-0 items-center gap-2">
         <img
@@ -20,7 +20,7 @@ export default function TitleBar() {
         <span className="truncate text-[13px] font-semibold tracking-tight font-heading">
           Sulmag
         </span>
-        <span className="hidden text-[11px] text-white/40 sm:inline">
+        <span className="hidden text-[11px] text-muted-foreground sm:inline">
           — Metas Comercial
         </span>
       </div>
@@ -29,14 +29,14 @@ export default function TitleBar() {
           type="button"
           aria-label="Minimizar"
           onClick={() => void window.api?.minimize?.()}
-          className="grid w-11 place-items-center text-white/70 transition-colors hover:bg-white/10 hover:text-white">
+          className="grid w-11 place-items-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
           <MinusIcon className="size-4" />
         </button>
         <button
           type="button"
           aria-label={maximized ? 'Restaurar' : 'Maximizar'}
           onClick={() => void window.api?.toggleMaximize?.()}
-          className="grid w-11 place-items-center text-white/70 transition-colors hover:bg-white/10 hover:text-white">
+          className="grid w-11 place-items-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
           {maximized ? (
             <CopyIcon className="size-3.5" />
           ) : (
@@ -47,7 +47,7 @@ export default function TitleBar() {
           type="button"
           aria-label="Fechar"
           onClick={() => void window.api?.closeWindow?.()}
-          className="grid w-11 place-items-center text-white/70 transition-colors hover:bg-[#e81123] hover:text-white">
+          className="grid w-11 place-items-center text-muted-foreground transition-colors hover:bg-destructive hover:text-destructive-foreground">
           <XIcon className="size-4" />
         </button>
       </div>
