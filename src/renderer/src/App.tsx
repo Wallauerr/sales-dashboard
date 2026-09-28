@@ -4,12 +4,12 @@ import { ChevronDownIcon, CheckIcon } from "lucide-react";
 
 import type { KpiSnapshot, Mes } from "../../shared/types";
 import { MESES, STATUS_FATURAMENTO } from "../../shared/types";
-import AccumulatedLine from "@/components/charts/AccumulatedLine";
-import GroupedBars from "@/components/charts/GroupedBars";
-import HorizontalBars from "@/components/charts/HorizontalBars";
-import type { HBarDatum } from "@/components/charts/HorizontalBars";
-import RegionMap from "@/components/charts/RegionMap";
-import type { RegionPoint } from "@/components/charts/RegionMap";
+import { AccumulatedLine } from "@/components/charts/accumulated-line";
+import { GroupedBars } from "@/components/charts/grouped-bars";
+import { HorizontalBars } from "@/components/charts/horizontal-bars";
+import type { HBarDatum } from "@/components/charts/horizontal-bars";
+import { RegionDonut } from "@/components/charts/region-donut";
+import type { DonutDatum } from "@/components/charts/region-donut";
 import HistoryTab from "@/components/history/HistoryTab";
 import SellerCards from "@/components/sellers/SellerCards";
 import {
@@ -40,6 +40,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { brl, brl0, brlCompact, int, pct } from "@/lib/format";
+import { chartColor } from "@/lib/colors";
 import { MES_LABEL, fileName } from "@/lib/labels";
 import { useWindowMaximized } from "@/lib/useWindowMaximized";
 
@@ -48,33 +49,35 @@ const ANOS = [2024, 2025, 2026];
 function funnelItems(mesIndex: number, snap: KpiSnapshot): HBarDatum[] {
   const f = snap.funilPorMes[mesIndex];
   const rows = [
-    { label: "Orçamento", v: f.orcamento, color: "bg-chart-1" },
-    { label: "Pedido", v: f.pedido, color: "bg-chart-2" },
-    { label: "Pedido Aprovado S/F", v: f.pedidoAprovadoSemFaturamento, color: "bg-chart-3" },
-    { label: "Pedido Cancelado", v: f.pedidoCancelado, color: "bg-chart-4" },
-    { label: "Pedido Faturado", v: f.pedidoFaturado, color: "bg-chart-5" },
-    { label: "Pedido Não Faturado", v: f.pedidoNaoFaturado, color: "bg-destructive" },
+    { label: "Orçamento", v: f.orcamento },
+    { label: "Pedido", v: f.pedido },
+    { label: "Pedido Aprovado S/F", v: f.pedidoAprovadoSemFaturamento },
+    { label: "Pedido Cancelado", v: f.pedidoCancelado },
+    { label: "Pedido Faturado", v: f.pedidoFaturado },
+    { label: "Pedido Não Faturado", v: f.pedidoNaoFaturado },
   ];
-  return rows.map((r) => ({ label: r.label, value: r.v, colorClass: r.color }));
+  return rows.map((r, i) => ({
+    label: r.label,
+    value: r.v,
+    color: i < 5 ? chartColor(i + 1) : "var(--destructive)",
+  }));
 }
 
 const REGION_COLORS: Record<string, string> = {
-  Norte: "fill-chart-1",
-  Nordeste: "fill-chart-4",
-  "Centro-Oeste": "fill-chart-3",
-  Sudeste: "fill-chart-2",
-  Sul: "fill-chart-5",
-  Exterior: "fill-muted-foreground",
+  Norte: chartColor(1),
+  Nordeste: chartColor(4),
+  "Centro-Oeste": chartColor(3),
+  Sudeste: chartColor(2),
+  Sul: chartColor(5),
+  Exterior: "var(--muted-foreground)",
 };
 
-function regionPoints(snap: KpiSnapshot): RegionPoint[] {
+function regionDonutData(snap: KpiSnapshot): DonutDatum[] {
   return snap.porRegiao.map((r) => ({
     label: r.regiao,
     value: r.valor,
     share: r.share,
-    x: r.x,
-    y: r.y,
-    colorClass: REGION_COLORS[r.regiao],
+    color: REGION_COLORS[r.regiao],
   }));
 }
 
@@ -477,21 +480,21 @@ export default function App() {
                           {
                             name: "Realizado",
                             kind: "bar",
-                            colorClass: "fill-chart-1",
+                            color: chartColor(1),
                             values: MESES.map((m) => snap.faturamentoPorMes[m]),
                           },
                           ...(!vendedor
                             ? [
                                 {
                                   name: "Meta",
-                                  kind: "marker" as const,
-                                  colorClass: "stroke-chart-3",
+                                  kind: "line" as const,
+                                  color: chartColor(3),
                                   values: MESES.map((_m, i) => snap.metasPorMes[i].meta),
                                 },
                               ]
                             : []),
                         ]}
-                        onBarClick={(i) => setMes(MESES[i])}
+                        onClick={(i) => setMes(MESES[i])}
                       />
                       <p className="text-xs text-muted-foreground">
                         Clique em uma barra para filtrar o mês.
@@ -523,19 +526,19 @@ export default function App() {
                       <CardContent>
                         <GroupedBars
                           labels={MESES.map((m) => MES_LABEL[m])}
-                          height={260}
+                          className="h-[260px]"
                           valueFormat={(v) => int(v)}
                           series={[
                             {
                               name: "Orçamentos",
                               kind: "bar",
-                              colorClass: "fill-chart-2",
+                              color: chartColor(2),
                               values: MESES.map((m) => snap.numeroFechamento[m].orcamento),
                             },
                             {
                               name: "Pedidos",
                               kind: "bar",
-                              colorClass: "fill-chart-3",
+                              color: chartColor(3),
                               values: MESES.map((m) => snap.numeroFechamento[m].pedido),
                             },
                           ]}
@@ -563,11 +566,7 @@ export default function App() {
                       </Select>
                     </CardHeader>
                     <CardContent>
-                      <HorizontalBars
-                        data={funnelItems(MESES.indexOf(funnelMes ?? "jan"), snap)}
-                        showValue
-                        colorClass="bg-chart-1"
-                      />
+                      <HorizontalBars data={funnelItems(MESES.indexOf(funnelMes ?? "jan"), snap)} showValue />
                     </CardContent>
                   </Card>
 
@@ -576,14 +575,14 @@ export default function App() {
                       <CardTitle>Regiões</CardTitle>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-4">
-                      <RegionMap regions={regionPoints(snap)} />
+                      <RegionDonut data={regionDonutData(snap)} />
                       <HorizontalBars
                         data={snap.porRegiao.map((r) => ({
                           label: r.regiao,
                           value: r.valor,
-                          colorClass: REGION_COLORS[r.regiao],
+                          color: REGION_COLORS[r.regiao],
                         }))}
-                        format={brl0}
+                        valueFormat={brl0}
                       />
                     </CardContent>
                   </Card>
@@ -597,12 +596,11 @@ export default function App() {
                     <CardContent>
                       <HorizontalBars
                         data={snap.porEstado.slice(0, 8).map((e) => ({
-                          label: e.estado,
+                          label: `${e.estado} · ${pct(e.share)}`,
                           value: e.valor,
-                          sub: pct(e.share),
-                          colorClass: "bg-chart-2",
+                          color: chartColor(2),
                         }))}
-                        format={brl0}
+                        valueFormat={brl0}
                       />
                     </CardContent>
                   </Card>
