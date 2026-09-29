@@ -53,7 +53,7 @@ export function DashboardHeader({
               type="button"
               onClick={() => onAno(a)}
               className={cn(
-                'rounded-md px-3 py-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'rounded-md cursor-pointer px-3 py-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 a === ano
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground',

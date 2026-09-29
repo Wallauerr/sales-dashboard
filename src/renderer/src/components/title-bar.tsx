@@ -29,14 +29,14 @@ export function TitleBar() {
           type="button"
           aria-label="Minimizar"
           onClick={() => void window.api?.minimize?.()}
-          className="grid w-11 place-items-center text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
+          className="grid w-11 cursor-pointer place-items-center text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
           <MinusIcon className="size-4" />
         </button>
         <button
           type="button"
           aria-label={maximized ? 'Restaurar' : 'Maximizar'}
           onClick={() => void window.api?.toggleMaximize?.()}
-          className="grid w-11 place-items-center text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
+          className="grid w-11 cursor-pointer place-items-center text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
           {maximized ? (
             <CopyIcon className="size-3.5" />
           ) : (
@@ -47,7 +47,7 @@ export function TitleBar() {
           type="button"
           aria-label="Fechar"
           onClick={() => void window.api?.closeWindow?.()}
-          className="grid w-11 place-items-center text-muted-foreground outline-none transition-colors hover:bg-destructive hover:text-destructive-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
+          className="grid w-11 cursor-pointer place-items-center text-muted-foreground outline-none transition-colors hover:bg-destructive hover:text-destructive-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
           <XIcon className="size-4" />
         </button>
       </div>

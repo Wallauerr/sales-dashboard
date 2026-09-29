@@ -97,7 +97,11 @@ export function GroupedBars({
   return (
     <ChartContainer
       config={config}
-      className={cn('h-[280px] w-full', className)}>
+      className={cn(
+        'h-[280px] w-full',
+        onClick && '[&_.recharts-bar-rectangle]:cursor-pointer',
+        className,
+      )}>
       <ComposedChart
         data={data}
         margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>

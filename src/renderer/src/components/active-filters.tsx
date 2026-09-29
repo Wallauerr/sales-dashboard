@@ -27,7 +27,7 @@ export function ActiveFilters({
         <button
           type="button"
           onClick={onClearMes}
-          className="flex items-center gap-1 rounded-full border bg-muted px-3 py-1 text-xs font-medium outline-none hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring">
+          className="flex cursor-pointer items-center gap-1 rounded-full border bg-muted px-3 py-1 text-xs font-medium outline-none hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring">
           Mês: {MES_LABEL[mes as Mes]}
           <XIcon className="size-3" />
         </button>
@@ -36,7 +36,7 @@ export function ActiveFilters({
         <button
           type="button"
           onClick={onClearVendedor}
-          className="flex items-center gap-1 rounded-full border bg-muted px-3 py-1 text-xs font-medium outline-none hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring">
+          className="flex cursor-pointer items-center gap-1 rounded-full border bg-muted px-3 py-1 text-xs font-medium outline-none hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring">
           Vendedor: {vendedor}
           <XIcon className="size-3" />
         </button>

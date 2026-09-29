@@ -50,7 +50,7 @@ export function SellerCards({
                 onClick={() => onSelect(active ? null : v.vendedor)}
                 aria-label={`${v.vendedor}, ${brl0(v.valor)} (${pct(v.share)} de ${ano})`}
                 className={cn(
-                  'rounded-full outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring',
+                  'cursor-pointer rounded-full outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring',
                   active
                     ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
                     : 'opacity-80 hover:opacity-100',
