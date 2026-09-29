@@ -365,11 +365,7 @@ export function App() {
                   </div>
                 )}
 
-                <section
-                  className={cn(
-                    'grid grid-cols-2 gap-4 sm:grid-cols-3',
-                    kgrid,
-                  )}>
+                <section className={cn('grid gap-4 sm:grid-cols-3', kgrid)}>
                   <KpiCard>
                     <KpiCardHeader>
                       <KpiCardTitle>
