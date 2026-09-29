@@ -86,10 +86,20 @@ export function RegionDonut({
           <ChartTooltip
             content={
               <ChartTooltipContent
-                formatter={(value, name) => [
-                  valueFormat(Number(value)),
-                  String(name),
-                ]}
+                formatter={(value, name, item) => (
+                  <div className="flex w-full items-center justify-between gap-3">
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <span
+                        className="size-2.5 rounded-[2px]"
+                        style={{ backgroundColor: item?.payload?.fill }}
+                      />
+                      {String(name)}
+                    </span>
+                    <span className="font-mono font-medium text-foreground tabular-nums">
+                      {valueFormat(Number(value))}
+                    </span>
+                  </div>
+                )}
               />
             }
           />
