@@ -7,13 +7,7 @@ import { HorizontalBars } from '@/components/charts/horizontal-bars'
 import type { DonutDatum } from '@/components/charts/region-donut'
 import { RegionDonut } from '@/components/charts/region-donut'
 import { HistoryTab } from '@/components/history/history-tab'
-import {
-  KpiCard,
-  KpiCardContent,
-  KpiCardHeader,
-  KpiCardTitle,
-  KpiCardValue,
-} from '@/components/kpi/kpi-card'
+import { KpiCard } from '@/components/kpi/kpi-card'
 import { SellerCards } from '@/components/sellers/seller-cards'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { TitleBar } from '@/components/title-bar'
@@ -220,6 +214,77 @@ export function App() {
       ? `vendas em ${MES_LABEL[mes as Mes]} (1 por linha)`
       : 'vendas no ano (1 por linha)'
 
+  const kpis: Array<{ title: string; value: string; hint?: string }> = []
+  if (snap) {
+    kpis.push({
+      title: vendedor
+        ? `Faturamento ${vendedor}${mesAtivo ? ` · ${MES_LABEL[mes as Mes]}` : ''}`
+        : mesAtivo
+          ? `Faturamento ${MES_LABEL[mes as Mes]} ${ano}`
+          : `Faturamento ${ano}`,
+      value: brl0(snap.totalPeriodo),
+      hint: `status ${STATUS_FATURAMENTO.join(' + ')}`,
+    })
+    if (!vendedor) {
+      kpis.push(
+        mesAtivo
+          ? {
+              title: `Meta ${MES_LABEL[mes as Mes]}`,
+              value: brl0(metaMes),
+              hint: 'meta do mês (empresa)',
+            }
+          : {
+              title: 'Meta anual',
+              value: brl0(snap.metaAnual),
+              hint: `base ${ano - 1} × ${(snap.fator * 100).toFixed(0)}%`,
+            },
+        {
+          title: '% da meta',
+          value: pct(mesAtivo ? metaMesPct : metaPct),
+          hint: mesAtivo ? 'realizado do mês ÷ meta' : 'realizado ÷ meta',
+        },
+        {
+          title: mesAtivo ? 'Restante p/ meta do mês' : 'Restante p/ meta',
+          value: mesAtivo
+            ? restanteMes > 0
+              ? brl0(restanteMes)
+              : '—'
+            : restanteAno > 0
+              ? brl0(restanteAno)
+              : '—',
+          hint: mesAtivo
+            ? restanteMes > 0
+              ? 'no mês'
+              : 'meta atingida'
+            : restanteAno > 0
+              ? 'no acumulado de dez'
+              : 'meta atingida',
+        },
+      )
+      if (!mesAtivo) {
+        kpis.push({
+          title: 'Projeção (run-rate)',
+          value: runRate ? brl0(runRate.projection) : '—',
+          hint: runRate
+            ? `${brl0(snap.totalPeriodo / runRate.elapsed)}/mês med em ${runRate.elapsed === 12 ? 'ano fechado' : `${runRate.elapsed} meses`}`
+            : 'sem dados',
+        })
+      }
+    }
+    kpis.push(
+      {
+        title: 'Quantidade',
+        value: int(totalQtd),
+        hint: quantHint,
+      },
+      {
+        title: 'Participação',
+        value: pct(snap.participacaoEscopo),
+        hint: `de ${brlCompact(snap.totalHistorico)}`,
+      },
+    )
+  }
+
   return (
     <div
       className={cn(
@@ -366,145 +431,14 @@ export function App() {
                 )}
 
                 <section className={cn('grid gap-4 sm:grid-cols-3', kgrid)}>
-                  <KpiCard>
-                    <KpiCardHeader>
-                      <KpiCardTitle>
-                        Faturamento{' '}
-                        {vendedor
-                          ? `${vendedor}${mesAtivo ? ` · ${MES_LABEL[mes as Mes]}` : ''}`
-                          : mesAtivo
-                            ? `${MES_LABEL[mes as Mes]} ${ano}`
-                            : ano}
-                      </KpiCardTitle>
-                    </KpiCardHeader>
-                    <KpiCardContent>
-                      <KpiCardValue
-                        value={brl0(snap.totalPeriodo)}
-                        hint={`status ${STATUS_FATURAMENTO.join(' + ')}`}
-                      />
-                    </KpiCardContent>
-                  </KpiCard>
-
-                  {!vendedor ? (
-                    mesAtivo ? (
-                      <KpiCard>
-                        <KpiCardHeader>
-                          <KpiCardTitle>
-                            Meta {MES_LABEL[mes as Mes]}
-                          </KpiCardTitle>
-                        </KpiCardHeader>
-                        <KpiCardContent>
-                          <KpiCardValue
-                            value={brl0(metaMes)}
-                            hint="meta do mês (empresa)"
-                          />
-                        </KpiCardContent>
-                      </KpiCard>
-                    ) : (
-                      <KpiCard>
-                        <KpiCardHeader>
-                          <KpiCardTitle>Meta anual</KpiCardTitle>
-                        </KpiCardHeader>
-                        <KpiCardContent>
-                          <KpiCardValue
-                            value={brl0(snap.metaAnual)}
-                            hint={`base ${ano - 1} × ${(snap.fator * 100).toFixed(0)}%`}
-                          />
-                        </KpiCardContent>
-                      </KpiCard>
-                    )
-                  ) : null}
-
-                  {!vendedor ? (
-                    <KpiCard>
-                      <KpiCardHeader>
-                        <KpiCardTitle>% da meta</KpiCardTitle>
-                      </KpiCardHeader>
-                      <KpiCardContent>
-                        <KpiCardValue
-                          value={pct(mesAtivo ? metaMesPct : metaPct)}
-                          hint={
-                            mesAtivo
-                              ? 'realizado do mês ÷ meta'
-                              : 'realizado ÷ meta'
-                          }
-                        />
-                      </KpiCardContent>
-                    </KpiCard>
-                  ) : null}
-
-                  {!vendedor ? (
-                    <KpiCard>
-                      <KpiCardHeader>
-                        <KpiCardTitle>
-                          {mesAtivo
-                            ? 'Restante p/ meta do mês'
-                            : 'Restante p/ meta'}
-                        </KpiCardTitle>
-                      </KpiCardHeader>
-                      <KpiCardContent>
-                        <KpiCardValue
-                          value={
-                            mesAtivo
-                              ? restanteMes > 0
-                                ? brl0(restanteMes)
-                                : '—'
-                              : restanteAno > 0
-                                ? brl0(restanteAno)
-                                : '—'
-                          }
-                          hint={
-                            mesAtivo
-                              ? restanteMes > 0
-                                ? 'no mês'
-                                : 'meta atingida'
-                              : restanteAno > 0
-                                ? 'no acumulado de dez'
-                                : 'meta atingida'
-                          }
-                        />
-                      </KpiCardContent>
-                    </KpiCard>
-                  ) : null}
-
-                  <KpiCard>
-                    <KpiCardHeader>
-                      <KpiCardTitle>Quantidade</KpiCardTitle>
-                    </KpiCardHeader>
-                    <KpiCardContent>
-                      <KpiCardValue value={int(totalQtd)} hint={quantHint} />
-                    </KpiCardContent>
-                  </KpiCard>
-
-                  <KpiCard>
-                    <KpiCardHeader>
-                      <KpiCardTitle>Participação</KpiCardTitle>
-                    </KpiCardHeader>
-                    <KpiCardContent>
-                      <KpiCardValue
-                        value={pct(snap.participacaoEscopo)}
-                        hint={`de ${brlCompact(snap.totalHistorico)}`}
-                      />
-                    </KpiCardContent>
-                  </KpiCard>
-
-                  {!vendedor && !mesAtivo ? (
-                    <KpiCard>
-                      <KpiCardHeader>
-                        <KpiCardTitle>Projeção (run-rate)</KpiCardTitle>
-                      </KpiCardHeader>
-                      <KpiCardContent>
-                        <KpiCardValue
-                          value={runRate ? brl0(runRate.projection) : '—'}
-                          hint={
-                            runRate
-                              ? `${brl0(snap.totalPeriodo / runRate.elapsed)}/mês med em ${runRate.elapsed === 12 ? 'ano fechado' : `${runRate.elapsed} meses`}`
-                              : 'sem dados'
-                          }
-                        />
-                      </KpiCardContent>
-                    </KpiCard>
-                  ) : null}
+                  {kpis.map(k => (
+                    <KpiCard
+                      key={k.title}
+                      title={k.title}
+                      value={k.value}
+                      hint={k.hint}
+                    />
+                  ))}
                 </section>
 
                 {!mesAtivo ? (
