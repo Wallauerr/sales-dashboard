@@ -1,4 +1,9 @@
-import { CheckIcon, ChevronDownIcon, FileUpIcon } from 'lucide-react'
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  FileUpIcon,
+  SettingsIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -22,6 +27,7 @@ export function DashboardHeader({
   view,
   importing,
   onImport,
+  onOpenMetas,
 }: {
   ano: number
   onAno: (v: number) => void
@@ -30,6 +36,7 @@ export function DashboardHeader({
   view: 'dashboard' | 'historico'
   importing: boolean
   onImport: () => void
+  onOpenMetas: () => void
 }) {
   const mesAtivo = mes !== 'todos'
   return (
@@ -92,6 +99,13 @@ export function DashboardHeader({
         <Button onClick={onImport} disabled={importing}>
           <FileUpIcon className="size-4" />
           {importing ? 'Importando…' : 'Importar dados do SIGE'}
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Abrir configurações"
+          onClick={onOpenMetas}>
+          <SettingsIcon className="size-4" />
         </Button>
         <ThemeToggle />
       </div>

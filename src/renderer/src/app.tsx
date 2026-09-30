@@ -12,12 +12,22 @@ import {
   regionBarData,
   regionDonutData,
 } from '@/components/charts/region-donut'
+import { ConfigTab } from '@/components/config/config-tab'
+import { DashboardGrid } from '@/components/dashboard-grid'
 import { DashboardHeader } from '@/components/dashboard-header'
 import { HistoryTab } from '@/components/history/history-tab'
 import { buildKpis } from '@/components/kpi/build-kpis'
 import { KpiCard } from '@/components/kpi/kpi-card'
 import { SellerCards } from '@/components/sellers/seller-cards'
 import { TitleBar } from '@/components/title-bar'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { WindowResizeHandles } from '@/components/window-resize-handles'
 import { chartColor } from '@/lib/colors'
@@ -33,6 +43,8 @@ export function App() {
   const [mes, setMes] = useState<Mes | 'todos'>('todos')
   const [vendedor, setVendedor] = useState<string | null>(null)
   const [view, setView] = useState<'dashboard' | 'historico'>('dashboard')
+  const [metasOpen, setMetasOpen] = useState(false)
+  const [layoutResetKey, setLayoutResetKey] = useState(0)
   const maximized = useWindowMaximized()
   const [snap, setSnap] = useState<KpiSnapshot | null>(null)
   const [fotos, setFotos] = useState<Record<string, string>>({})
@@ -132,7 +144,38 @@ export function App() {
             view={view}
             importing={importing}
             onImport={() => void handleImport()}
+            onOpenMetas={() => setMetasOpen(true)}
           />
+
+          <Dialog open={metasOpen} onOpenChange={setMetasOpen}>
+            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Configurações</DialogTitle>
+                <DialogDescription>
+                  Ajuste as metas e o layout; o dashboard reflete na hora.
+                </DialogDescription>
+              </DialogHeader>
+              <ConfigTab
+                key={reload}
+                ano={ano}
+                onSaved={() => setReload(k => k + 1)}
+              />
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Layout da dashboard</p>
+                  <p className="text-xs text-muted-foreground">
+                    Arraste os cartões pelo título e redimensione pelo canto; o
+                    layout fica salvo neste computador.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setLayoutResetKey(k => k + 1)}>
+                  Restaurar padrão
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {importMsg ? (
             <p className="text-xs text-muted-foreground no-print">
@@ -190,47 +233,51 @@ export function App() {
                     ))}
                   </section>
 
-                  {!mesAtivo ? (
-                    <ChartCard
-                      title={
-                        vendedor
-                          ? `Faturamento mensal — ${vendedor}`
-                          : 'Faturamento mensal × meta'
-                      }
-                      contentClassName="flex flex-col gap-2">
-                      <GroupedBars
-                        labels={MESES.map(m => MES_LABEL[m])}
-                        series={[
-                          {
-                            name: 'Realizado',
-                            kind: 'bar',
-                            color: chartColor(1),
-                            values: MESES.map(m => snap.faturamentoPorMes[m]),
-                          },
-                          ...(!vendedor
-                            ? [
-                                {
-                                  name: 'Meta',
-                                  kind: 'line' as const,
-                                  color: chartColor(3),
-                                  values: MESES.map(
-                                    (_m, i) => snap.metasPorMes[i].meta,
-                                  ),
-                                },
-                              ]
-                            : []),
-                        ]}
-                        onClick={i => setMes(MESES[i])}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Clique em uma barra para filtrar o mês.
-                      </p>
-                    </ChartCard>
-                  ) : null}
-
-                  {!mesAtivo ? (
-                    <div className="grid gap-6 lg:grid-cols-2">
+                  <DashboardGrid resetKey={layoutResetKey}>
+                    {!mesAtivo ? (
                       <ChartCard
+                        key="fat-mensal"
+                        headerClassName="card-drag-handle cursor-move"
+                        title={
+                          vendedor
+                            ? `Faturamento mensal — ${vendedor}`
+                            : 'Faturamento mensal × meta'
+                        }
+                        contentClassName="flex flex-col gap-2">
+                        <GroupedBars
+                          labels={MESES.map(m => MES_LABEL[m])}
+                          series={[
+                            {
+                              name: 'Realizado',
+                              kind: 'bar',
+                              color: chartColor(1),
+                              values: MESES.map(m => snap.faturamentoPorMes[m]),
+                            },
+                            ...(!vendedor
+                              ? [
+                                  {
+                                    name: 'Meta',
+                                    kind: 'line' as const,
+                                    color: chartColor(3),
+                                    values: MESES.map(
+                                      (_m, i) => snap.metasPorMes[i].meta,
+                                    ),
+                                  },
+                                ]
+                              : []),
+                          ]}
+                          onClick={i => setMes(MESES[i])}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Clique em uma barra para filtrar o mês.
+                        </p>
+                      </ChartCard>
+                    ) : null}
+
+                    {!mesAtivo ? (
+                      <ChartCard
+                        key="acumulado"
+                        headerClassName="card-drag-handle cursor-move"
                         title={
                           vendedor
                             ? `Acumulado ${ano} — ${vendedor}`
@@ -242,7 +289,13 @@ export function App() {
                           target={vendedor ? undefined : snap.metaAnual}
                         />
                       </ChartCard>
-                      <ChartCard title="Nº de fechamento por mês">
+                    ) : null}
+
+                    {!mesAtivo ? (
+                      <ChartCard
+                        key="fechamento"
+                        headerClassName="card-drag-handle cursor-move"
+                        title="Nº de fechamento por mês">
                         <GroupedBars
                           labels={MESES.map(m => MES_LABEL[m])}
                           className="h-[260px]"
@@ -267,11 +320,12 @@ export function App() {
                           ]}
                         />
                       </ChartCard>
-                    </div>
-                  ) : null}
+                    ) : null}
 
-                  <div className="grid gap-6 lg:grid-cols-2">
-                    <ChartCard title="Funil de vendas">
+                    <ChartCard
+                      key="funil"
+                      headerClassName="card-drag-handle cursor-move"
+                      title="Funil de vendas">
                       <HorizontalBars
                         data={funnelItems(
                           MESES.indexOf(
@@ -289,6 +343,8 @@ export function App() {
                     </ChartCard>
 
                     <ChartCard
+                      key="regioes"
+                      headerClassName="card-drag-handle cursor-move"
                       title="Regiões"
                       contentClassName="flex flex-col gap-4">
                       <RegionDonut data={regionDonutData(snap)} />
@@ -297,10 +353,11 @@ export function App() {
                         valueFormat={brl0}
                       />
                     </ChartCard>
-                  </div>
 
-                  <div className="grid gap-6 lg:grid-cols-3">
-                    <ChartCard title="Estados">
+                    <ChartCard
+                      key="estados"
+                      headerClassName="card-drag-handle cursor-move"
+                      title="Estados">
                       <HorizontalBars
                         data={snap.porEstado.slice(0, 8).map(e => ({
                           label: `${e.estado} · ${pct(e.share)}`,
@@ -311,7 +368,10 @@ export function App() {
                       />
                     </ChartCard>
 
-                    <ChartCard title="Ticket médio por produto">
+                    <ChartCard
+                      key="ticket"
+                      headerClassName="card-drag-handle cursor-move"
+                      title="Ticket médio por produto">
                       <div className="flex flex-col gap-3">
                         {snap.ticketMedio.map(t => (
                           <div
@@ -331,7 +391,10 @@ export function App() {
                       </div>
                     </ChartCard>
 
-                    <ChartCard title="Histórico">
+                    <ChartCard
+                      key="historico"
+                      headerClassName="card-drag-handle cursor-move"
+                      title="Histórico">
                       <div className="flex flex-col gap-3 text-sm">
                         {[
                           {
@@ -364,7 +427,7 @@ export function App() {
                         ))}
                       </div>
                     </ChartCard>
-                  </div>
+                  </DashboardGrid>
                 </div>
               )}
             </TabsContent>
