@@ -148,6 +148,30 @@ body {
   background: transparent;
 }
 
+/* O react-resizable aninha a alça de resize dentro dos filhos do card, então os
+   seletores `.react-grid-item > .react-resizable-handle` do RGL não casam.
+   Sem estas regras a alça fica com tamanho e cursor zerados. */
+.react-grid-item .react-resizable-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  width: 20px;
+  height: 20px;
+  cursor: se-resize;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.react-grid-item:hover .react-resizable-handle,
+.react-grid-item .react-resizable-handle:hover {
+  opacity: 1;
+}
+
+.react-resizable-hide > .react-resizable-handle {
+  display: none;
+}
+
 @media print {
   @page {
     size: A4;
