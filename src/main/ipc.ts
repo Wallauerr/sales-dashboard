@@ -36,7 +36,7 @@ export function registerIpc(db: SalesDatabase): void {
 
 async function pickWorkbookPath(): Promise<string | null> {
   const { canceled, filePaths } = await dialog.showOpenDialog({
-    title: 'Importar export do SIGE',
+    title: 'Importar dados do SIGE',
     properties: ['openFile'],
     filters: [{ name: 'Planilhas Excel', extensions: ['xlsx'] }],
   })

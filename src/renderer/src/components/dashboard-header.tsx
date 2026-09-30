@@ -91,7 +91,7 @@ export function DashboardHeader({
         </DropdownMenu>
         <Button onClick={onImport} disabled={importing}>
           <FileUpIcon className="size-4" />
-          {importing ? 'Importando…' : 'Importar export do SIGE'}
+          {importing ? 'Importando…' : 'Importar dados do SIGE'}
         </Button>
         <ThemeToggle />
       </div>

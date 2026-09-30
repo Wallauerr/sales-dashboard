@@ -143,7 +143,7 @@ export function HistoryTab({
               </p>
               <p className="text-xs">
                 {imports.length === 0
-                  ? 'Use o botão "Importar export do SIGE" para alimentar o app.'
+                  ? 'Use o botão "Importar dados do SIGE" para alimentar o app.'
                   : 'Ajuste o filtro de ano/mês para ver os imports de outro período.'}
               </p>
             </div>

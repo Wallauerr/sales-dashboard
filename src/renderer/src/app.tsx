@@ -163,7 +163,7 @@ export function App() {
             <TabsContent value="dashboard" className="flex flex-col gap-6">
               {!snap ? (
                 <p className="py-16 text-center text-sm text-muted-foreground">
-                  Carregando… (rode "Importar export do SIGE" para carregar os
+                  Carregando… (rode "Importar dados do SIGE" para carregar os
                   dados)
                 </p>
               ) : (
