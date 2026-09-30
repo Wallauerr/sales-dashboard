@@ -199,4 +199,18 @@ body {
   .no-print {
     display: none !important;
   }
+  /* O RGL posiciona os cards com absolute/px; na impressão eles voltam para o
+     fluxo normal e a alça de resize some. */
+  .react-grid-layout,
+  .react-grid-item {
+    position: static !important;
+    height: auto !important;
+    transform: none !important;
+  }
+  .react-grid-item {
+    width: auto !important;
+  }
+  .react-resizable-handle {
+    display: none !important;
+  }
 }

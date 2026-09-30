@@ -76,7 +76,6 @@ export function DashboardGrid({
 
   return (
     <DashboardGridLayout
-      className="no-print"
       layout={layout}
       cols={12}
       rowHeight={24}
