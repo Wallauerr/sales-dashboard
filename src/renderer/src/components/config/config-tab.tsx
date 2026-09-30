@@ -182,7 +182,7 @@ export function ConfigTab({
             <p className="mt-3 text-xs text-destructive">Erro: {err}</p>
           ) : null}
           {savedMsg ? (
-            <p className="mt-3 text-xs text-emerald-600">{savedMsg}</p>
+            <p className="mt-3 text-xs text-primary">{savedMsg}</p>
           ) : null}
         </CardContent>
       </Card>
@@ -272,6 +272,7 @@ export function ConfigTab({
                     variant="ghost"
                     size="icon"
                     className="size-8 shrink-0"
+                    aria-label={`Voltar ${MES_LABEL[mes]} à meta automática`}
                     onClick={() => resetMes(mes)}
                     disabled={mesesDraft[mes] === ''}
                     title="Voltar à meta automática">
