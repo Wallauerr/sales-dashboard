@@ -21,6 +21,8 @@ interface Api {
   getImports: () => Promise<ImportRecord[]>
   getCodigoHistory: (codigo: string) => Promise<CodigoHistory>
   getSnapshot: (ano: number, filtro?: SnapshotFilter) => Promise<KpiSnapshot>
+  getMetaConfig: (ano: number) => Promise<MetaConfigView>
+  setMetaConfig: (ano: number, input: MetasSetInput) => Promise<MetaConfigView>
   getFotos: () => Promise<VendedorFoto[]>
   minimize: () => Promise<void>
   toggleMaximize: () => Promise<void>
