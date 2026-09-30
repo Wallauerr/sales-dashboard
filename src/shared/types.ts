@@ -94,6 +94,8 @@ export interface KpiSnapshot {
   ticketMedio: TicketMedio[]
   metaAnual: number
   metaAnualBase: number
+  metaAnualAuto: number
+  metaPersonalizada: boolean
   fator: number
   metasPorMes: MetasMes[]
   acumuladoPorMes: Record<Mes, number>
