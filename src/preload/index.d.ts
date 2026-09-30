@@ -7,35 +7,31 @@ import type {
   MetasSetInput,
   SnapshotFilter,
   VendedorFoto,
-} from "../shared/types";
+} from '../shared/types'
 
 interface WindowBounds {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  x: number
+  y: number
+  width: number
+  height: number
 }
 
 interface Api {
-  importWorkbook: () => Promise<ImportResult | null>;
-  getImports: () => Promise<ImportRecord[]>;
-  getCodigoHistory: (codigo: string) => Promise<CodigoHistory>;
-  getSnapshot: (ano: number, filtro?: SnapshotFilter) => Promise<KpiSnapshot>;
-  getFotos: () => Promise<VendedorFoto[]>;
-  getMetaConfig: (ano: number) => Promise<MetaConfigView>;
-  setMetaConfig: (ano: number, input: MetasSetInput) => Promise<MetaConfigView>;
-  minimize: () => Promise<void>;
-  toggleMaximize: () => Promise<void>;
-  closeWindow: () => Promise<void>;
-  getBounds: () => Promise<WindowBounds>;
-  setBounds: (bounds: WindowBounds) => void;
-  onMaximized: (callback: (maximized: boolean) => void) => () => void;
+  importWorkbook: () => Promise<ImportResult | null>
+  getImports: () => Promise<ImportRecord[]>
+  getCodigoHistory: (codigo: string) => Promise<CodigoHistory>
+  getSnapshot: (ano: number, filtro?: SnapshotFilter) => Promise<KpiSnapshot>
+  getFotos: () => Promise<VendedorFoto[]>
+  minimize: () => Promise<void>
+  toggleMaximize: () => Promise<void>
+  closeWindow: () => Promise<void>
+  getBounds: () => Promise<WindowBounds>
+  setBounds: (bounds: WindowBounds) => void
+  onMaximized: (callback: (maximized: boolean) => void) => () => void
 }
 
 declare global {
   interface Window {
-    api: Api;
+    api: Api
   }
 }
-
-export {};

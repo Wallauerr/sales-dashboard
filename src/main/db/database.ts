@@ -1,7 +1,12 @@
-import { DatabaseSync } from "node:sqlite";
-import type { CodigoHistory, ImportCodeEvent, ImportRecord, Mes, Sale } from "../../shared/types.ts";
-import { MESES, saleSchema } from "../../shared/schemas.ts";
-import { rowToSale } from "./rows.ts";
+import type { DatabaseSync } from 'node:sqlite'
+import { saleSchema } from '../../shared/schemas.ts'
+import type {
+  CodigoHistory,
+  ImportCodeEvent,
+  ImportRecord,
+  Sale,
+} from '../../shared/types.ts'
+import { rowToSale } from './rows.ts'
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS vendas (
@@ -73,65 +78,69 @@ CREATE TABLE IF NOT EXISTS vendedor_fotos (
   mime TEXT NOT NULL DEFAULT 'image/png',
   img BLOB NOT NULL
 );
-`;
+`
 
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 6
 
 export class SalesDatabase {
-  private db: DatabaseSync;
+  private db: DatabaseSync
 
   constructor(db: DatabaseSync) {
-    this.db = db;
-    db.exec("PRAGMA journal_mode = WAL");
-    const { user_version } = db.prepare("PRAGMA user_version").get() as { user_version: number };
+    this.db = db
+    db.exec('PRAGMA journal_mode = WAL')
+    const { user_version } = db.prepare('PRAGMA user_version').get() as {
+      user_version: number
+    }
     if (user_version < SCHEMA_VERSION) {
       // Migração v3 -> v4 (reconciliação por codigo): preserva os dados, apenas
       // elimina eventuais duplicatas mantendo a linha mais recente por codigo.
       try {
-        db.exec("DELETE FROM vendas WHERE id NOT IN (SELECT MAX(id) FROM vendas GROUP BY codigo)");
+        db.exec(
+          'DELETE FROM vendas WHERE id NOT IN (SELECT MAX(id) FROM vendas GROUP BY codigo)',
+        )
       } catch {
         // tabela ainda não existe (instalação nova) — o SCHEMA abaixo cria.
       }
-      db.exec(SCHEMA);
-      db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+      db.exec(SCHEMA)
+      db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`)
     } else {
-      db.exec(SCHEMA);
+      db.exec(SCHEMA)
     }
   }
 
   static open(db: DatabaseSync): SalesDatabase {
-    return new SalesDatabase(db);
+    return new SalesDatabase(db)
   }
 
   get raw(): DatabaseSync {
-    return this.db;
+    return this.db
   }
 
   insertSale(row: {
-    codigo: string;
-    data: string | null;
-    dataAprovOrcamento: string | null;
-    dataAprovPedido: string | null;
-    dataAprovFaturamento: string | null;
-    dataEmissaoFiscal: string | null;
-    empresa: string;
-    statusSistema: string;
-    vendedor: string;
-    categoria: string;
-    status: string;
-    origem: string;
-    cliente: string;
-    cidade: string;
-    estado: string;
-    regiao: string;
-    transportadora: string;
-    frete: number;
-    desconto: number;
-    comissao: number;
-    valorTotal: number;
-    nfe: string;
-    mes: string | null;
-    ano: number | null;
+    codigo: string
+    data: string | null
+    dataAprovOrcamento: string | null
+    dataAprovPedido: string | null
+    dataAprovFaturamento: string | null
+    dataEmissaoFiscal: string | null
+    empresa: string
+    statusSistema: string
+    vendedor: string
+    categoria: string
+    status: string
+    origem: string
+    cliente: string
+    cidade: string
+    estado: string
+    regiao: string
+    transportadora: string
+    frete: number
+    desconto: number
+    comissao: number
+    valorTotal: number
+    nfe: string
+    mes: string | null
+    ano: number | null
   }): void {
     this.db
       .prepare(
@@ -167,44 +176,46 @@ export class SalesDatabase {
         row.nfe,
         row.mes,
         row.ano,
-      );
+      )
   }
 
-  upsertSale(row: Parameters<SalesDatabase["insertSale"]>[0]): "inserted" | "updated" | "unchanged" {
-    const existing = this.db.prepare("SELECT * FROM vendas WHERE codigo = ?").get(row.codigo) as
-      | Record<string, unknown>
-      | undefined;
+  upsertSale(
+    row: Parameters<SalesDatabase['insertSale']>[0],
+  ): 'inserted' | 'updated' | 'unchanged' {
+    const existing = this.db
+      .prepare('SELECT * FROM vendas WHERE codigo = ?')
+      .get(row.codigo) as Record<string, unknown> | undefined
     if (!existing) {
-      this.insertSale(row);
-      return "inserted";
+      this.insertSale(row)
+      return 'inserted'
     }
     const fields: [string, unknown][] = [
-      ["data", row.data],
-      ["data_aprov_orcamento", row.dataAprovOrcamento],
-      ["data_aprov_pedido", row.dataAprovPedido],
-      ["data_aprov_faturamento", row.dataAprovFaturamento],
-      ["data_emissao_fiscal", row.dataEmissaoFiscal],
-      ["empresa", row.empresa],
-      ["status_sistema", row.statusSistema],
-      ["vendedor", row.vendedor],
-      ["categoria", row.categoria],
-      ["status", row.status],
-      ["origem", row.origem],
-      ["cliente", row.cliente],
-      ["cidade", row.cidade],
-      ["estado", row.estado],
-      ["regiao", row.regiao],
-      ["transportadora", row.transportadora],
-      ["frete", row.frete],
-      ["desconto", row.desconto],
-      ["comissao", row.comissao],
-      ["valor_total", row.valorTotal],
-      ["nfe", row.nfe],
-      ["mes", row.mes],
-      ["ano", row.ano],
-    ];
-    const unchanged = fields.every(([key, value]) => existing[key] === value);
-    if (unchanged) return "unchanged";
+      ['data', row.data],
+      ['data_aprov_orcamento', row.dataAprovOrcamento],
+      ['data_aprov_pedido', row.dataAprovPedido],
+      ['data_aprov_faturamento', row.dataAprovFaturamento],
+      ['data_emissao_fiscal', row.dataEmissaoFiscal],
+      ['empresa', row.empresa],
+      ['status_sistema', row.statusSistema],
+      ['vendedor', row.vendedor],
+      ['categoria', row.categoria],
+      ['status', row.status],
+      ['origem', row.origem],
+      ['cliente', row.cliente],
+      ['cidade', row.cidade],
+      ['estado', row.estado],
+      ['regiao', row.regiao],
+      ['transportadora', row.transportadora],
+      ['frete', row.frete],
+      ['desconto', row.desconto],
+      ['comissao', row.comissao],
+      ['valor_total', row.valorTotal],
+      ['nfe', row.nfe],
+      ['mes', row.mes],
+      ['ano', row.ano],
+    ]
+    const unchanged = fields.every(([key, value]) => existing[key] === value)
+    if (unchanged) return 'unchanged'
     this.db
       .prepare(
         `UPDATE vendas SET
@@ -240,41 +251,65 @@ export class SalesDatabase {
         row.mes,
         row.ano,
         row.codigo,
-      );
-    return "updated";
+      )
+    return 'updated'
   }
 
-  logImport(result: { filePath: string; totalRows: number; inserted: number; updated: number; discarded: number }): number {
+  logImport(result: {
+    filePath: string
+    totalRows: number
+    inserted: number
+    updated: number
+    discarded: number
+  }): number {
     const { lastInsertRowid } = this.db
       .prepare(
-        "INSERT INTO import_log (file_path, total_rows, inserted, updated, discarded, imported_at) VALUES (?, ?, ?, ?, ?, ?)",
+        'INSERT INTO import_log (file_path, total_rows, inserted, updated, discarded, imported_at) VALUES (?, ?, ?, ?, ?, ?)',
       )
-      .run(result.filePath, result.totalRows, result.inserted, result.updated, result.discarded, new Date().toISOString());
-    return Number(lastInsertRowid);
+      .run(
+        result.filePath,
+        result.totalRows,
+        result.inserted,
+        result.updated,
+        result.discarded,
+        new Date().toISOString(),
+      )
+    return Number(lastInsertRowid)
   }
 
   insertImportItem(item: {
-    importId: number;
-    codigo: string;
-    op: "inserted" | "updated";
-    statusSistema: string;
-    valorTotal: number;
-    data: string | null;
-    mes: string | null;
-    ano: number | null;
+    importId: number
+    codigo: string
+    op: 'inserted' | 'updated'
+    statusSistema: string
+    valorTotal: number
+    data: string | null
+    mes: string | null
+    ano: number | null
   }): void {
     this.db
       .prepare(
-        "INSERT INTO import_items (import_id, codigo, op, status_sistema, valor_total, data, mes, ano) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        'INSERT INTO import_items (import_id, codigo, op, status_sistema, valor_total, data, mes, ano) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       )
-      .run(item.importId, item.codigo, item.op, item.statusSistema, item.valorTotal, item.data, item.mes, item.ano);
+      .run(
+        item.importId,
+        item.codigo,
+        item.op,
+        item.statusSistema,
+        item.valorTotal,
+        item.data,
+        item.mes,
+        item.ano,
+      )
   }
 
   listImports(): ImportRecord[] {
     const rows = this.db
-      .prepare("SELECT id, file_path, total_rows, inserted, updated, discarded, imported_at FROM import_log ORDER BY id DESC")
-      .all() as unknown as Record<string, unknown>[];
-    return rows.map((r) => ({
+      .prepare(
+        'SELECT id, file_path, total_rows, inserted, updated, discarded, imported_at FROM import_log ORDER BY id DESC',
+      )
+      .all() as unknown as Record<string, unknown>[]
+    return rows.map(r => ({
       id: Number(r.id),
       filePath: String(r.file_path),
       totalRows: Number(r.total_rows),
@@ -282,13 +317,15 @@ export class SalesDatabase {
       updated: Number(r.updated),
       discarded: Number(r.discarded),
       importedAt: String(r.imported_at),
-    }));
+    }))
   }
 
   findVendaByCodigo(codigo: string): Sale | null {
-    const r = this.db.prepare("SELECT * FROM vendas WHERE codigo = ?").get(codigo) as Record<string, unknown> | undefined;
-    if (!r) return null;
-    return saleSchema.parse(rowToSale(r));
+    const r = this.db
+      .prepare('SELECT * FROM vendas WHERE codigo = ?')
+      .get(codigo) as Record<string, unknown> | undefined
+    if (!r) return null
+    return saleSchema.parse(rowToSale(r))
   }
 
   codigoHistoryEvents(codigo: string): ImportCodeEvent[] {
@@ -298,16 +335,16 @@ export class SalesDatabase {
          FROM import_items ii JOIN import_log il ON il.id = ii.import_id
          WHERE ii.codigo = ? ORDER BY il.id ASC, ii.id ASC`,
       )
-      .all(codigo) as unknown as Record<string, unknown>[];
-    return rows.map((r) => ({
+      .all(codigo) as unknown as Record<string, unknown>[]
+    return rows.map(r => ({
       importedAt: String(r.imported_at),
-      op: String(r.op) as ImportCodeEvent["op"],
-      statusSistema: String(r.status_sistema ?? ""),
+      op: String(r.op) as ImportCodeEvent['op'],
+      statusSistema: String(r.status_sistema ?? ''),
       valorTotal: Number(r.valor_total) || 0,
       data: r.data ? String(r.data) : null,
-      mes: r.mes ? (String(r.mes) as ImportCodeEvent["mes"]) : null,
+      mes: r.mes ? (String(r.mes) as ImportCodeEvent['mes']) : null,
       ano: r.ano ? Number(r.ano) : null,
-    }));
+    }))
   }
 
   getCodigoHistory(codigo: string): CodigoHistory {
@@ -315,102 +352,57 @@ export class SalesDatabase {
       codigo,
       venda: this.findVendaByCodigo(codigo),
       events: this.codigoHistoryEvents(codigo),
-    };
+    }
   }
 
   getFator(ano: number): number {
-    return Number(this.getMeta(`fator:${ano}`) ?? 1.15);
+    return Number(this.getMeta(`fator:${ano}`) ?? 1.15)
   }
 
   setFator(ano: number, fator: number): void {
-    this.setMeta(`fator:${ano}`, String(fator));
+    this.setMeta(`fator:${ano}`, String(fator))
   }
 
   getMeta(key: string): string | null {
-    const row = this.db.prepare("SELECT value FROM meta_config WHERE key = ?").get(key) as
-      | { value: string }
-      | undefined;
-    return row ? row.value : null;
+    const row = this.db
+      .prepare('SELECT value FROM meta_config WHERE key = ?')
+      .get(key) as { value: string } | undefined
+    return row ? row.value : null
   }
 
   setMeta(key: string, value: string): void {
     this.db
-      .prepare("INSERT INTO meta_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
-      .run(key, value);
+      .prepare(
+        'INSERT INTO meta_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      )
+      .run(key, value)
   }
 
-  clearMeta(key: string): void {
-    this.db.prepare("DELETE FROM meta_config WHERE key = ?").run(key);
-  }
-
-  getMetaAnual(ano: number): number | null {
-    return this.getMetaConfigNumber(`meta_anual:${ano}`);
-  }
-
-  setMetaAnual(ano: number, valor: number | null): void {
-    if (valor === null) {
-      this.clearMeta(`meta_anual:${ano}`);
-    } else {
-      this.setMeta(`meta_anual:${ano}`, String(valor));
-    }
-  }
-
-  getMetasMesOverride(ano: number): Partial<Record<Mes, number>> {
-    const raw = this.getMeta(`metas_mes:${ano}`);
-    if (!raw) return {};
+  saveVendedorFotos(
+    fotos: { vendedor: string; mime: string; img: Uint8Array }[],
+  ): void {
+    this.db.exec('BEGIN')
     try {
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
-      const out: Partial<Record<Mes, number>> = {};
-      for (const [k, v] of Object.entries(parsed)) {
-        if (MESES.includes(k as Mes) && typeof v === "number" && Number.isFinite(v)) {
-          out[k as Mes] = v;
-        }
-      }
-      return out;
-    } catch {
-      return {};
-    }
-  }
-
-  setMetasMesOverride(ano: number, meses: Partial<Record<Mes, number>>): void {
-    const overrides = MESES.reduce<Partial<Record<Mes, number>>>((acc, mes) => {
-      const v = meses[mes];
-      if (typeof v === "number" && Number.isFinite(v)) acc[mes] = v;
-      return acc;
-    }, {});
-    if (Object.keys(overrides).length === 0) {
-      this.clearMeta(`metas_mes:${ano}`);
-    } else {
-      this.setMeta(`metas_mes:${ano}`, JSON.stringify(overrides));
-    }
-  }
-
-  private getMetaConfigNumber(key: string): number | null {
-    const raw = this.getMeta(key);
-    if (raw === null) return null;
-    const n = Number(raw);
-    return Number.isFinite(n) ? n : null;
-  }
-
-  saveVendedorFotos(fotos: { vendedor: string; mime: string; img: Uint8Array }[]): void {
-    this.db.exec("BEGIN");
-    try {
-      this.db.exec("DELETE FROM vendedor_fotos");
-      const stmt = this.db.prepare("INSERT INTO vendedor_fotos (vendedor, mime, img) VALUES (?, ?, ?)");
-      for (const f of fotos) stmt.run(f.vendedor, f.mime, f.img);
-      this.db.exec("COMMIT");
+      this.db.exec('DELETE FROM vendedor_fotos')
+      const stmt = this.db.prepare(
+        'INSERT INTO vendedor_fotos (vendedor, mime, img) VALUES (?, ?, ?)',
+      )
+      for (const f of fotos) stmt.run(f.vendedor, f.mime, f.img)
+      this.db.exec('COMMIT')
     } catch (err) {
-      this.db.exec("ROLLBACK");
-      throw err;
+      this.db.exec('ROLLBACK')
+      throw err
     }
   }
 
   listVendedorFotos(): { vendedor: string; mime: string; img: Uint8Array }[] {
-    const rows = this.db.prepare("SELECT vendedor, mime, img FROM vendedor_fotos").all() as unknown as {
-      vendedor: string;
-      mime: string;
-      img: Uint8Array;
-    }[];
-    return rows.map((r) => ({ vendedor: r.vendedor, mime: r.mime, img: r.img }));
+    const rows = this.db
+      .prepare('SELECT vendedor, mime, img FROM vendedor_fotos')
+      .all() as unknown as {
+      vendedor: string
+      mime: string
+      img: Uint8Array
+    }[]
+    return rows.map(r => ({ vendedor: r.vendedor, mime: r.mime, img: r.img }))
   }
 }
