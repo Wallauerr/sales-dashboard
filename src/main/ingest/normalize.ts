@@ -1,4 +1,4 @@
-import type { Mes } from '../../shared/types.ts'
+import { type Mes, STATUS_SISTEMA } from '../../shared/types.ts'
 
 export function parseDate(value: unknown): Date | null {
   if (value === null || value === undefined || value === '') return null
@@ -80,8 +80,21 @@ export function uppercase(text: string): string {
   return text.trim().toUpperCase()
 }
 
+function semAcento(text: string): string {
+  return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+const STATUS_CANONICO = new Map(
+  STATUS_SISTEMA.map(status => [semAcento(status).toLowerCase(), status]),
+)
+
+// Normaliza o status para o canônico do SIGE, tolerando variações de caixa e
+// acento (ex.: `pedido`, `PEDIDO`, `Pedido Não Faturado`). Status desconhecido
+// passa direto, só com trim.
 export function statusRaw(status: string): string {
-  return status.trim()
+  const s = String(status).trim()
+  if (!s) return s
+  return STATUS_CANONICO.get(semAcento(s).toLowerCase()) ?? s
 }
 
 /**
