@@ -540,6 +540,138 @@ async function main(): Promise<void> {
   })
   check('filtro mês+vendedor', sUrsulaFev.totalPeriodo, 4000)
 
+  console.log('\n— Regra de faturamento (pedido aprovado S/F por categoria) —')
+  const db3 = SalesDatabase.open(new DatabaseSync(':memory:'))
+  const ruleRow = (
+    codigo: string,
+    status: string,
+    categoria: string,
+    valor: number,
+  ): unknown[] => [
+    codigo,
+    '05/01/2026',
+    '',
+    'X',
+    status,
+    'V1',
+    categoria,
+    '',
+    '',
+    codigo,
+    'Alegre',
+    'RS',
+    'Sul',
+    '',
+    0,
+    0,
+    0,
+    valor,
+    '',
+  ]
+  const ruleRows: unknown[][] = [
+    ruleRow('R1', 'Pedido Faturado', '', 1000),
+    ruleRow('R2', 'Pedido', '', 2000),
+    ruleRow('R3', 'Pedido Aprovado Sem Faturamento', 'Remessa', 5000),
+    ruleRow('R4', 'Pedido Aprovado Sem Faturamento', 'Amostra', 3000),
+    ruleRow(
+      'R5',
+      'Pedido Aprovado Sem Faturamento',
+      'Remessa amostra grátis',
+      7000,
+    ),
+    ruleRow('R6', 'Pedido Aprovado Sem Faturamento', 'Operacional', 400),
+    ruleRow('R7', 'Pedido Aprovado Sem Faturamento', '', 600),
+    ruleRow('R8', 'pedido', '', 800),
+    ruleRow('R9', 'Pedido Cancelado', '', 9000),
+    ruleRow('R10', 'Orçamento', '', 10000),
+  ]
+  await importWorkbook(db3, writeWorkbook(ruleRows))
+  const sRule = await getSnapshot(db3, 2026)
+  check(
+    'regra: faturamento soma S/F sem remessa/amostra',
+    sRule.faturamentoPorMes.jan,
+    4800,
+  )
+  check('regra: totalPeriodo consistente', sRule.totalPeriodo, 4800)
+  check(
+    'regra: quantidade conta só as incluídas',
+    sRule.quantidadePorMes.jan,
+    5,
+  )
+  check(
+    'regra: status minúsculo normalizado no ingest',
+    (
+      db3.raw
+        .prepare("SELECT status_sistema AS s FROM vendas WHERE codigo = 'R8'")
+        .get() as { s: string }
+    ).s,
+    'Pedido',
+  )
+  check(
+    'regra: funil separa pedido de faturado',
+    {
+      orcamento: sRule.funilPorMes[0].orcamento,
+      pedido: sRule.funilPorMes[0].pedido,
+      aprovadoSF: sRule.funilPorMes[0].pedidoAprovadoSemFaturamento,
+      faturado: sRule.funilPorMes[0].pedidoFaturado,
+      cancelado: sRule.funilPorMes[0].pedidoCancelado,
+    },
+    { orcamento: 1, pedido: 2, aprovadoSF: 5, faturado: 1, cancelado: 1 },
+  )
+
+  console.log('\n— Rótulos de dados ausentes (UF/região/vendedor) —')
+  const db4 = SalesDatabase.open(new DatabaseSync(':memory:'))
+  const labelRow = (
+    codigo: string,
+    estado: string,
+    regiao: string,
+    vendedor: string,
+    valor: number,
+  ): unknown[] => [
+    codigo,
+    '05/01/2026',
+    '',
+    'X',
+    'Pedido Faturado',
+    vendedor,
+    'Equipamentos',
+    '',
+    '',
+    codigo,
+    'Cidade',
+    estado,
+    regiao,
+    '',
+    0,
+    0,
+    0,
+    valor,
+    '',
+  ]
+  await importWorkbook(
+    db4,
+    writeWorkbook([
+      labelRow('L1', '', '', '', 1200),
+      labelRow('L2', 'SP', 'Sudeste', 'Ana', 800),
+    ]),
+  )
+  const sLabel = await getSnapshot(db4, 2026)
+  check(
+    'rótulo estado ausente',
+    sLabel.porEstado.find(e => e.estado === 'Não informado'),
+    { estado: 'Não informado', valor: 1200, share: 0.6 },
+  )
+  check(
+    'rótulo região ausente',
+    sLabel.porRegiao.find(r => r.regiao === 'Não informado'),
+    { regiao: 'Não informado', valor: 1200, share: 0.6, x: 0, y: 0 },
+  )
+  check(
+    'rótulo vendedor ausente',
+    sLabel.porVendedor.find(v => v.vendedor === 'VENDAS'),
+    { vendedor: 'VENDAS', valor: 1200, share: 0.6 },
+  )
+
   console.log('\n— Fotos embutidas na planilha (xlsx com imagem ancorada) —')
   const fotoPath = join(
     tmpdir(),
