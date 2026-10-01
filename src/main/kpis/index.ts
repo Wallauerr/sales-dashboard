@@ -8,7 +8,14 @@ import type {
   SnapshotFilter,
   TicketMedio,
 } from '../../shared/types.ts'
-import { MESES, STATUS_FATURAMENTO } from '../../shared/types.ts'
+import {
+  CATEGORIAS_FORA_FATURAMENTO,
+  MESES,
+  ROTULO_SEM_ESTADO,
+  ROTULO_SEM_VENDEDOR,
+  STATUS_APROVADO_SEM_FATURAMENTO,
+  STATUS_FATURAMENTO,
+} from '../../shared/types.ts'
 import type { SalesDatabase } from '../db/database.ts'
 
 const PRODUTOS_VENDEDORES: Record<string, string[]> = {
@@ -35,6 +42,24 @@ interface Escopo {
   params: (string | number)[]
 }
 
+// Filtro de faturamento compartilhado: `Pedido`/`Pedido Faturado` sempre entram;
+// `Pedido Aprovado Sem Faturamento` entra só quando a categoria não é remessa nem
+// amostra (categoria vazia conta).
+function faturamentoClause(): { sql: string; params: string[] } {
+  const inStatus = STATUS_FATURAMENTO.map(() => '?').join(', ')
+  const notLike = CATEGORIAS_FORA_FATURAMENTO.map(
+    () => 'categoria NOT LIKE ?',
+  ).join(' AND ')
+  return {
+    sql: `(status_sistema IN (${inStatus}) OR (status_sistema = ? AND ${notLike}))`,
+    params: [
+      ...STATUS_FATURAMENTO,
+      STATUS_APROVADO_SEM_FATURAMENTO,
+      ...CATEGORIAS_FORA_FATURAMENTO,
+    ],
+  }
+}
+
 // Escopo da consulta: sempre o ano, restringindo a um mês e/ou a um vendedor.
 // Sem filtro de mês/vendedor equivale ao panorama anual completo. O restritor
 // de status de faturamento é opcional: o funil e o nº de fechamento contam cada
@@ -48,10 +73,9 @@ function escopo(
   const where: string[] = ['ano = ?']
   const params: (string | number)[] = [ano]
   if (faturamento) {
-    where.push(
-      `status_sistema IN (${STATUS_FATURAMENTO.map(() => '?').join(', ')})`,
-    )
-    params.push(...STATUS_FATURAMENTO)
+    const clause = faturamentoClause()
+    where.push(clause.sql)
+    params.push(...clause.params)
   }
   if (filtro?.mes) {
     where.push('mes = ?')
@@ -126,7 +150,7 @@ function porVendedor(
   total: number,
 ): { vendedor: string; valor: number; share: number }[] {
   return somaPor(db, 'vendedor', scope).map(r => ({
-    vendedor: r.chave,
+    vendedor: r.chave || ROTULO_SEM_VENDEDOR,
     valor: r.valor,
     share: shareDe(r.valor, total),
   }))
@@ -138,7 +162,7 @@ function porEstado(
   total: number,
 ): { estado: string; valor: number; share: number }[] {
   return somaPor(db, 'estado', scope).map(r => ({
-    estado: r.chave,
+    estado: r.chave || ROTULO_SEM_ESTADO,
     valor: r.valor,
     share: shareDe(r.valor, total),
   }))
@@ -150,7 +174,7 @@ function porRegiao(
   total: number,
 ): { regiao: string; valor: number; share: number; x: number; y: number }[] {
   return somaPor(db, 'regiao', scope).map(r => ({
-    regiao: r.chave,
+    regiao: r.chave || ROTULO_SEM_ESTADO,
     valor: r.valor,
     share: shareDe(r.valor, total),
     ...(REGIAO_MAPA[r.chave] ?? { x: 0, y: 0 }),
@@ -259,12 +283,13 @@ export function getSnapshot(
 ): KpiSnapshot {
   const faturamento = faturamentoPorMes(db, ano, filtro)
   const totalPeriodo = MESES.reduce((acc, m) => acc + faturamento[m], 0)
+  const totalHistoricoClause = faturamentoClause()
   const totalHistorico = (
     db.raw
       .prepare(
-        `SELECT COALESCE(SUM(valor_total),0) AS v FROM vendas WHERE status_sistema IN (${STATUS_FATURAMENTO.map(() => '?').join(', ')})`,
+        `SELECT COALESCE(SUM(valor_total),0) AS v FROM vendas WHERE ${totalHistoricoClause.sql}`,
       )
-      .get(...STATUS_FATURAMENTO) as { v: number }
+      .get(...totalHistoricoClause.params) as { v: number }
   ).v
 
   const baseAno = ano - 1
