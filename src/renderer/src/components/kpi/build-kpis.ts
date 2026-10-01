@@ -70,7 +70,7 @@ export function buildKpis({
         ? `Faturamento ${MES_LABEL[mes as Mes]} ${ano}`
         : `Faturamento ${ano}`,
     value: brl0(snap.totalPeriodo),
-    hint: `status ${STATUS_FATURAMENTO.join(' + ')}`,
+    hint: `status ${STATUS_FATURAMENTO.join(' + ')} + Aprov. S/F (sem remessa/amostra)`,
   })
   if (!vendedor) {
     kpis.push(
