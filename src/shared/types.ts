@@ -21,7 +21,28 @@ export type {
 
 export const MESES = MESES_LIST
 
+// Regra de faturamento: `Pedido` e `Pedido Faturado` sempre contam (o comercial
+// considera o pedido como faturamento). `Pedido Aprovado Sem Faturamento` conta
+// junto, exceto quando a categoria é remessa/amostra — que não são venda.
 export const STATUS_FATURAMENTO = ['Pedido', 'Pedido Faturado']
+
+export const STATUS_APROVADO_SEM_FATURAMENTO = 'Pedido Aprovado Sem Faturamento'
+
+export const CATEGORIAS_FORA_FATURAMENTO = ['Remessa%', 'Amostra%']
+
+// Rótulos de dados ausentes exibidos na UI (pedidos sem UF e sem vendedor).
+export const ROTULO_SEM_ESTADO = 'Não informado'
+export const ROTULO_SEM_VENDEDOR = 'VENDAS'
+
+// Status canônicos do SIGE, usados para normalizar caixa/acento no ingest.
+export const STATUS_SISTEMA = [
+  'Orçamento',
+  'Pedido',
+  STATUS_APROVADO_SEM_FATURAMENTO,
+  'Pedido Cancelado',
+  'Pedido Faturado',
+  'Pedido Nao Faturado',
+]
 
 export interface SnapshotFilter {
   mes?: Mes | null
