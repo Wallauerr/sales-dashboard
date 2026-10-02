@@ -98,7 +98,7 @@ export function GroupedBars({
     <ChartContainer
       config={config}
       className={cn(
-        'h-[280px] w-full',
+        'h-[150px] w-full',
         onClick && '[&_.recharts-bar-rectangle]:cursor-pointer',
         className,
       )}>
