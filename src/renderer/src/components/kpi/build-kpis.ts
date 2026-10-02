@@ -1,9 +1,15 @@
 import { brl0, brlCompact, int, pct } from '@/lib/format'
 import { MES_LABEL } from '@/lib/labels'
 import type { KpiSnapshot, Mes } from '../../../../shared/types'
-import { MESES, STATUS_FATURAMENTO } from '../../../../shared/types'
+import { MESES } from '../../../../shared/types'
 
 export type KpiDef = { title: string; value: string; hint?: string }
+
+function variacao(atual: number, anterior: number): string | null {
+  if (anterior <= 0) return null
+  const v = (atual - anterior) / anterior
+  return `${v >= 0 ? '+' : '-'}${pct(Math.abs(v))}`
+}
 
 export function buildKpis({
   ano,
@@ -44,24 +50,55 @@ export function buildKpis({
     ? snap.quantidadePorMes[mes as Mes]
     : MESES.reduce((acc, m) => acc + snap.quantidadePorMes[m], 0)
 
+  const mesesComDados = (() => {
+    for (let i = MESES.length - 1; i >= 0; i--) {
+      if (snap.faturamentoPorMes[MESES[i]] > 0) return i + 1
+    }
+    return 0
+  })()
+
   const runRate =
-    !mesAtivo && !vendedor && snap.totalPeriodo > 0
-      ? (() => {
-          const now = new Date()
-          const elapsed = now.getFullYear() === ano ? now.getMonth() + 1 : 12
-          return elapsed > 0
-            ? { projection: (snap.totalPeriodo / elapsed) * 12, elapsed }
-            : null
-        })()
+    !mesAtivo && !vendedor && snap.totalPeriodo > 0 && mesesComDados > 0
+      ? {
+          projection: (snap.totalPeriodo / mesesComDados) * 12,
+          elapsed: mesesComDados,
+        }
       : null
 
   const quantHint = vendedor
     ? mesAtivo
-      ? `vendas de ${vendedor} em ${MES_LABEL[mes as Mes]} (1 por linha)`
-      : `vendas de ${vendedor} (1 por linha)`
+      ? `vendas de ${vendedor} em ${MES_LABEL[mes as Mes]}`
+      : `vendas de ${vendedor}`
     : mesAtivo
-      ? `vendas em ${MES_LABEL[mes as Mes]} (1 por linha)`
-      : 'vendas no ano (1 por linha)'
+      ? `vendas em ${MES_LABEL[mes as Mes]}`
+      : 'vendas no ano'
+
+  const prevAno = ano - 1
+  const prevPeriodo = MESES.slice(0, mesesComDados).reduce(
+    (acc, _m, i) => acc + snap.metasPorMes[i].faturamentoAnoAnterior,
+    0,
+  )
+  const shareVendedor = vendedor
+    ? snap.porVendedor.find(v => v.vendedor === vendedor)?.share
+    : undefined
+  const faturamentoHint = (() => {
+    if (vendedor) {
+      return shareVendedor === undefined
+        ? undefined
+        : `part. ${pct(shareVendedor)} do ${mesAtivo ? MES_LABEL[mes as Mes] : ano}`
+    }
+    if (mesAtivo) {
+      const prevMes = snap.metasPorMes[mesIndex].faturamentoAnoAnterior
+      const delta = variacao(faturamentoMes, prevMes)
+      return `${MES_LABEL[mes as Mes]} ${prevAno}: ${brlCompact(prevMes)}${delta ? ` · ${delta}` : ''}`
+    }
+    const periodo =
+      mesesComDados > 0 && mesesComDados < 12
+        ? ` (${MES_LABEL[MESES[0]]}–${MES_LABEL[MESES[mesesComDados - 1]]})`
+        : ''
+    const delta = variacao(snap.totalPeriodo, prevPeriodo)
+    return `vs ${prevAno}${periodo}: ${brlCompact(prevPeriodo)}${delta ? ` · ${delta}` : ''}`
+  })()
 
   kpis.push({
     title: vendedor
@@ -70,7 +107,7 @@ export function buildKpis({
         ? `Faturamento ${MES_LABEL[mes as Mes]} ${ano}`
         : `Faturamento ${ano}`,
     value: brl0(snap.totalPeriodo),
-    hint: `status ${STATUS_FATURAMENTO.join(' + ')}`,
+    hint: faturamentoHint,
   })
   if (!vendedor) {
     kpis.push(

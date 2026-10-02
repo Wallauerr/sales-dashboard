@@ -10,6 +10,7 @@ import { chartColor } from '@/lib/colors'
 import { brl0, brlCompact, pct } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { KpiSnapshot } from '../../../../shared/types'
+import { ROTULO_SEM_ESTADO } from '../../../../shared/types'
 
 const REGION_COLORS: Record<string, string> = {
   Norte: chartColor(1),
@@ -18,6 +19,7 @@ const REGION_COLORS: Record<string, string> = {
   Sudeste: chartColor(2),
   Sul: chartColor(5),
   Exterior: 'var(--muted-foreground)',
+  [ROTULO_SEM_ESTADO]: 'var(--muted-foreground)',
 }
 
 export function regionDonutData(snap: KpiSnapshot): DonutDatum[] {

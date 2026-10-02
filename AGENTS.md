@@ -8,17 +8,36 @@
 
 ## TODOS (ordem de execução)
 
-0. Voltar para a branch de dashboard-customization e ajustar o drag e resize dos cards, pensei em usar o resize do shadcn já aproveitando esse assunto, ver uma forma de conseguir deixar todos os cards em uma unica tela para facilitar a visualização na tv de 60pol em 1080p, quero o minimo possivel de scroll bar para o comercial não precisar ficar mexendo nisso e sim conseguir ver as infos todas em uma unica tela.
-1. ajustar filtro de anos, hj está hardcoded 2024, 2025 e 2026, a ideia é deixar de acordo com oq tiver de info alimentada no app, se tiver de 2024, vai mostrar de 2024, isso resolve o problema de ano que vem quando começar a vir novos dados, ele já entende que precisa mostrar no filtro 2027.
-2. ajustar para a janela se ajustar se empurrar ela para o topo da tela do monitor, ficar em tela cheia, se remover ele voltar para o tamanho q estava antes, jogar para os lados ele fica tela cheia até a metade da tele e etc, esse comportamente de janelas do windows, não está funcionando, apenas nos botões e ajustando manualmente o tamanho do app.
-3. ajustar largura maior do app, como ele vai ser usado em uma tv 60pol mas em 1080p, vai ficar com muita borda na direita e esquerda, então preciso de uma solucao para quando o app ficar em tela cheia em um monitor grande assim, para preencher toda a tela e não ficar com bordas, isso vai ajudar a ver melhor o app quando ele estiver em tela cheia.
-4. quando o app compila para win, ele não carrega o icone na title bar lá na esquerda do app, junto do texto Sulmag - metas comercial.
-5. tem que ver um vendedor sem nome e foto, oq é?? caso for vendas sem vendedor, adicionar uma lógica para sempre que não tiver nome de vendedor, vai mostrar hardcoded o nome VENDAS por exemplo.
-6. tem uns dados sem estado no chart de estados e no de piechart.
-7. Precisa pensar melhor no calculo do faturamento, acredito que hj está somando junto pedidos aprovados S/F e talvez pedidos cancelados, precisa confirmar.
-8. Adicionar fundo no gráfico de acumulado anual x meta.
-9. na aba histórico não precisa mostrar os vendedores, já que não aplica nenhum filtro deles na aba.
-10. colocar uma opção para desativar vendedores do filtro, por exemplo, vamos ter alguns vendedores que não estão mais trabalhando com nós, precisa de uma opção para desativar eles do filtro mas sem perder os dados de faturamento, vendas e etc, não pode perder as métricas desse vendedor, ai nesse caso dá para passar para o nome que vai ter hardcoded VENDAS que foi comentado no TODO de numero 5.
-11. fazer com que o filtro permita selecionar mais de um vendedor e mais de um mês para fazer comparativos entre meses específicos e também entre vendedores.
-12. Novamente sobre os pedidos aprovados s/f em alguns casos vamos ter pedidos vendido sem nfe, então ele vai se enquadrar como pedido aprovado s/f, vamos precisar pensar em um filtro ou em algum campo que vai vir do proprio SIGE informando isso para diferenciar dos pedidos que realmente são aprovados s/f que são notas de remessa por exemplo(remessa para conserto, remessa de amostra gratis, remessa para industrialização e etc, talvez até esses podem entrar no filtro de pedido não faturado, é de se pensar... e deixar o filtro de pedidos aprovados s/f para os pedidos vendidos sem nfe e voltar a considerar no faturamento total e outras métricas de venda com sucesso.), Na verdade confirmei no arquivo que vem do SIGE e os pedidos vendidos sem nfe tem o campo NF-e/NFS-e vazio e no campo de status sistema fica como Pedido Faturado e não pedido faturado s/f como comentei antes e outra coisa sobre os pedidos aprovados s/f os que tiver o campo de categoria preenchido com Remessa, são os pedidos que não se deve considerar no faturamento pq ai sim são pedidos de remessa para conserto, remessa de amostra gratis, remessa para industrialização e etc, Pensar sobre isso(caso tiver algum pedido que entra como status Pedido Aprovado Sem Faturamento e na categoria não estiver como Remessa, então ele deve ser considerado como faturamento também pq pode ser outro método de fazer pedido sem nfe.)
-13. criar versionamento de releases no github para futuras att do app, ele ir atualizando a versão. Pensar em algo sobre isso
+### Fase 1 — Números (confiança das métricas)
+
+1. Regra de faturamento (7+12+18): manter `Pedido` + `Pedido Faturado` — o comercial considera o pedido como faturamento (já saiu de orçamento, o cliente está prestes a pagar e senão vira cancelado) — e somar `Pedido Aprovado Sem Faturamento` cuja `categoria` seja diferente de `Remessa%`/`Amostra%`. Normalizar status minúsculo (`pedido`) no ingest. Cancelados e Orçamento já estão fora (a suspeita do antigo item 7 não se confirmou).
+   No funil de vendas, confirmar que `Pedido` continua contando como pedido e não como faturado: `funilPorMes` (`src/main/kpis/index.ts:174`) e `funnelItems` (`src/renderer/src/components/charts/horizontal-bars.tsx:14`) já contam cada status separadamente com `{ faturamento: false }`, então deve ser só validação depois da mudança.
+2. Sem estado (6): rotular "Não informado" no chart de estados/regiões — são 192 pedidos faturados sem UF — mantendo o total batendo.
+3. Sem vendedor (5): exibir `VENDAS` quando o nome vier vazio (10 linhas); base para o item 11.
+
+### Fase 2 — TV (1080p, 60pol, uma tela)
+
+4. Caber tudo em 1 tela (0): gráficos de 280/260/220 → ~150/150/130, KpiCard mais compacto, SellerCards viram botão+popover, novo layout padrão 3×3 e bump da chave para `sd:dashboard-layout:v2`. Drag/resize/persistência já estão prontos.
+5. Largura total quando maximizado (3): remover `max-w-7xl` e os cantos arredondados.
+6. Ícone da title bar no build win (4): CSP sem `img-src 'self' data:` em `src/renderer/index.html`.
+7. Snap de janela (2): topo → maximize, borda → metade, `unmaximize` → restaura bounds.
+8. Abrir junto com o Windows (15): `app.setLoginItemSettings` + toggle na tela de ajustes.
+
+### Fase 3 — Filtros
+
+9. Anos dinâmicos (1): hoje `[2024, 2025, 2026]` hardcoded; 2022 e 2023 já ficam de fora.
+10. Esconder vendedores no filtro da aba histórico (9).
+11. Desativar vendedores sem perder métricas (10) — ex.: "Sul Magnéticos ... Eireli" (R$ 7,9M).
+12. Multi-seleção de vendedores e meses (11).
+
+### Fase 4 — Polish/infra
+
+13. Migrar `smoke.ts` para vitest (14) + testes da regra de faturamento.
+14. Ambientes `dev`, `prod` e `test` (base para e2e), usando Faker pt-BR para gerar os dados fictícios; avaliar usar o Faker também nos dados mock do app.
+15. Campos de meta formatados em BRL, com zod (00).
+16. Fundo no gráfico de acumulado anual × meta (8).
+17. Releases versionadas no GitHub / auto-update (13).
+
+### Quick win
+
+18. Cursor pointer no modal de ajustes: botão X do `ui/dialog.tsx` (nunca foi coberto pelos commits de cursor). Ver também o overlay.

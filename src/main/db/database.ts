@@ -4,8 +4,10 @@ import type {
   CodigoHistory,
   ImportCodeEvent,
   ImportRecord,
+  Mes,
   Sale,
 } from '../../shared/types.ts'
+import { MESES } from '../../shared/types.ts'
 import { rowToSale } from './rows.ts'
 
 const SCHEMA = `
@@ -376,6 +378,63 @@ export class SalesDatabase {
         'INSERT INTO meta_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
       )
       .run(key, value)
+  }
+
+  clearMeta(key: string): void {
+    this.db.prepare('DELETE FROM meta_config WHERE key = ?').run(key)
+  }
+
+  getMetaAnual(ano: number): number | null {
+    return this.getMetaConfigNumber(`meta_anual:${ano}`)
+  }
+
+  setMetaAnual(ano: number, valor: number | null): void {
+    if (valor === null) {
+      this.clearMeta(`meta_anual:${ano}`)
+    } else {
+      this.setMeta(`meta_anual:${ano}`, String(valor))
+    }
+  }
+
+  getMetasMesOverride(ano: number): Partial<Record<Mes, number>> {
+    const raw = this.getMeta(`metas_mes:${ano}`)
+    if (!raw) return {}
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>
+      const out: Partial<Record<Mes, number>> = {}
+      for (const [key, value] of Object.entries(parsed)) {
+        if (
+          MESES.includes(key as Mes) &&
+          typeof value === 'number' &&
+          Number.isFinite(value)
+        ) {
+          out[key as Mes] = value
+        }
+      }
+      return out
+    } catch {
+      return {}
+    }
+  }
+
+  setMetasMesOverride(ano: number, meses: Partial<Record<Mes, number>>): void {
+    const overrides = MESES.reduce<Partial<Record<Mes, number>>>((acc, mes) => {
+      const value = meses[mes]
+      if (typeof value === 'number' && Number.isFinite(value)) acc[mes] = value
+      return acc
+    }, {})
+    if (Object.keys(overrides).length === 0) {
+      this.clearMeta(`metas_mes:${ano}`)
+    } else {
+      this.setMeta(`metas_mes:${ano}`, JSON.stringify(overrides))
+    }
+  }
+
+  private getMetaConfigNumber(key: string): number | null {
+    const raw = this.getMeta(key)
+    if (raw === null) return null
+    const parsed = Number(raw)
+    return Number.isFinite(parsed) ? parsed : null
   }
 
   saveVendedorFotos(

@@ -7,7 +7,11 @@ import * as XLSX from 'xlsx'
 
 import { SalesDatabase } from '../src/main/db/database.ts'
 import { importWorkbook } from '../src/main/ingest/index.ts'
-import { getSnapshot } from '../src/main/kpis/index.ts'
+import {
+  getMetaConfig,
+  getSnapshot,
+  setMetaConfig,
+} from '../src/main/kpis/index.ts'
 import { buildWorkbookWithPhoto } from './photo-fixture.ts'
 
 const HEADERS = [
@@ -248,6 +252,76 @@ async function main(): Promise<void> {
     share: 0.4,
   })
 
+  console.log('\n— Metas personalizadas (configuração) —')
+  db.setMetaAnual(2026, 4600)
+  const sAnual = await getSnapshot(db, 2026)
+  check(
+    'meta anual personalizada reflete no snapshot',
+    {
+      metaAnual: sAnual.metaAnual,
+      metaAnualAuto: sAnual.metaAnualAuto,
+      metaPersonalizada: sAnual.metaPersonalizada,
+    },
+    { metaAnual: 4600, metaAnualAuto: 2300, metaPersonalizada: true },
+  )
+  const cfg = getMetaConfig(db, 2026)
+  check(
+    'config view com meta anual custom',
+    {
+      anual: cfg.anualCustom,
+      metaAnual: cfg.metaAnual,
+      metaAnualAuto: cfg.metaAnualAuto,
+      baseAno: cfg.baseAno,
+      fator: cfg.fator,
+    },
+    {
+      anual: 4600,
+      metaAnual: 4600,
+      metaAnualAuto: 2300,
+      baseAno: 2000,
+      fator: 1.15,
+    },
+  )
+  check(
+    'meta anual distribui proporcional ao ano anterior',
+    {
+      jan: cfg.metasEfetivas.jan,
+      fev: cfg.metasEfetivas.fev,
+      autoJan: cfg.metasAuto.jan,
+    },
+    { jan: 2300, fev: 2300, autoJan: 1150 },
+  )
+
+  setMetaConfig(db, 2026, { anual: null, meses: { jan: 3000 } })
+  const sMes = await getSnapshot(db, 2026)
+  check(
+    'meta mensal override soma com automática dos demais',
+    {
+      metaAnual: sMes.metaAnual,
+      metaJan: sMes.metasPorMes[0].meta,
+      metaFev: sMes.metasPorMes[1].meta,
+    },
+    { metaAnual: 4150, metaJan: 3000, metaFev: 1150 },
+  )
+
+  setMetaConfig(db, 2026, { anual: null, meses: {} })
+  const sRestaurada = await getSnapshot(db, 2026)
+  check(
+    'restaurar automático zera personalização',
+    {
+      metaAnual: sRestaurada.metaAnual,
+      metaPersonalizada: sRestaurada.metaPersonalizada,
+      metaJan: sRestaurada.metasPorMes[0].meta,
+    },
+    { metaAnual: 2300, metaPersonalizada: false, metaJan: 1150 },
+  )
+  check(
+    'limpa chaves de meta',
+    db.getMeta('metas_mes:2026') === null &&
+      db.getMeta('meta_anual:2026') === null,
+    true,
+  )
+
   console.log(
     '\n— Reconciliação diária por codigo (orçamento evolui para pedido) —',
   )
@@ -465,6 +539,138 @@ async function main(): Promise<void> {
     vendedor: 'Ursula',
   })
   check('filtro mês+vendedor', sUrsulaFev.totalPeriodo, 4000)
+
+  console.log('\n— Regra de faturamento (pedido aprovado S/F por categoria) —')
+  const db3 = SalesDatabase.open(new DatabaseSync(':memory:'))
+  const ruleRow = (
+    codigo: string,
+    status: string,
+    categoria: string,
+    valor: number,
+  ): unknown[] => [
+    codigo,
+    '05/01/2026',
+    '',
+    'X',
+    status,
+    'V1',
+    categoria,
+    '',
+    '',
+    codigo,
+    'Alegre',
+    'RS',
+    'Sul',
+    '',
+    0,
+    0,
+    0,
+    valor,
+    '',
+  ]
+  const ruleRows: unknown[][] = [
+    ruleRow('R1', 'Pedido Faturado', '', 1000),
+    ruleRow('R2', 'Pedido', '', 2000),
+    ruleRow('R3', 'Pedido Aprovado Sem Faturamento', 'Remessa', 5000),
+    ruleRow('R4', 'Pedido Aprovado Sem Faturamento', 'Amostra', 3000),
+    ruleRow(
+      'R5',
+      'Pedido Aprovado Sem Faturamento',
+      'Remessa amostra grátis',
+      7000,
+    ),
+    ruleRow('R6', 'Pedido Aprovado Sem Faturamento', 'Operacional', 400),
+    ruleRow('R7', 'Pedido Aprovado Sem Faturamento', '', 600),
+    ruleRow('R8', 'pedido', '', 800),
+    ruleRow('R9', 'Pedido Cancelado', '', 9000),
+    ruleRow('R10', 'Orçamento', '', 10000),
+  ]
+  await importWorkbook(db3, writeWorkbook(ruleRows))
+  const sRule = await getSnapshot(db3, 2026)
+  check(
+    'regra: faturamento soma S/F sem remessa/amostra',
+    sRule.faturamentoPorMes.jan,
+    4800,
+  )
+  check('regra: totalPeriodo consistente', sRule.totalPeriodo, 4800)
+  check(
+    'regra: quantidade conta só as incluídas',
+    sRule.quantidadePorMes.jan,
+    5,
+  )
+  check(
+    'regra: status minúsculo normalizado no ingest',
+    (
+      db3.raw
+        .prepare("SELECT status_sistema AS s FROM vendas WHERE codigo = 'R8'")
+        .get() as { s: string }
+    ).s,
+    'Pedido',
+  )
+  check(
+    'regra: funil separa pedido de faturado',
+    {
+      orcamento: sRule.funilPorMes[0].orcamento,
+      pedido: sRule.funilPorMes[0].pedido,
+      aprovadoSF: sRule.funilPorMes[0].pedidoAprovadoSemFaturamento,
+      faturado: sRule.funilPorMes[0].pedidoFaturado,
+      cancelado: sRule.funilPorMes[0].pedidoCancelado,
+    },
+    { orcamento: 1, pedido: 2, aprovadoSF: 5, faturado: 1, cancelado: 1 },
+  )
+
+  console.log('\n— Rótulos de dados ausentes (UF/região/vendedor) —')
+  const db4 = SalesDatabase.open(new DatabaseSync(':memory:'))
+  const labelRow = (
+    codigo: string,
+    estado: string,
+    regiao: string,
+    vendedor: string,
+    valor: number,
+  ): unknown[] => [
+    codigo,
+    '05/01/2026',
+    '',
+    'X',
+    'Pedido Faturado',
+    vendedor,
+    'Equipamentos',
+    '',
+    '',
+    codigo,
+    'Cidade',
+    estado,
+    regiao,
+    '',
+    0,
+    0,
+    0,
+    valor,
+    '',
+  ]
+  await importWorkbook(
+    db4,
+    writeWorkbook([
+      labelRow('L1', '', '', '', 1200),
+      labelRow('L2', 'SP', 'Sudeste', 'Ana', 800),
+    ]),
+  )
+  const sLabel = await getSnapshot(db4, 2026)
+  check(
+    'rótulo estado ausente',
+    sLabel.porEstado.find(e => e.estado === 'Não informado'),
+    { estado: 'Não informado', valor: 1200, share: 0.6 },
+  )
+  check(
+    'rótulo região ausente',
+    sLabel.porRegiao.find(r => r.regiao === 'Não informado'),
+    { regiao: 'Não informado', valor: 1200, share: 0.6, x: 0, y: 0 },
+  )
+  check(
+    'rótulo vendedor ausente',
+    sLabel.porVendedor.find(v => v.vendedor === 'VENDAS'),
+    { vendedor: 'VENDAS', valor: 1200, share: 0.6 },
+  )
 
   console.log('\n— Fotos embutidas na planilha (xlsx com imagem ancorada) —')
   const fotoPath = join(

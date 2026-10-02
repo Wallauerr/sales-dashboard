@@ -4,6 +4,8 @@ import type {
   ImportRecord,
   ImportResult,
   KpiSnapshot,
+  MetaConfigView,
+  MetasSetInput,
   SnapshotFilter,
   VendedorFoto,
 } from '../shared/types.ts'
@@ -27,6 +29,10 @@ const api = {
     ) as Promise<CodigoHistory>,
   getSnapshot: (ano: number, filtro?: SnapshotFilter) =>
     ipcRenderer.invoke('kpis:get', ano, filtro) as Promise<KpiSnapshot>,
+  getMetaConfig: (ano: number) =>
+    ipcRenderer.invoke('metas:get', ano) as Promise<MetaConfigView>,
+  setMetaConfig: (ano: number, input: MetasSetInput) =>
+    ipcRenderer.invoke('metas:set', ano, input) as Promise<MetaConfigView>,
   getFotos: () => ipcRenderer.invoke('fotos:list') as Promise<VendedorFoto[]>,
   minimize: () => ipcRenderer.invoke('win:minimize') as Promise<void>,
   toggleMaximize: () =>
