@@ -108,9 +108,9 @@ export function App() {
 
   if (!api) {
     return (
-      <div className="app-root flex h-dvh flex-col overflow-hidden rounded-[10px] bg-background text-foreground">
+      <div className="app-root flex h-dvh flex-col overflow-hidden bg-background text-foreground">
         <TitleBar />
-        <main className="mx-auto w-full max-w-2xl overflow-y-auto p-8">
+        <main className="w-full max-w-2xl overflow-y-auto p-8">
           <p className="text-muted-foreground">
             Aponte o app (Electron) para ver o dashboard. A API do preload não
             está disponível.
@@ -128,14 +128,14 @@ export function App() {
       className={cn(
         'app-root flex h-dvh flex-col overflow-hidden bg-background text-foreground',
         maximized
-          ? 'rounded-none border-0 shadow-none'
-          : 'rounded-[10px] border border-border/60 shadow-2xl',
+          ? 'border-0 shadow-none'
+          : 'border border-border/60 shadow-2xl',
       )}>
       <TitleBar />
       <WindowResizeHandles />
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <main className="mx-auto flex w-full max-w-7xl flex-col gap-3 p-3 pt-2">
+        <main className="flex w-full flex-col gap-3 p-3 pt-2">
           <DashboardHeader
             ano={ano}
             onAno={setAno}
