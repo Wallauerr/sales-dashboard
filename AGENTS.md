@@ -33,10 +33,11 @@
 ### Fase 4 — Polish/infra
 
 13. Migrar `smoke.ts` para vitest (14) + testes da regra de faturamento.
-14. Campos de meta formatados em BRL, com zod (00).
-15. Fundo no gráfico de acumulado anual × meta (8).
-16. Releases versionadas no GitHub / auto-update (13).
+14. Ambientes `dev`, `prod` e `test` (base para e2e), usando Faker pt-BR para gerar os dados fictícios; avaliar usar o Faker também nos dados mock do app.
+15. Campos de meta formatados em BRL, com zod (00).
+16. Fundo no gráfico de acumulado anual × meta (8).
+17. Releases versionadas no GitHub / auto-update (13).
 
 ### Quick win
 
-17. Cursor pointer no modal de ajustes: botão X do `ui/dialog.tsx` (nunca foi coberto pelos commits de cursor). Ver também o overlay.
+18. Cursor pointer no modal de ajustes: botão X do `ui/dialog.tsx` (nunca foi coberto pelos commits de cursor). Ver também o overlay.
