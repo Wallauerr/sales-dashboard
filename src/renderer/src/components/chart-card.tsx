@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 type ChartCardProps = {
   title: string
@@ -15,14 +16,17 @@ export function ChartCard({
   contentClassName,
   headerClassName,
   children,
+  className,
   ...cardProps
 }: ChartCardProps) {
   return (
-    <Card {...cardProps}>
-      <CardHeader className={headerClassName}>
-        <CardTitle>{title}</CardTitle>
+    <Card className={cn('gap-2 py-3', className)} {...cardProps}>
+      <CardHeader className={cn('px-4 pb-1', headerClassName)}>
+        <CardTitle className="text-sm leading-tight">{title}</CardTitle>
       </CardHeader>
-      <CardContent className={contentClassName}>{children}</CardContent>
+      <CardContent className={cn('px-4', contentClassName)}>
+        {children}
+      </CardContent>
     </Card>
   )
 }
