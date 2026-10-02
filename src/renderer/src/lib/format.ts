@@ -25,9 +25,9 @@ export function brl0(v: number): string {
 export function brlCompact(v: number): string {
   const abs = Math.abs(v)
   if (abs >= 1e6)
-    return `R$ ${(v / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`
+    return `R$\u00A0${(v / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}\u00A0mi`
   if (abs >= 1e3)
-    return `R$ ${(v / 1e3).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`
+    return `R$\u00A0${(v / 1e3).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}\u00A0mil`
   return brl0(v)
 }
 
