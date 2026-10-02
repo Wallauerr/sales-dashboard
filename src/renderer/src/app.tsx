@@ -135,7 +135,7 @@ export function App() {
       <WindowResizeHandles />
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6 pt-5">
+        <main className="mx-auto flex w-full max-w-7xl flex-col gap-3 p-3 pt-2">
           <DashboardHeader
             ano={ano}
             onAno={setAno}
@@ -189,7 +189,7 @@ export function App() {
           <Tabs
             value={view}
             onValueChange={v => setView(v as 'dashboard' | 'historico')}
-            className="flex min-h-0 flex-1 flex-col gap-4">
+            className="flex min-h-0 flex-1 flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <TabsList className="w-fit">
                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
@@ -203,14 +203,14 @@ export function App() {
                 onSelect={setVendedor}
               />
             </div>
-            <TabsContent value="dashboard" className="flex flex-col gap-6">
+            <TabsContent value="dashboard" className="flex flex-col gap-3">
               {!snap ? (
                 <p className="py-16 text-center text-sm text-muted-foreground">
                   Carregando… (rode "Importar dados do SIGE" para carregar os
                   dados)
                 </p>
               ) : (
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-3">
                   <ActiveFilters
                     mes={mes}
                     vendedor={vendedor}
@@ -222,7 +222,7 @@ export function App() {
                     }}
                   />
 
-                  <section className={cn('grid gap-4 sm:grid-cols-3', kgrid)}>
+                  <section className={cn('grid gap-2 sm:grid-cols-3', kgrid)}>
                     {kpis.map(k => (
                       <KpiCard
                         key={k.title}
@@ -268,9 +268,6 @@ export function App() {
                           ]}
                           onClick={i => setMes(MESES[i])}
                         />
-                        <p className="text-xs text-muted-foreground">
-                          Clique em uma barra para filtrar o mês.
-                        </p>
                       </ChartCard>
                     ) : null}
 
@@ -298,7 +295,6 @@ export function App() {
                         title="Nº de fechamento por mês">
                         <GroupedBars
                           labels={MESES.map(m => MES_LABEL[m])}
-                          className="h-[260px]"
                           valueFormat={v => int(v)}
                           series={[
                             {
@@ -346,7 +342,7 @@ export function App() {
                       key="regioes"
                       headerClassName="card-drag-handle cursor-move"
                       title="Regiões"
-                      contentClassName="flex flex-col gap-4">
+                      contentClassName="flex flex-col gap-2">
                       <RegionDonut data={regionDonutData(snap)} />
                       <HorizontalBars
                         data={regionBarData(snap)}
