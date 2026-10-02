@@ -64,6 +64,7 @@ export function DashboardGrid({
   const layout = useMemo(() => layoutFor(keys, stored), [keys, stored])
 
   const persistLayout = useCallback((next: Layout) => {
+    if (next.length !== DEFAULT_DASHBOARD_LAYOUT.length) return
     setStored(next)
     saveDashboardLayout(next)
   }, [])
