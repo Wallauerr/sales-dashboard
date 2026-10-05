@@ -12,7 +12,13 @@ import {
   getSnapshot,
   setMetaConfig,
 } from '../src/main/kpis/index.ts'
-import { buildWorkbookWithPhoto } from './photo-fixture.ts'
+import { FOTO_MAX_BYTES, lerFotoEscolhida } from '../src/main/photos/pick.ts'
+import {
+  boundsDaTelaDoCursor,
+  boundsVisiveis,
+  telaDoPonto,
+  telaDosBounds,
+} from '../src/main/window-maximize.ts'
 
 const HEADERS = [
   'Código',
@@ -672,21 +678,127 @@ async function main(): Promise<void> {
     { vendedor: 'VENDAS', valor: 1200, share: 0.6 },
   )
 
-  console.log('\n— Fotos embutidas na planilha (xlsx com imagem ancorada) —')
-  const fotoPath = join(
-    tmpdir(),
-    `smoke-foto-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.xlsx`,
-  )
-  writeFileSync(fotoPath, buildWorkbookWithPhoto())
-  await importWorkbook(db, fotoPath)
-  const fotos = db.listVendedorFotos()
-  check('foto extraída para Rosemeri', fotos[0]?.vendedor, 'Rosemeri')
-  check('foto com mime png', fotos[0]?.mime, 'image/png')
-  check('foto não vazia', (fotos[0]?.img.length ?? 0) > 0, true)
+  console.log('\n— Foto escolhida em Configurações —')
+  db.setVendedorFoto('Rosemeri', 'image/jpeg', Buffer.from([1, 2, 3, 4]))
   check(
-    'apenas fotos mapeadas',
-    (fotos[0]?.img.length ?? 0) > 0 && fotos.every(f => f.vendedor),
+    'foto gravada',
+    db.listVendedorFotos().map(f => f.vendedor),
+    ['Rosemeri'],
+  )
+  check('mime gravado', db.getVendedorFoto('Rosemeri')?.mime, 'image/jpeg')
+  check(
+    'bytes no banco',
+    (db.getVendedorFoto('Rosemeri')?.img.length ?? 0) > 0,
     true,
+  )
+  db.setVendedorFoto('Rosemeri', 'image/png', Buffer.from([9, 9]))
+  check(
+    'trocar foto sobrescreve',
+    db.getVendedorFoto('Rosemeri')?.mime,
+    'image/png',
+  )
+  check('trocar foto nao duplica', db.listVendedorFotos().length, 1)
+
+  db.removeVendedorFoto('Rosemeri')
+  check(
+    'remover foto volta ao avatar de iniciais',
+    db.getVendedorFoto('Rosemeri'),
+    null,
+  )
+
+  console.log('\n— Lista de vendedores para Configurações —')
+  const nomes = db.listVendedores()
+  check('lista sem o pseudo-vendedor VENDAS', nomes.includes('VENDAS'), false)
+  check('lista traz quem tem venda', nomes.includes('Rosemeri'), true)
+
+  console.log('\n— Validação da foto escolhida —')
+  const naoImagem = join(tmpdir(), `smoke-nao-imagem-${Date.now()}.txt`)
+  writeFileSync(naoImagem, 'isto nao e uma imagem')
+  await assert.rejects(() => lerFotoEscolhida(naoImagem), /não é uma imagem/)
+  const grande = join(tmpdir(), `smoke-grande-${Date.now()}.png`)
+  writeFileSync(grande, Buffer.alloc(FOTO_MAX_BYTES + 1))
+  await assert.rejects(() => lerFotoEscolhida(grande), /limite é/)
+  const jpg = join(tmpdir(), `smoke-foto-${Date.now()}.jpg`)
+  writeFileSync(jpg, Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]))
+  check(
+    'jpg reconhecido pela assinatura',
+    (await lerFotoEscolhida(jpg)).mime,
+    'image/jpeg',
+  )
+
+  console.log('\n— Maximizar/restaurar em multi-monitor —')
+  const telas = [
+    { id: 1, workArea: { x: 0, y: 0, width: 1280, height: 800 } },
+    { id: 2, workArea: { x: 1280, y: 0, width: 2560, height: 1440 } },
+  ]
+  const janelaNaEsquerda = { x: 40, y: 60, width: 1280, height: 840 }
+
+  check(
+    'janela pega a tela pela maior área em comum',
+    telaDosBounds(janelaNaEsquerda, telas)?.id,
+    1,
+  )
+  check(
+    'janela quase toda na direita fica na direita',
+    telaDosBounds({ x: 1240, y: 100, width: 1280, height: 840 }, telas)?.id,
+    2,
+  )
+  check(
+    'janela quase toda na esquerda fica na esquerda',
+    telaDosBounds({ x: 30, y: 100, width: 1280, height: 840 }, telas)?.id,
+    1,
+  )
+  check('cursor na esquerda', telaDoPonto({ x: 300, y: 400 }, telas)?.id, 1)
+  check('cursor na direita', telaDoPonto({ x: 3000, y: 700 }, telas)?.id, 2)
+  check(
+    'cursor no canto inferior direito da tela esquerda',
+    telaDoPonto({ x: 1279, y: 799 }, telas)?.id,
+    1,
+  )
+
+  check(
+    'mesma tela: não mexe em nada',
+    boundsDaTelaDoCursor(
+      { x: 300, y: 400 },
+      telaDosBounds(janelaNaEsquerda, telas),
+      telas,
+    ),
+    null,
+  )
+  check(
+    'cursor na outra tela: maximiza na outra',
+    boundsDaTelaDoCursor(
+      { x: 3000, y: 700 },
+      telaDosBounds(janelaNaEsquerda, telas),
+      telas,
+    ),
+    telas[1].workArea,
+  )
+  check(
+    'sem tela da janela, ainda mira o cursor',
+    boundsDaTelaDoCursor({ x: 3000, y: 700 }, null, telas),
+    telas[1].workArea,
+  )
+  check(
+    'tela nenhuma não move a janela',
+    boundsDaTelaDoCursor({ x: 1, y: 1 }, null, []),
+    null,
+  )
+
+  check(
+    'restaura se o último tamanho ainda encosta em tela',
+    boundsVisiveis(janelaNaEsquerda, telas),
+    true,
+  )
+  check(
+    'monitor desligado: não restaura para fora de tela',
+    boundsVisiveis({ x: -3000, y: 0, width: 1280, height: 840 }, telas),
+    false,
+  )
+  check(
+    'sem tela nenhuma, o último tamanho não vale',
+    boundsVisiveis(janelaNaEsquerda, []),
+    false,
   )
 
   console.log('SMOKE PASS')

@@ -1,10 +1,23 @@
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, screen } from 'electron'
 import { SalesDatabase } from './db/database'
 import { registerIpc } from './ipc'
+import {
+  registerFotoProtocol,
+  registerFotoSchemePrivileges,
+} from './photos/protocol'
+import type { Ponto, Tela } from './window-maximize'
+import {
+  boundsDaTelaDoCursor,
+  boundsVisiveis,
+  telaDosBounds,
+} from './window-maximize'
 
 app.disableHardwareAcceleration()
+
+// Antes do app ready: sem isso o esquema não entra na lista de privilegiados.
+registerFotoSchemePrivileges()
 
 let db: SalesDatabase
 
@@ -32,14 +45,50 @@ function createWindow(): void {
 
   win.setMenuBarVisibility(false)
 
-  ipcMain.handle('win:minimize', () => win.minimize())
-  ipcMain.handle('win:toggle-maximize', () => {
+  // Último tamanho antes de maximizar: o WM nem sempre volta para ele.
+  // `emTransicao` impede que o nosso próprio setBounds sobrescreva o guardado.
+  let boundsNormais: Electron.Rectangle | null = null
+  let emTransicao = false
+
+  const todasAsTelas = (): Tela[] => screen.getAllDisplays()
+
+  const alternarMaximize = (): void => {
     if (win.isMaximized()) {
+      const volta = boundsNormais
+      boundsNormais = null
+      emTransicao = true
       win.unmaximize()
-    } else {
-      win.maximize()
+      if (volta && boundsVisiveis(volta, todasAsTelas())) win.setBounds(volta)
+      emTransicao = false
+      return
     }
-  })
+    boundsNormais = win.getBounds()
+    let cursor: Ponto | null = null
+    try {
+      cursor = screen.getCursorScreenPoint()
+    } catch {
+      cursor = null
+    }
+    const destino = cursor
+      ? boundsDaTelaDoCursor(
+          cursor,
+          telaDosBounds(boundsNormais, todasAsTelas()),
+          todasAsTelas(),
+        )
+      : null
+    emTransicao = true
+    if (destino) win.setBounds(destino)
+    win.maximize()
+    emTransicao = false
+  }
+
+  const guardarTamanho = (): void => {
+    if (emTransicao || win.isMaximized() || win.isDestroyed()) return
+    boundsNormais = win.getBounds()
+  }
+
+  ipcMain.handle('win:minimize', () => win.minimize())
+  ipcMain.handle('win:toggle-maximize', () => alternarMaximize())
   ipcMain.handle('win:close', () => win.close())
   ipcMain.handle('win:get-bounds', () => win.getBounds())
   ipcMain.on('win:set-bounds', (_e, b) => {
@@ -55,6 +104,8 @@ function createWindow(): void {
     )
     win.setBounds({ x, y, width, height })
   })
+  win.on('move', guardarTamanho)
+  win.on('resize', guardarTamanho)
   win.on('maximize', () => win.webContents.send('win:maximized', true))
   win.on('unmaximize', () => win.webContents.send('win:maximized', false))
 
@@ -75,6 +126,7 @@ app.whenReady().then(() => {
   )
 
   registerIpc(db)
+  registerFotoProtocol(db)
 
   createWindow()
 

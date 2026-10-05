@@ -42,9 +42,9 @@ interface Escopo {
   params: (string | number)[]
 }
 
-// Filtro de faturamento compartilhado: `Pedido`/`Pedido Faturado` sempre entram;
-// `Pedido Aprovado Sem Faturamento` entra só quando a categoria não é remessa nem
-// amostra (categoria vazia conta).
+// Filtro de faturamento: `Pedido`/`Pedido Faturado` sempre entram;
+// `Pedido Aprovado Sem Faturamento` só quando a categoria não é remessa nem
+// amostra — categoria vazia conta.
 function faturamentoClause(): { sql: string; params: string[] } {
   const inStatus = STATUS_FATURAMENTO.map(() => '?').join(', ')
   const notLike = CATEGORIAS_FORA_FATURAMENTO.map(
@@ -60,10 +60,8 @@ function faturamentoClause(): { sql: string; params: string[] } {
   }
 }
 
-// Escopo da consulta: sempre o ano, restringindo a um mês e/ou a um vendedor.
-// Sem filtro de mês/vendedor equivale ao panorama anual completo. O restritor
-// de status de faturamento é opcional: o funil e o nº de fechamento contam cada
-// status individualmente e não podem nascer já filtrados.
+// O filtro de faturamento é opcional porque o funil e o nº de fechamento contam
+// cada status individualmente.
 function escopo(
   ano: number,
   filtro: SnapshotFilter | null | undefined,
@@ -301,10 +299,6 @@ export function getSnapshot(
   const metaAnualBase = totalBase
   const metaAnualAuto = totalBase * fator
 
-  // Metas personalizadas: a meta anual pode ser fixada pelo usuário (metas:set)
-  // e/ou meses individuais podem ter meta própria. Sem override, o mês usa a meta
-  // automática (ano anterior × fator) — ou a anual personalizada distribuída pela
-  // participação de cada mês no ano anterior.
   const anualCustom = db.getMetaAnual(ano)
   const mesesCustom = db.getMetasMesOverride(ano)
   const shareDeBase = (mes: Mes): number =>

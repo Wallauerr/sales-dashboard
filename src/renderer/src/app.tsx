@@ -12,7 +12,9 @@ import {
   regionBarData,
   regionDonutData,
 } from '@/components/charts/region-donut'
+import { AutoStartCard } from '@/components/config/auto-start-card'
 import { ConfigTab } from '@/components/config/config-tab'
+import { SellerPhotosCard } from '@/components/config/seller-photos-card'
 import { DashboardGrid } from '@/components/dashboard-grid'
 import { DashboardHeader } from '@/components/dashboard-header'
 import { HistoryTab } from '@/components/history/history-tab'
@@ -21,6 +23,12 @@ import { KpiCard } from '@/components/kpi/kpi-card'
 import { SellerCards } from '@/components/sellers/seller-cards'
 import { TitleBar } from '@/components/title-bar'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -47,7 +55,8 @@ export function App() {
   const [layoutResetKey, setLayoutResetKey] = useState(0)
   const maximized = useWindowMaximized()
   const [snap, setSnap] = useState<KpiSnapshot | null>(null)
-  const [fotos, setFotos] = useState<Record<string, string>>({})
+  const [fotos, setFotos] = useState<Set<string>>(new Set())
+  const [vendedores, setVendedores] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const [importMsg, setImportMsg] = useState<string | null>(null)
@@ -72,8 +81,12 @@ export function App() {
   const loadFotos = useCallback(async () => {
     if (!api) return
     try {
-      const list = await api.getFotos()
-      setFotos(Object.fromEntries(list.map(f => [f.vendedor, f.dataUrl])))
+      const [lista, nomes] = await Promise.all([
+        api.getFotos(),
+        api.listVendedores(),
+      ])
+      setFotos(new Set(lista.map(f => f.vendedor)))
+      setVendedores(nomes)
     } catch {}
   }, [])
 
@@ -81,6 +94,23 @@ export function App() {
     void load()
     void loadFotos()
   }, [load, loadFotos])
+
+  const escolherFoto = async (vendedor: string): Promise<void> => {
+    if (!api) return
+    const r = await api.escolherFoto(vendedor)
+    if (!r) return
+    setFotos(f => new Set(f).add(r.vendedor))
+  }
+
+  const removerFoto = async (vendedor: string): Promise<void> => {
+    if (!api) return
+    await api.removerFoto(vendedor)
+    setFotos(f => {
+      const next = new Set(f)
+      next.delete(vendedor)
+      return next
+    })
+  }
 
   useEffect(() => {
     if (!reload) return
@@ -110,7 +140,7 @@ export function App() {
     return (
       <div className="app-root flex h-dvh flex-col overflow-hidden rounded-[10px] bg-background text-foreground">
         <TitleBar />
-        <main className="mx-auto w-full max-w-2xl overflow-y-auto p-8">
+        <main className="w-full max-w-2xl overflow-y-auto p-8">
           <p className="text-muted-foreground">
             Aponte o app (Electron) para ver o dashboard. A API do preload não
             está disponível.
@@ -135,7 +165,7 @@ export function App() {
       <WindowResizeHandles />
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6 pt-5">
+        <main className="flex w-full flex-col gap-3 p-3 pt-2">
           <DashboardHeader
             ano={ano}
             onAno={setAno}
@@ -148,32 +178,58 @@ export function App() {
           />
 
           <Dialog open={metasOpen} onOpenChange={setMetasOpen}>
-            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
+            <DialogContent className="flex max-h-[85vh] flex-col gap-3 overflow-hidden sm:max-w-3xl">
               <DialogHeader>
                 <DialogTitle>Configurações</DialogTitle>
                 <DialogDescription>
-                  Ajuste as metas e o layout; o dashboard reflete na hora.
+                  Ajuste as metas e o comportamento do app; o dashboard reflete
+                  na hora.
                 </DialogDescription>
               </DialogHeader>
-              <ConfigTab
-                key={reload}
-                ano={ano}
-                onSaved={() => setReload(k => k + 1)}
-              />
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">Layout da dashboard</p>
-                  <p className="text-xs text-muted-foreground">
-                    Arraste os cartões pelo título e redimensione pelo canto; o
-                    layout fica salvo neste computador.
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={() => setLayoutResetKey(k => k + 1)}>
-                  Restaurar padrão
-                </Button>
-              </div>
+              <Tabs
+                defaultValue="metas"
+                className="flex min-h-0 flex-1 flex-col gap-3">
+                <TabsList className="w-fit shrink-0">
+                  <TabsTrigger value="metas">Métricas</TabsTrigger>
+                  <TabsTrigger value="geral">Geral</TabsTrigger>
+                </TabsList>
+                <TabsContent
+                  value="metas"
+                  className="min-h-0 flex-1 overflow-y-auto pr-1">
+                  <ConfigTab
+                    key={reload}
+                    ano={ano}
+                    onSaved={() => setReload(k => k + 1)}
+                  />
+                </TabsContent>
+                <TabsContent
+                  value="geral"
+                  className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
+                  <AutoStartCard />
+                  <SellerPhotosCard
+                    vendedores={vendedores}
+                    fotos={fotos}
+                    onEscolher={escolherFoto}
+                    onRemover={removerFoto}
+                  />
+                  <Card>
+                    <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <CardTitle>Layout da dashboard</CardTitle>
+                        <CardDescription>
+                          Arraste os cartões pelo título e redimensione pelo
+                          canto; o layout fica salvo neste computador.
+                        </CardDescription>
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => setLayoutResetKey(k => k + 1)}>
+                        Restaurar padrão
+                      </Button>
+                    </CardHeader>
+                  </Card>
+                </TabsContent>
+              </Tabs>
             </DialogContent>
           </Dialog>
 
@@ -189,7 +245,7 @@ export function App() {
           <Tabs
             value={view}
             onValueChange={v => setView(v as 'dashboard' | 'historico')}
-            className="flex min-h-0 flex-1 flex-col gap-4">
+            className="flex min-h-0 flex-1 flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <TabsList className="w-fit">
                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
@@ -203,14 +259,14 @@ export function App() {
                 onSelect={setVendedor}
               />
             </div>
-            <TabsContent value="dashboard" className="flex flex-col gap-6">
+            <TabsContent value="dashboard" className="flex flex-col gap-3">
               {!snap ? (
                 <p className="py-16 text-center text-sm text-muted-foreground">
                   Carregando… (rode "Importar dados do SIGE" para carregar os
                   dados)
                 </p>
               ) : (
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-3">
                   <ActiveFilters
                     mes={mes}
                     vendedor={vendedor}
@@ -222,7 +278,7 @@ export function App() {
                     }}
                   />
 
-                  <section className={cn('grid gap-4 sm:grid-cols-3', kgrid)}>
+                  <section className={cn('grid gap-2 sm:grid-cols-3', kgrid)}>
                     {kpis.map(k => (
                       <KpiCard
                         key={k.title}
@@ -268,9 +324,6 @@ export function App() {
                           ]}
                           onClick={i => setMes(MESES[i])}
                         />
-                        <p className="text-xs text-muted-foreground">
-                          Clique em uma barra para filtrar o mês.
-                        </p>
                       </ChartCard>
                     ) : null}
 
@@ -298,7 +351,6 @@ export function App() {
                         title="Nº de fechamento por mês">
                         <GroupedBars
                           labels={MESES.map(m => MES_LABEL[m])}
-                          className="h-[260px]"
                           valueFormat={v => int(v)}
                           series={[
                             {
@@ -346,7 +398,7 @@ export function App() {
                       key="regioes"
                       headerClassName="card-drag-handle cursor-move"
                       title="Regiões"
-                      contentClassName="flex flex-col gap-4">
+                      contentClassName="flex flex-col gap-2">
                       <RegionDonut data={regionDonutData(snap)} />
                       <HorizontalBars
                         data={regionBarData(snap)}

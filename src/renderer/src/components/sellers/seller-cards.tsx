@@ -1,10 +1,15 @@
+import { CheckIcon, UsersIcon } from 'lucide-react'
+import { useState } from 'react'
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { brl0, pct } from '@/lib/format'
+import { fotoUrl } from '@/lib/foto-url'
 import { cn } from '@/lib/utils'
 
 interface Seller {
@@ -16,7 +21,7 @@ interface Seller {
 interface Props {
   ano: number
   vendedores: Seller[]
-  fotos: Record<string, string>
+  fotos: Set<string>
   selected: string | null
   onSelect: (vendedor: string | null) => void
 }
@@ -37,56 +42,77 @@ export function SellerCards({
   selected,
   onSelect,
 }: Props) {
+  const [open, setOpen] = useState(false)
+
+  const pick = (vendedor: string | null) => {
+    onSelect(vendedor)
+    setOpen(false)
+  }
+
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
-      {vendedores.map(v => {
-        const active = selected === v.vendedor
-        const foto = fotos[v.vendedor]
-        return (
-          <Tooltip key={v.vendedor}>
-            <TooltipTrigger asChild>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2">
+          <UsersIcon />
+          <span className="max-w-40 truncate">{selected ?? 'Vendedores'}</span>
+          {selected ? null : (
+            <span className="text-muted-foreground tabular-nums">
+              {vendedores.length}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-1.5">
+        <div className="flex items-center justify-between px-2 py-1">
+          <span className="text-xs font-medium text-muted-foreground">
+            Vendedores · {ano}
+          </span>
+          {selected ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={() => pick(null)}>
+              Limpar
+            </Button>
+          ) : null}
+        </div>
+        <div className="flex max-h-80 flex-col gap-0.5 overflow-y-auto">
+          {vendedores.map(v => {
+            const active = selected === v.vendedor
+            const temFoto = fotos.has(v.vendedor)
+            return (
               <button
+                key={v.vendedor}
                 type="button"
-                onClick={() => onSelect(active ? null : v.vendedor)}
-                aria-label={`${v.vendedor}, ${brl0(v.valor)} (${pct(v.share)} de ${ano})`}
+                onClick={() => pick(active ? null : v.vendedor)}
                 className={cn(
-                  'cursor-pointer rounded-full outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring',
-                  active
-                    ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
-                    : 'opacity-80 hover:opacity-100',
+                  'flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent focus-visible:bg-accent',
+                  active && 'bg-accent',
                 )}>
-                <Avatar className="size-9 border shadow-sm ring-1 ring-border">
-                  {foto ? <AvatarImage src={foto} alt="" /> : null}
-                  <AvatarFallback className="bg-primary/10 text-xs font-bold tracking-wide text-primary">
+                <Avatar className="size-7 border">
+                  {temFoto ? (
+                    <AvatarImage src={fotoUrl(v.vendedor)} alt="" />
+                  ) : null}
+                  <AvatarFallback className="bg-primary/10 text-[10px] font-bold tracking-wide text-primary">
                     {initials(v.vendedor)}
                   </AvatarFallback>
                 </Avatar>
+                <span className="min-w-0 flex-1 truncate">{v.vendedor}</span>
+                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                  {brl0(v.valor)} · {pct(v.share)}
+                </span>
+                <CheckIcon
+                  className={cn(
+                    'size-4 shrink-0 text-primary',
+                    !active && 'invisible',
+                  )}
+                />
               </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={2}>
-              <div className="flex min-w-44 flex-col gap-1">
-                <span className="font-medium">{v.vendedor}</span>
-                <span className="flex items-baseline justify-between gap-4">
-                  <span className="text-primary-foreground/70">Total</span>
-                  <span className="font-semibold tabular-nums">
-                    {brl0(v.valor)}
-                  </span>
-                </span>
-                <span className="flex items-baseline justify-between gap-4">
-                  <span className="text-primary-foreground/70">
-                    Participação
-                  </span>
-                  <span className="tabular-nums">{pct(v.share)}</span>
-                </span>
-                <span className="mt-1 border-t border-border pt-1 text-[11px] text-primary-foreground/60">
-                  {active ? 'Clique p/ limpar o filtro' : 'Clique p/ filtrar'} ·{' '}
-                  {ano}
-                </span>
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        )
-      })}
-    </div>
+            )
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }

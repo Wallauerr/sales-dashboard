@@ -148,9 +148,8 @@ body {
   background: transparent;
 }
 
-/* O react-resizable aninha a alça de resize dentro dos filhos do card, então os
-   seletores `.react-grid-item > .react-resizable-handle` do RGL não casam.
-   Sem estas regras a alça fica com tamanho e cursor zerados. */
+/* O react-resizable aninha a alça dentro dos filhos, então o seletor `>` do RGL
+   não casa e a alça perde tamanho e cursor. */
 .react-grid-item .react-resizable-handle {
   position: absolute;
   right: 0;
@@ -199,8 +198,7 @@ body {
   .no-print {
     display: none !important;
   }
-  /* O RGL posiciona os cards com absolute/px; na impressão eles voltam para o
-     fluxo normal e a alça de resize some. */
+  /* Na impressão os cards do RGL precisam sair do absolute/px. */
   .react-grid-layout,
   .react-grid-item {
     position: static !important;

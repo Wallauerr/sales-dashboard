@@ -72,7 +72,7 @@ export function HorizontalBars({
   return (
     <ChartContainer
       config={config}
-      className={cn('h-[220px] w-full', className)}>
+      className={cn('h-[130px] w-full', className)}>
       <BarChart
         data={data}
         layout="vertical"

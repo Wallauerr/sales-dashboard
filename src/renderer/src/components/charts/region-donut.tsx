@@ -70,15 +70,15 @@ export function RegionDonut({
   ) satisfies ChartConfig
 
   return (
-    <div className={cn('flex flex-col gap-3', className)}>
-      <ChartContainer config={config} className="h-[220px] w-full">
+    <div className={cn('flex flex-col gap-1', className)}>
+      <ChartContainer config={config} className="h-[130px] w-full">
         <PieChart>
           <Pie
             data={data}
             dataKey="value"
             nameKey="label"
-            innerRadius={58}
-            outerRadius={86}
+            innerRadius={34}
+            outerRadius={55}
             paddingAngle={2}
             strokeWidth={2}>
             {data.map((datum, i) => (

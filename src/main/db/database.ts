@@ -7,7 +7,7 @@ import type {
   Mes,
   Sale,
 } from '../../shared/types.ts'
-import { MESES } from '../../shared/types.ts'
+import { MESES, ROTULO_SEM_VENDEDOR } from '../../shared/types.ts'
 import { rowToSale } from './rows.ts'
 
 const SCHEMA = `
@@ -82,7 +82,17 @@ CREATE TABLE IF NOT EXISTS vendedor_fotos (
 );
 `
 
-const SCHEMA_VERSION = 6
+const SCHEMA_VERSION = 8
+
+// v7 -> v8: sem extração do .xlsx a foto é sempre manual, então origem não
+// tinha mais o que distinguir.
+function dropFotoOrigemColumn(db: DatabaseSync): void {
+  const cols = db.prepare('PRAGMA table_info(vendedor_fotos)').all() as {
+    name: string
+  }[]
+  if (!cols.some(c => c.name === 'origem')) return
+  db.exec('ALTER TABLE vendedor_fotos DROP COLUMN origem')
+}
 
 export class SalesDatabase {
   private db: DatabaseSync
@@ -94,8 +104,7 @@ export class SalesDatabase {
       user_version: number
     }
     if (user_version < SCHEMA_VERSION) {
-      // Migração v3 -> v4 (reconciliação por codigo): preserva os dados, apenas
-      // elimina eventuais duplicatas mantendo a linha mais recente por codigo.
+      // v3 -> v4: dedup por codigo, preservando os dados e a linha mais recente.
       try {
         db.exec(
           'DELETE FROM vendas WHERE id NOT IN (SELECT MAX(id) FROM vendas GROUP BY codigo)',
@@ -104,9 +113,11 @@ export class SalesDatabase {
         // tabela ainda não existe (instalação nova) — o SCHEMA abaixo cria.
       }
       db.exec(SCHEMA)
+      dropFotoOrigemColumn(db)
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`)
     } else {
       db.exec(SCHEMA)
+      dropFotoOrigemColumn(db)
     }
   }
 
@@ -437,31 +448,48 @@ export class SalesDatabase {
     return Number.isFinite(parsed) ? parsed : null
   }
 
-  saveVendedorFotos(
-    fotos: { vendedor: string; mime: string; img: Uint8Array }[],
-  ): void {
-    this.db.exec('BEGIN')
-    try {
-      this.db.exec('DELETE FROM vendedor_fotos')
-      const stmt = this.db.prepare(
-        'INSERT INTO vendedor_fotos (vendedor, mime, img) VALUES (?, ?, ?)',
+  setVendedorFoto(vendedor: string, mime: string, img: Uint8Array): void {
+    this.db
+      .prepare(
+        `INSERT INTO vendedor_fotos (vendedor, mime, img) VALUES (?, ?, ?)
+         ON CONFLICT(vendedor) DO UPDATE SET
+           mime = excluded.mime, img = excluded.img`,
       )
-      for (const f of fotos) stmt.run(f.vendedor, f.mime, f.img)
-      this.db.exec('COMMIT')
-    } catch (err) {
-      this.db.exec('ROLLBACK')
-      throw err
-    }
+      .run(vendedor, mime, img)
   }
 
-  listVendedorFotos(): { vendedor: string; mime: string; img: Uint8Array }[] {
+  removeVendedorFoto(vendedor: string): void {
+    this.db
+      .prepare('DELETE FROM vendedor_fotos WHERE vendedor = ?')
+      .run(vendedor)
+  }
+
+  getVendedorFoto(vendedor: string): {
+    mime: string
+    img: Uint8Array
+  } | null {
+    const row = this.db
+      .prepare('SELECT mime, img FROM vendedor_fotos WHERE vendedor = ?')
+      .get(vendedor) as unknown as { mime: string; img: Uint8Array } | undefined
+    return row ? { mime: row.mime, img: row.img } : null
+  }
+
+  listVendedorFotos(): { vendedor: string }[] {
     const rows = this.db
-      .prepare('SELECT vendedor, mime, img FROM vendedor_fotos')
-      .all() as unknown as {
-      vendedor: string
-      mime: string
-      img: Uint8Array
-    }[]
-    return rows.map(r => ({ vendedor: r.vendedor, mime: r.mime, img: r.img }))
+      .prepare('SELECT vendedor FROM vendedor_fotos')
+      .all() as unknown as { vendedor: string }[]
+    return rows.map(r => ({ vendedor: r.vendedor }))
+  }
+
+  listVendedores(): string[] {
+    const rows = this.db
+      .prepare(
+        `SELECT vendedor FROM vendas WHERE vendedor <> ''
+         UNION
+         SELECT vendedor FROM vendedor_fotos
+         ORDER BY vendedor COLLATE NOCASE`,
+      )
+      .all() as unknown as { vendedor: string }[]
+    return rows.map(r => r.vendedor).filter(v => v !== ROTULO_SEM_VENDEDOR)
   }
 }
