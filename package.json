@@ -15,7 +15,6 @@
     "format": "biome format --write",
     "check:ci": "biome ci && npm run typecheck",
     "test": "node scripts/smoke.ts",
-    "test:parity": "node scripts/parity.ts",
     "dist:linux": "electron-vite build && electron-builder --linux AppImage",
     "dist:win": "electron-vite build && electron-builder --win nsis"
   },
