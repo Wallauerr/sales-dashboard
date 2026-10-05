@@ -19,9 +19,9 @@
 
 4. ✅ Caber tudo em 1 tela (0): gráficos de 280/260/220 → ~150/150/130, KpiCard mais compacto, SellerCards viram botão+popover, novo layout padrão 3×3 e bump da chave para `sd:dashboard-layout:v2`. Drag/resize/persistência já estão prontos.
 5. ✅ Largura total quando maximizado (3): remover `max-w-7xl` e os cantos arredondados.
-6. Ícone da title bar no build win (4): CSP sem `img-src 'self' data:` em `src/renderer/index.html`.
-7. Snap de janela (2): topo → maximize, borda → metade, `unmaximize` → restaura bounds.
-8. Abrir junto com o Windows (15): `app.setLoginItemSettings` + toggle na tela de ajustes.
+6. ✅ Ícone da title bar no build win (4): CSP sem `img-src 'self' data:` em `src/renderer/index.html` + `renderer.build.assetsInlineLimit: 0` em `electron.vite.config.ts` (sem isso o Vite embutia o PNG como `data:` e o CSP o bloqueava).
+7. Maximizar/restaurar janela em multi-monitor (2): **snap de borda descartado** — sequestrava o gesto de arrastar para o outro monitor, que no comercial é rotina. Decidido: nenhum gesto de arrasto (maximiza só pelo botão/duplo clique da title bar), o `maximize` mira o monitor do cursor, e o `unmaximize` volta ao último tamanho antes de maximizar.
+8. ✅ Abrir junto com o Windows (15): `app.setLoginItemSettings` + toggle na tela de ajustes (`src/main/autostart.ts`, Windows-only; fora do Windows o card se esconde).
 
 ### Fase 3 — Filtros
 
