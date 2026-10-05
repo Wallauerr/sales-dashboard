@@ -45,10 +45,8 @@ function createWindow(): void {
 
   win.setMenuBarVisibility(false)
 
-  // Último tamanho antes de maximizar: o unmaximize do Windows nem sempre volta
-  // para ele, e um monitor desligado no meio do maximize deixaria a janela fora
-  // de tela. `emTransicao` segura a gravação enquanto nós mesmos movemos a
-  // janela, senão o setBounds sobrescreveria o que queremos guardar.
+  // Último tamanho antes de maximizar: o WM nem sempre volta para ele.
+  // `emTransicao` impede que o nosso próprio setBounds sobrescreva o guardado.
   let boundsNormais: Electron.Rectangle | null = null
   let emTransicao = false
 
@@ -65,8 +63,6 @@ function createWindow(): void {
       return
     }
     boundsNormais = win.getBounds()
-    // Maximizar mira a tela do cursor: com dois monitores, Maximizar clicado com
-    // o ponteiro no outro precisa pular para lá.
     let cursor: Ponto | null = null
     try {
       cursor = screen.getCursorScreenPoint()
@@ -86,8 +82,6 @@ function createWindow(): void {
     emTransicao = false
   }
 
-  // Arrastar a janela é o gesto de rotina para trocar de monitor, então o
-  // tamanho guardado é o do arrasto, não o de antes do maximize.
   const guardarTamanho = (): void => {
     if (emTransicao || win.isMaximized() || win.isDestroyed()) return
     boundsNormais = win.getBounds()

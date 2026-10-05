@@ -1,9 +1,8 @@
 import { readFile, stat } from 'node:fs/promises'
 import { extname } from 'node:path'
 
-// A foto vai crua para o banco e sai servida por `foto://`, então o mime errado
-// faria o Chromium recusar a imagem: conferimos a assinatura do arquivo em vez da
-// extensão, e o limite de tamanho evita um PNG de 30MB dentro do .db.
+// A foto sai servida por `foto://` e mime errado faz o Chromium recusar a
+// imagem: conferimos a assinatura, não a extensão.
 
 export const FOTO_MAX_BYTES = 2 * 1024 * 1024
 

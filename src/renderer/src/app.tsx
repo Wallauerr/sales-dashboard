@@ -98,7 +98,6 @@ export function App() {
   const escolherFoto = async (vendedor: string): Promise<void> => {
     if (!api) return
     const r = await api.escolherFoto(vendedor)
-    // Cancelar no dialog não é erro.
     if (!r) return
     setFotos(f => new Set(f).add(r.vendedor))
   }

@@ -42,9 +42,9 @@ interface Escopo {
   params: (string | number)[]
 }
 
-// Filtro de faturamento compartilhado: `Pedido`/`Pedido Faturado` sempre entram;
-// `Pedido Aprovado Sem Faturamento` entra só quando a categoria não é remessa nem
-// amostra (categoria vazia conta).
+// Filtro de faturamento: `Pedido`/`Pedido Faturado` sempre entram;
+// `Pedido Aprovado Sem Faturamento` só quando a categoria não é remessa nem
+// amostra — categoria vazia conta.
 function faturamentoClause(): { sql: string; params: string[] } {
   const inStatus = STATUS_FATURAMENTO.map(() => '?').join(', ')
   const notLike = CATEGORIAS_FORA_FATURAMENTO.map(
@@ -60,9 +60,8 @@ function faturamentoClause(): { sql: string; params: string[] } {
   }
 }
 
-// Sempre o ano, opcionalmente restrito a um mês e/ou vendedor (sem filtro nenhum
-// = panorama anual). O filtro de faturamento é opcional porque o funil e o nº de
-// fechamento contam cada status individualmente.
+// O filtro de faturamento é opcional porque o funil e o nº de fechamento contam
+// cada status individualmente.
 function escopo(
   ano: number,
   filtro: SnapshotFilter | null | undefined,
@@ -300,9 +299,6 @@ export function getSnapshot(
   const metaAnualBase = totalBase
   const metaAnualAuto = totalBase * fator
 
-  // Meta anual e por mês podem ser fixadas pelo usuário; sem override o mês cai
-  // na meta automática (ano anterior × fator) ou na anual distribuída pela
-  // participação do mês no ano anterior.
   const anualCustom = db.getMetaAnual(ano)
   const mesesCustom = db.getMetasMesOverride(ano)
   const shareDeBase = (mes: Mes): number =>

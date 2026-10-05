@@ -6,6 +6,17 @@
 - Seguir o estilo de mensagens já usado no repo (Conventional Commits: `feat(...)`, `fix(...)`, `refactor(...)`, `build(...)`, `style(...)`, `revert(...)`).
 - pt-BR nas conversas com o usuário; mensagens de commit em inglês.
 
+## Comentários
+
+- **Não comentar o código.** O padrão é zero comentário. Só entra quando for **extremamente essencial**, e "essencial" aqui é um listão curto:
+  1. regra de negócio que não se deduz lendo o código (ex.: a regra de faturamento em `src/main/kpis/index.ts:45`);
+  2. ordem ou timing que quebra **em silêncio** se mudar (ex.: esquema privilegiado antes do app ready, em `src/main/index.ts:13`);
+  3. o porquê de um workaround, limite ou escolha de segurança (ex.: `src/main/photos/pick.ts`, `src/renderer/src/index.css`).
+- Não repetir o que o código, o nome da função ou o tipo já dizem. Não narrar a mudança ("ajustado para", "adicionado", "antes era"). Não deixar TODO no código. Não comentário decorativo ("Format:", "Helper to...").
+- Comentário longo é sinal de que o código está errado: 1–2 linhas no máximo. Se são 5 linhas para explicar uma função, extraia uma função com nome que diga aquilo.
+- Ao tocar um arquivo, revise os comentários que já estavam nele e corte o que não passar no listão acima.
+- `// biome-ignore`, `/// <reference>` e afins são **diretivas**, não comentários: nunca remover.
+
 ## TODOS (ordem de execução)
 
 ### Fase 1 — Números (confiança das métricas)

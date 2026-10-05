@@ -88,8 +88,6 @@ const STATUS_CANONICO = new Map(
   STATUS_SISTEMA.map(status => [semAcento(status).toLowerCase(), status]),
 )
 
-// Canônico do SIGE, sem acento e caixa: `PEDIDO` vira `Pedido`. Status fora da
-// lista passa direto, só com trim.
 export function statusRaw(status: string): string {
   const s = String(status).trim()
   if (!s) return s
@@ -97,9 +95,8 @@ export function statusRaw(status: string): string {
 }
 
 /**
- * Cada status tem sua própria data de referência: orçamento, aprovação do
- * pedido, faturamento/emissão fiscal — assim uma venda aprovada em julho
- * (nascida como orçamento em maio) conta nas métricas de julho.
+ * A venda conta no mês em que ela chegou no funil: aprovada em julho, mesmo
+ * nascida como orçamento em maio.
  */
 export function referenceDate(
   status: string,

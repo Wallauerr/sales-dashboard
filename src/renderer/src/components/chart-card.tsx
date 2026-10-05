@@ -9,8 +9,7 @@ type ChartCardProps = {
   children: ReactNode
 } & Omit<ComponentProps<typeof Card>, 'title' | 'children'>
 
-// O react-grid-layout clona o card injetando className/style/ref e os handlers
-// de drag, então os props extras precisam cair no Card.
+// O RGL clona o card injetando className/style/ref e os handlers de drag.
 export function ChartCard({
   title,
   contentClassName,

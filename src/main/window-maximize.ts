@@ -1,5 +1,5 @@
-// Maximizar/restaurar em multi-monitor. A geometria fica em funções puras,
-// testáveis sem Electron; o index.ts só traduz isso para BrowserWindow.
+// Geometria pura, no formato de tela/ponto do Electron, para poder ser testada
+// sem subir um BrowserWindow.
 
 export interface Ponto {
   x: number
@@ -24,8 +24,6 @@ function area(a: Retangulo, b: Retangulo): number {
   return w > 0 && h > 0 ? w * h : 0
 }
 
-// Tela com maior área em comum com a janela, como o getDisplayMatching do
-// Electron.
 export function telaDosBounds(bounds: Retangulo, telas: Tela[]): Tela | null {
   let melhor: Tela | null = null
   let maior = 0
@@ -39,8 +37,7 @@ export function telaDosBounds(bounds: Retangulo, telas: Tela[]): Tela | null {
   return melhor
 }
 
-// A tela mais próxima do cursor, com distância medida até a borda da tela (e
-// não até o canto), como no getDisplayNearestPoint do Electron.
+// Distância medida até a borda da tela, não até o canto.
 export function telaDoPonto(cursor: Ponto, telas: Tela[]): Tela | null {
   let melhor: Tela | null = null
   let menor = Infinity
@@ -57,8 +54,6 @@ export function telaDoPonto(cursor: Ponto, telas: Tela[]): Tela | null {
   return melhor
 }
 
-// Onde a janela tem que ir antes de maximizar para cair na tela do cursor, ou
-// null se ela já está lá (caso comum: um monitor só).
 export function boundsDaTelaDoCursor(
   cursor: Ponto,
   telaDaJanela: Tela | null,
@@ -70,9 +65,8 @@ export function boundsDaTelaDoCursor(
   return { ...alvo.workArea }
 }
 
-// Descombrir para uma janela fora de tela é beco sem saída: sem borda para
-// arrastar de volta. Só restaura se o último tamanho ainda encosta em alguma
-// tela — o monitor pode ter sido desligado no meio do maximize.
+// Janela fora de tela não volta sozinha (não há borda para arrastar), então o
+// tamanho salvo só vale se ainda encostar em alguma tela.
 export function boundsVisiveis(bounds: Retangulo, telas: Tela[]): boolean {
   return telas.some(t => area(bounds, t.workArea) > 0)
 }

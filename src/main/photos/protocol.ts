@@ -1,9 +1,8 @@
 import { protocol } from 'electron'
 import type { SalesDatabase } from '../db/database.ts'
 
-// As fotos são BLOB no banco, mas o CSP do renderer é `img-src 'self'` e não
-// aceita `data:`. Um protocolo próprio mantém o CSP estrito e poupa o IPC de
-// mandar base64 a cada refresh.
+// O CSP é `img-src 'self'` e não aceita `data:`; um protocolo próprio mantém o
+// CSP estrito e poupa o IPC de mandar base64 a cada refresh.
 export const FOTO_SCHEME = 'foto'
 const FOTO_HOST = 'img'
 

@@ -195,14 +195,12 @@ export async function importWorkbook(
   db.raw.exec('BEGIN')
   try {
     for (const raw of rows) {
-      // Linhas sem código (lixo/artefatos da planilha) não têm como reconciliar:
-      // são descartadas para não duplicar a cada reimport.
       if (!String(raw.Código ?? '').trim()) {
         result.discarded += 1
         continue
       }
-      // Reconciliação pelo código sequencial do SIGE, que não muda quando o
-      // orçamento vira pedido: por isso nada é apagado e nunca duplica.
+      // O código do SIGE é sequencial e não muda quando o orçamento vira
+      // pedido, então a reconciliação nunca apaga linha.
       const nr = normalizeRow(raw)
       const op = db.upsertSale(nr)
       if (op === 'inserted') {

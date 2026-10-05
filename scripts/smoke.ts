@@ -727,7 +727,6 @@ async function main(): Promise<void> {
   )
 
   console.log('\n— Maximizar/restaurar em multi-monitor —')
-  // Dois monitores lado a lado: o da esquerda é menor, como um notebook + monitor.
   const telas = [
     { id: 1, workArea: { x: 0, y: 0, width: 1280, height: 800 } },
     { id: 2, workArea: { x: 1280, y: 0, width: 2560, height: 1440 } },
@@ -739,7 +738,6 @@ async function main(): Promise<void> {
     telaDosBounds(janelaNaEsquerda, telas)?.id,
     1,
   )
-  // Uma janela bem em cima da emenda fica com a tela que ela cobre mais.
   check(
     'janela quase toda na direita fica na direita',
     telaDosBounds({ x: 1240, y: 100, width: 1280, height: 840 }, telas)?.id,

@@ -84,8 +84,8 @@ CREATE TABLE IF NOT EXISTS vendedor_fotos (
 
 const SCHEMA_VERSION = 8
 
-// v7 -> v8: com a extração do .xlsx removida a foto é sempre escolhida em
-// Configurações, então origem não tinha mais o que distinguir.
+// v7 -> v8: sem extração do .xlsx a foto é sempre manual, então origem não
+// tinha mais o que distinguir.
 function dropFotoOrigemColumn(db: DatabaseSync): void {
   const cols = db.prepare('PRAGMA table_info(vendedor_fotos)').all() as {
     name: string
@@ -104,8 +104,7 @@ export class SalesDatabase {
       user_version: number
     }
     if (user_version < SCHEMA_VERSION) {
-      // Migração v3 -> v4 (reconciliação por codigo): preserva os dados, apenas
-      // elimina eventuais duplicatas mantendo a linha mais recente por codigo.
+      // v3 -> v4: dedup por codigo, preservando os dados e a linha mais recente.
       try {
         db.exec(
           'DELETE FROM vendas WHERE id NOT IN (SELECT MAX(id) FROM vendas GROUP BY codigo)',

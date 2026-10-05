@@ -148,8 +148,8 @@ body {
   background: transparent;
 }
 
-/* O react-resizable aninha a alça dentro dos filhos do card, então os seletores
-   `> .react-resizable-handle` do RGL não casam e a alça perde tamanho e cursor. */
+/* O react-resizable aninha a alça dentro dos filhos, então o seletor `>` do RGL
+   não casa e a alça perde tamanho e cursor. */
 .react-grid-item .react-resizable-handle {
   position: absolute;
   right: 0;
