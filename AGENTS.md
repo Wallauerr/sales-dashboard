@@ -36,9 +36,10 @@
 14. Migrar `smoke.ts` para vitest (14) + testes da regra de faturamento.
 15. Ambientes `dev`, `prod` e `test` (base para e2e), usando Faker pt-BR para gerar os dados fictícios; avaliar usar o Faker também nos dados mock do app.
 16. Campos de meta formatados em BRL, com zod (00).
-17. Fundo no gráfico de acumulado anual × meta (8).
-18. Releases versionadas no GitHub / auto-update (13).
+17. Meta em % configurável (ano e meses), com seletor de unidade: hoje o `fator` já existe no banco (`fator:<ano>`, default `1.15`) mas `setFator` (`src/main/db/database.ts:376`) nunca é chamado, então o 115% está travado sem nenhum campo na UI. Expor o % do ano e dos 12 meses (base do mês em {ano-1} × %) com **seletor único por ano** entre `%` e valor fixo em R$ — nada de misturar unidade: o ano é todo % ou todo R$. O vazio continua sendo automático, sem chave extra para isso. % uniforme no ano equivale a distribuir pela participação de cada mês no ano anterior, então ano e mês em % não se contradizem e a meta anual continua sendo a soma dos 12 meses (`src/main/kpis/index.ts:314`). Mesmo trabalho do item 16: os inputs de meta mudam de outra vez.
+18. Fundo no gráfico de acumulado anual × meta (8).
+19. Releases versionadas no GitHub / auto-update (13).
 
 ### Quick win
 
-19. Cursor pointer no modal de ajustes: botão X do `ui/dialog.tsx` (nunca foi coberto pelos commits de cursor). Ver também o overlay.
+20. Cursor pointer no modal de ajustes: botão X do `ui/dialog.tsx` (nunca foi coberto pelos commits de cursor). Ver também o overlay.
