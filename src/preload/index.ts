@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type {
   AutoStartView,
   CodigoHistory,
+  FotoRemovida,
+  FotoResultado,
   ImportRecord,
   ImportResult,
   KpiSnapshot,
@@ -35,6 +37,15 @@ const api = {
   setMetaConfig: (ano: number, input: MetasSetInput) =>
     ipcRenderer.invoke('metas:set', ano, input) as Promise<MetaConfigView>,
   getFotos: () => ipcRenderer.invoke('fotos:list') as Promise<VendedorFoto[]>,
+  listVendedores: () =>
+    ipcRenderer.invoke('vendedores:list') as Promise<string[]>,
+  escolherFoto: (vendedor: string) =>
+    ipcRenderer.invoke(
+      'foto:escolher',
+      vendedor,
+    ) as Promise<FotoResultado | null>,
+  removerFoto: (vendedor: string) =>
+    ipcRenderer.invoke('foto:remover', vendedor) as Promise<FotoRemovida>,
   getAutoStart: () =>
     ipcRenderer.invoke('app:autostart-get') as Promise<AutoStartView>,
   setAutoStart: (enabled: boolean) =>

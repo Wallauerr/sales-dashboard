@@ -3,8 +3,15 @@ import { DatabaseSync } from 'node:sqlite'
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { SalesDatabase } from './db/database'
 import { registerIpc } from './ipc'
+import {
+  registerFotoProtocol,
+  registerFotoSchemePrivileges,
+} from './photos/protocol'
 
 app.disableHardwareAcceleration()
+
+// Antes do app ready: sem isso o esquema não entra na lista de privilegiados.
+registerFotoSchemePrivileges()
 
 let db: SalesDatabase
 
@@ -75,6 +82,7 @@ app.whenReady().then(() => {
   )
 
   registerIpc(db)
+  registerFotoProtocol(db)
 
   createWindow()
 

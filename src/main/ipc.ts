@@ -1,6 +1,6 @@
-import { dialog, ipcMain } from 'electron'
+import { BrowserWindow, dialog, ipcMain } from 'electron'
 import { z } from 'zod'
-import { metasSetInputSchema } from '../shared/schemas.ts'
+import { metasSetInputSchema, vendedorSchema } from '../shared/schemas.ts'
 import type { SnapshotFilter } from '../shared/types.ts'
 import {
   AUTOSTART_SUPPORTED,
@@ -10,6 +10,7 @@ import {
 import type { SalesDatabase } from './db/database.ts'
 import { importWorkbook } from './ingest/index.ts'
 import { getMetaConfig, getSnapshot, setMetaConfig } from './kpis/index.ts'
+import { lerFotoEscolhida } from './photos/pick.ts'
 
 export function registerIpc(db: SalesDatabase): void {
   ipcMain.handle('ingest:import', async () => {
@@ -33,12 +34,36 @@ export function registerIpc(db: SalesDatabase): void {
     },
   )
 
-  ipcMain.handle('fotos:list', () => {
-    return db.listVendedorFotos().map(f => ({
-      vendedor: f.vendedor,
+  ipcMain.handle('fotos:list', () => db.listVendedorFotos())
 
-      dataUrl: `data:${f.mime};base64,${Buffer.from(f.img).toString('base64')}`,
-    }))
+  ipcMain.handle('vendedores:list', () => db.listVendedores())
+
+  ipcMain.handle('foto:escolher', async (_event, vendedor: unknown) => {
+    const nome = vendedorSchema.parse(vendedor)
+    const owner = BrowserWindow.getFocusedWindow()
+    const { canceled, filePaths } = owner
+      ? await dialog.showOpenDialog(owner, {
+          title: `Foto de ${nome}`,
+          properties: ['openFile'],
+          filters: [
+            {
+              name: 'Imagens',
+              extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'],
+            },
+          ],
+        })
+      : await showImageDialog(nome)
+    if (canceled || filePaths.length === 0) return null
+
+    const foto = await lerFotoEscolhida(filePaths[0])
+    db.setVendedorFotoManual(nome, foto.mime, foto.img)
+    return { vendedor: nome, origem: 'manual' }
+  })
+
+  ipcMain.handle('foto:remover', (_event, vendedor: unknown) => {
+    const nome = vendedorSchema.parse(vendedor)
+    db.removeVendedorFoto(nome)
+    return { vendedor: nome }
   })
 
   ipcMain.handle('metas:get', (_event, ano: number) => {
@@ -63,6 +88,18 @@ export function registerIpc(db: SalesDatabase): void {
       supported: AUTOSTART_SUPPORTED,
       enabled: on ? setAutoStartEnabled(true) : setAutoStartEnabled(false),
     }
+  })
+}
+
+function showImageDialog(
+  nome: string,
+): Promise<{ canceled: boolean; filePaths: string[] }> {
+  return dialog.showOpenDialog({
+    title: `Foto de ${nome}`,
+    properties: ['openFile'],
+    filters: [
+      { name: 'Imagens', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] },
+    ],
   })
 }
 

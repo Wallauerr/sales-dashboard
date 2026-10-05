@@ -9,6 +9,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { brl0, pct } from '@/lib/format'
+import { fotoUrl } from '@/lib/foto-url'
 import { cn } from '@/lib/utils'
 
 interface Seller {
@@ -20,7 +21,7 @@ interface Seller {
 interface Props {
   ano: number
   vendedores: Seller[]
-  fotos: Record<string, string>
+  fotos: Set<string>
   selected: string | null
   onSelect: (vendedor: string | null) => void
 }
@@ -79,7 +80,7 @@ export function SellerCards({
         <div className="flex max-h-80 flex-col gap-0.5 overflow-y-auto">
           {vendedores.map(v => {
             const active = selected === v.vendedor
-            const foto = fotos[v.vendedor]
+            const temFoto = fotos.has(v.vendedor)
             return (
               <button
                 key={v.vendedor}
@@ -90,7 +91,9 @@ export function SellerCards({
                   active && 'bg-accent',
                 )}>
                 <Avatar className="size-7 border">
-                  {foto ? <AvatarImage src={foto} alt="" /> : null}
+                  {temFoto ? (
+                    <AvatarImage src={fotoUrl(v.vendedor)} alt="" />
+                  ) : null}
                   <AvatarFallback className="bg-primary/10 text-[10px] font-bold tracking-wide text-primary">
                     {initials(v.vendedor)}
                   </AvatarFallback>
