@@ -18,5 +18,8 @@ export default defineConfig({
       dedupe: ['react', 'react-dom'],
     },
     plugins: [react(), tailwindcss()],
+    build: {
+      assetsInlineLimit: 0,
+    },
   },
 })
