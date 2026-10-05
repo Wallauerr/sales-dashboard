@@ -12,6 +12,7 @@ import {
   regionBarData,
   regionDonutData,
 } from '@/components/charts/region-donut'
+import { AutoStartCard } from '@/components/config/auto-start-card'
 import { ConfigTab } from '@/components/config/config-tab'
 import { DashboardGrid } from '@/components/dashboard-grid'
 import { DashboardHeader } from '@/components/dashboard-header'
@@ -21,6 +22,12 @@ import { KpiCard } from '@/components/kpi/kpi-card'
 import { SellerCards } from '@/components/sellers/seller-cards'
 import { TitleBar } from '@/components/title-bar'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -148,32 +155,52 @@ export function App() {
           />
 
           <Dialog open={metasOpen} onOpenChange={setMetasOpen}>
-            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
+            <DialogContent className="flex max-h-[85vh] flex-col gap-3 overflow-hidden sm:max-w-3xl">
               <DialogHeader>
                 <DialogTitle>Configurações</DialogTitle>
                 <DialogDescription>
-                  Ajuste as metas e o layout; o dashboard reflete na hora.
+                  Ajuste as metas e o comportamento do app; o dashboard reflete
+                  na hora.
                 </DialogDescription>
               </DialogHeader>
-              <ConfigTab
-                key={reload}
-                ano={ano}
-                onSaved={() => setReload(k => k + 1)}
-              />
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">Layout da dashboard</p>
-                  <p className="text-xs text-muted-foreground">
-                    Arraste os cartões pelo título e redimensione pelo canto; o
-                    layout fica salvo neste computador.
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={() => setLayoutResetKey(k => k + 1)}>
-                  Restaurar padrão
-                </Button>
-              </div>
+              <Tabs
+                defaultValue="metas"
+                className="flex min-h-0 flex-1 flex-col gap-3">
+                <TabsList className="w-fit shrink-0">
+                  <TabsTrigger value="metas">Métricas</TabsTrigger>
+                  <TabsTrigger value="geral">Geral</TabsTrigger>
+                </TabsList>
+                <TabsContent
+                  value="metas"
+                  className="min-h-0 flex-1 overflow-y-auto pr-1">
+                  <ConfigTab
+                    key={reload}
+                    ano={ano}
+                    onSaved={() => setReload(k => k + 1)}
+                  />
+                </TabsContent>
+                <TabsContent
+                  value="geral"
+                  className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
+                  <AutoStartCard />
+                  <Card>
+                    <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <CardTitle>Layout da dashboard</CardTitle>
+                        <CardDescription>
+                          Arraste os cartões pelo título e redimensione pelo
+                          canto; o layout fica salvo neste computador.
+                        </CardDescription>
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => setLayoutResetKey(k => k + 1)}>
+                        Restaurar padrão
+                      </Button>
+                    </CardHeader>
+                  </Card>
+                </TabsContent>
+              </Tabs>
             </DialogContent>
           </Dialog>
 
