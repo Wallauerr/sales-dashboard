@@ -22,7 +22,7 @@
 6. ✅ Ícone da title bar no build win (4): CSP sem `img-src 'self' data:` em `src/renderer/index.html` + `renderer.build.assetsInlineLimit: 0` em `electron.vite.config.ts` (sem isso o Vite embutia o PNG como `data:` e o CSP o bloqueava).
 7. Maximizar/restaurar janela em multi-monitor (2): **snap de borda descartado** — sequestrava o gesto de arrastar para o outro monitor, que no comercial é rotina. Decidido: nenhum gesto de arrasto (maximiza só pelo botão/duplo clique da title bar), o `maximize` mira o monitor do cursor, e o `unmaximize` volta ao último tamanho antes de maximizar.
 8. ✅ Abrir junto com o Windows (15): `app.setLoginItemSettings` + toggle na tela de ajustes (`src/main/autostart.ts`, Windows-only; fora do Windows o card se esconde).
-9. ✅ Foto dos vendedores (achado durante o item 6): o `fotos:list` entregava `data:` URL e o CSP novo bloqueava, então o avatar caía nas iniciais sem aviso. Agora a foto é servida por `foto://` (`src/main/photos/protocol.ts`, `img-src 'self' foto:`), a tabela `vendedor_fotos` ganhou `origem` para o import não apagar a foto escolhida na mão, e Configurações → Geral tem a troca inline (`seller-photos-card.tsx`) com validação por assinatura e limite de 2MB.
+9. ✅ Foto dos vendedores (achado durante o item 6): o `fotos:list` entregava `data:` URL e o CSP novo bloqueava, então o avatar caía nas iniciais sem aviso. Agora a foto é servida por `foto://` (`src/main/photos/protocol.ts`, `img-src 'self' foto:`) e Configurações → Geral tem a troca inline (`seller-photos-card.tsx`) com validação por assinatura e limite de 2MB. A planilha do SIGE **não** traz foto de vendedor: a extração do `.xlsx` foi removida junto com o leitor de zip, então a foto sempre vem do arquivo escolhido na mão.
 
 ### Fase 3 — Filtros
 
