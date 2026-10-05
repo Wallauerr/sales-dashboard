@@ -14,6 +14,7 @@ import {
 } from '@/components/charts/region-donut'
 import { AutoStartCard } from '@/components/config/auto-start-card'
 import { ConfigTab } from '@/components/config/config-tab'
+import { SellerPhotosCard } from '@/components/config/seller-photos-card'
 import { DashboardGrid } from '@/components/dashboard-grid'
 import { DashboardHeader } from '@/components/dashboard-header'
 import { HistoryTab } from '@/components/history/history-tab'
@@ -42,7 +43,7 @@ import { brl, brl0, int, pct } from '@/lib/format'
 import { fileName, MES_LABEL } from '@/lib/labels'
 import { useWindowMaximized } from '@/lib/useWindowMaximized'
 import { cn } from '@/lib/utils'
-import type { KpiSnapshot, Mes } from '../../shared/types'
+import type { FotoOrigem, KpiSnapshot, Mes } from '../../shared/types'
 import { MESES } from '../../shared/types'
 
 export function App() {
@@ -54,7 +55,10 @@ export function App() {
   const [layoutResetKey, setLayoutResetKey] = useState(0)
   const maximized = useWindowMaximized()
   const [snap, setSnap] = useState<KpiSnapshot | null>(null)
-  const [fotos, setFotos] = useState<Record<string, string>>({})
+  // Quem tem foto: o conteúdo vem pelo protocolo foto://, então guardamos só
+  // o nome e a origem.
+  const [fotos, setFotos] = useState<Record<string, FotoOrigem>>({})
+  const [vendedores, setVendedores] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const [importMsg, setImportMsg] = useState<string | null>(null)
@@ -79,8 +83,12 @@ export function App() {
   const loadFotos = useCallback(async () => {
     if (!api) return
     try {
-      const list = await api.getFotos()
-      setFotos(Object.fromEntries(list.map(f => [f.vendedor, f.dataUrl])))
+      const [lista, nomes] = await Promise.all([
+        api.getFotos(),
+        api.listVendedores(),
+      ])
+      setFotos(Object.fromEntries(lista.map(f => [f.vendedor, f.origem])))
+      setVendedores(nomes)
     } catch {}
   }, [])
 
@@ -88,6 +96,24 @@ export function App() {
     void load()
     void loadFotos()
   }, [load, loadFotos])
+
+  const escolherFoto = async (vendedor: string): Promise<void> => {
+    if (!api) return
+    const r = await api.escolherFoto(vendedor)
+    // Cancelar no dialog não é erro.
+    if (!r) return
+    setFotos(f => ({ ...f, [r.vendedor]: r.origem }))
+  }
+
+  const removerFoto = async (vendedor: string): Promise<void> => {
+    if (!api) return
+    await api.removerFoto(vendedor)
+    setFotos(f => {
+      const next = { ...f }
+      delete next[vendedor]
+      return next
+    })
+  }
 
   useEffect(() => {
     if (!reload) return
@@ -183,6 +209,12 @@ export function App() {
                   value="geral"
                   className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
                   <AutoStartCard />
+                  <SellerPhotosCard
+                    vendedores={vendedores}
+                    fotos={fotos}
+                    onEscolher={escolherFoto}
+                    onRemover={removerFoto}
+                  />
                   <Card>
                     <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
                       <div className="min-w-0">
@@ -225,7 +257,7 @@ export function App() {
               <SellerCards
                 ano={ano}
                 vendedores={snap?.porVendedor ?? []}
-                fotos={fotos}
+                fotos={new Set(Object.keys(fotos))}
                 selected={vendedor}
                 onSelect={setVendedor}
               />
