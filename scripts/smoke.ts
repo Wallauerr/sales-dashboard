@@ -13,6 +13,12 @@ import {
   setMetaConfig,
 } from '../src/main/kpis/index.ts'
 import { FOTO_MAX_BYTES, lerFotoEscolhida } from '../src/main/photos/pick.ts'
+import {
+  boundsDaTelaDoCursor,
+  boundsVisiveis,
+  telaDoPonto,
+  telaDosBounds,
+} from '../src/main/window-maximize.ts'
 
 const HEADERS = [
   'Código',
@@ -718,6 +724,83 @@ async function main(): Promise<void> {
     'jpg reconhecido pela assinatura',
     (await lerFotoEscolhida(jpg)).mime,
     'image/jpeg',
+  )
+
+  console.log('\n— Maximizar/restaurar em multi-monitor —')
+  // Dois monitores lado a lado: o da esquerda é menor, como um notebook + monitor.
+  const telas = [
+    { id: 1, workArea: { x: 0, y: 0, width: 1280, height: 800 } },
+    { id: 2, workArea: { x: 1280, y: 0, width: 2560, height: 1440 } },
+  ]
+  const janelaNaEsquerda = { x: 40, y: 60, width: 1280, height: 840 }
+
+  check(
+    'janela pega a tela pela maior área em comum',
+    telaDosBounds(janelaNaEsquerda, telas)?.id,
+    1,
+  )
+  // Uma janela bem em cima da emenda fica com a tela que ela cobre mais.
+  check(
+    'janela quase toda na direita fica na direita',
+    telaDosBounds({ x: 1240, y: 100, width: 1280, height: 840 }, telas)?.id,
+    2,
+  )
+  check(
+    'janela quase toda na esquerda fica na esquerda',
+    telaDosBounds({ x: 30, y: 100, width: 1280, height: 840 }, telas)?.id,
+    1,
+  )
+  check('cursor na esquerda', telaDoPonto({ x: 300, y: 400 }, telas)?.id, 1)
+  check('cursor na direita', telaDoPonto({ x: 3000, y: 700 }, telas)?.id, 2)
+  check(
+    'cursor no canto inferior direito da tela esquerda',
+    telaDoPonto({ x: 1279, y: 799 }, telas)?.id,
+    1,
+  )
+
+  check(
+    'mesma tela: não mexe em nada',
+    boundsDaTelaDoCursor(
+      { x: 300, y: 400 },
+      telaDosBounds(janelaNaEsquerda, telas),
+      telas,
+    ),
+    null,
+  )
+  check(
+    'cursor na outra tela: maximiza na outra',
+    boundsDaTelaDoCursor(
+      { x: 3000, y: 700 },
+      telaDosBounds(janelaNaEsquerda, telas),
+      telas,
+    ),
+    telas[1].workArea,
+  )
+  check(
+    'sem tela da janela, ainda mira o cursor',
+    boundsDaTelaDoCursor({ x: 3000, y: 700 }, null, telas),
+    telas[1].workArea,
+  )
+  check(
+    'tela nenhuma não move a janela',
+    boundsDaTelaDoCursor({ x: 1, y: 1 }, null, []),
+    null,
+  )
+
+  check(
+    'restaura se o último tamanho ainda encosta em tela',
+    boundsVisiveis(janelaNaEsquerda, telas),
+    true,
+  )
+  check(
+    'monitor desligado: não restaura para fora de tela',
+    boundsVisiveis({ x: -3000, y: 0, width: 1280, height: 840 }, telas),
+    false,
+  )
+  check(
+    'sem tela nenhuma, o último tamanho não vale',
+    boundsVisiveis(janelaNaEsquerda, []),
+    false,
   )
 
   console.log('SMOKE PASS')
