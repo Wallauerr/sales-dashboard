@@ -22,22 +22,23 @@
 6. ✅ Ícone da title bar no build win (4): CSP sem `img-src 'self' data:` em `src/renderer/index.html` + `renderer.build.assetsInlineLimit: 0` em `electron.vite.config.ts` (sem isso o Vite embutia o PNG como `data:` e o CSP o bloqueava).
 7. Maximizar/restaurar janela em multi-monitor (2): **snap de borda descartado** — sequestrava o gesto de arrastar para o outro monitor, que no comercial é rotina. Decidido: nenhum gesto de arrasto (maximiza só pelo botão/duplo clique da title bar), o `maximize` mira o monitor do cursor, e o `unmaximize` volta ao último tamanho antes de maximizar.
 8. ✅ Abrir junto com o Windows (15): `app.setLoginItemSettings` + toggle na tela de ajustes (`src/main/autostart.ts`, Windows-only; fora do Windows o card se esconde).
+9. ✅ Foto dos vendedores (achado durante o item 6): o `fotos:list` entregava `data:` URL e o CSP novo bloqueava, então o avatar caía nas iniciais sem aviso. Agora a foto é servida por `foto://` (`src/main/photos/protocol.ts`, `img-src 'self' foto:`), a tabela `vendedor_fotos` ganhou `origem` para o import não apagar a foto escolhida na mão, e Configurações → Geral tem a troca inline (`seller-photos-card.tsx`) com validação por assinatura e limite de 2MB.
 
 ### Fase 3 — Filtros
 
-9. Anos dinâmicos (1): hoje `[2024, 2025, 2026]` hardcoded; 2022 e 2023 já ficam de fora.
-10. Esconder vendedores no filtro da aba histórico (9).
-11. Desativar vendedores sem perder métricas (10) — ex.: "Sul Magnéticos ... Eireli" (R$ 7,9M).
-12. Multi-seleção de vendedores e meses (11).
+10. Anos dinâmicos (1): hoje `[2024, 2025, 2026]` hardcoded; 2022 e 2023 já ficam de fora.
+11. Esconder vendedores no filtro da aba histórico (9).
+12. Desativar vendedores sem perder métricas (10) — ex.: "Sul Magnéticos ... Eireli" (R$ 7,9M).
+13. Multi-seleção de vendedores e meses (11).
 
 ### Fase 4 — Polish/infra
 
-13. Migrar `smoke.ts` para vitest (14) + testes da regra de faturamento.
-14. Ambientes `dev`, `prod` e `test` (base para e2e), usando Faker pt-BR para gerar os dados fictícios; avaliar usar o Faker também nos dados mock do app.
-15. Campos de meta formatados em BRL, com zod (00).
-16. Fundo no gráfico de acumulado anual × meta (8).
-17. Releases versionadas no GitHub / auto-update (13).
+14. Migrar `smoke.ts` para vitest (14) + testes da regra de faturamento.
+15. Ambientes `dev`, `prod` e `test` (base para e2e), usando Faker pt-BR para gerar os dados fictícios; avaliar usar o Faker também nos dados mock do app.
+16. Campos de meta formatados em BRL, com zod (00).
+17. Fundo no gráfico de acumulado anual × meta (8).
+18. Releases versionadas no GitHub / auto-update (13).
 
 ### Quick win
 
-18. Cursor pointer no modal de ajustes: botão X do `ui/dialog.tsx` (nunca foi coberto pelos commits de cursor). Ver também o overlay.
+19. Cursor pointer no modal de ajustes: botão X do `ui/dialog.tsx` (nunca foi coberto pelos commits de cursor). Ver também o overlay.
