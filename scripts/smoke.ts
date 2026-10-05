@@ -13,7 +13,6 @@ import {
   setMetaConfig,
 } from '../src/main/kpis/index.ts'
 import { FOTO_MAX_BYTES, lerFotoEscolhida } from '../src/main/photos/pick.ts'
-import { buildWorkbookWithPhoto } from './photo-fixture.ts'
 
 const HEADERS = [
   'Código',
@@ -673,48 +672,28 @@ async function main(): Promise<void> {
     { vendedor: 'VENDAS', valor: 1200, share: 0.6 },
   )
 
-  console.log('\n— Fotos embutidas na planilha (xlsx com imagem ancorada) —')
-  const fotoPath = join(
-    tmpdir(),
-    `smoke-foto-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.xlsx`,
-  )
-  writeFileSync(fotoPath, buildWorkbookWithPhoto())
-  await importWorkbook(db, fotoPath)
-  const fotos = db.listVendedorFotos()
-  check('foto extraída para Rosemeri', fotos[0]?.vendedor, 'Rosemeri')
-  check('foto marcada como vinda do Excel', fotos[0]?.origem, 'excel')
+  console.log('\n— Foto escolhida em Configurações —')
+  // A planilha não traz imagem de vendedor: a foto vem sempre do disco.
+  db.setVendedorFoto('Rosemeri', 'image/jpeg', Buffer.from([1, 2, 3, 4]))
   check(
-    'foto tem bytes no banco',
+    'foto gravada',
+    db.listVendedorFotos().map(f => f.vendedor),
+    ['Rosemeri'],
+  )
+  check('mime gravado', db.getVendedorFoto('Rosemeri')?.mime, 'image/jpeg')
+  check(
+    'bytes no banco',
     (db.getVendedorFoto('Rosemeri')?.img.length ?? 0) > 0,
     true,
   )
-
-  console.log('\n— Foto escolhida na mão em Configurações —')
-  db.setVendedorFotoManual('Rosemeri', 'image/jpeg', Buffer.from([1, 2, 3, 4]))
+  db.setVendedorFoto('Rosemeri', 'image/png', Buffer.from([9, 9]))
   check(
-    'foto manual substitui a do Excel',
-    db.listVendedorFotos().find(f => f.vendedor === 'Rosemeri')?.origem,
-    'manual',
-  )
-  check(
-    'mime da foto manual',
+    'trocar foto sobrescreve',
     db.getVendedorFoto('Rosemeri')?.mime,
-    'image/jpeg',
+    'image/png',
   )
+  check('trocar foto nao duplica', db.listVendedorFotos().length, 1)
 
-  console.log('\n— Import não pode apagar a foto manual —')
-  await importWorkbook(db, fotoPath)
-  check(
-    'foto manual sobrevive ao import',
-    db.listVendedorFotos().find(f => f.vendedor === 'Rosemeri')?.origem,
-    'manual',
-  )
-  db.saveVendedorFotos([])
-  check(
-    'planilha sem foto não zera as fotos',
-    db.listVendedorFotos().find(f => f.vendedor === 'Rosemeri')?.origem,
-    'manual',
-  )
   db.removeVendedorFoto('Rosemeri')
   check(
     'remover foto volta ao avatar de iniciais',

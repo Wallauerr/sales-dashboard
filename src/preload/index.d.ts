@@ -1,7 +1,6 @@
 import type {
   AutoStartView,
   CodigoHistory,
-  FotoRemovida,
   FotoResultado,
   ImportRecord,
   ImportResult,
@@ -29,7 +28,7 @@ interface Api {
   getFotos: () => Promise<VendedorFoto[]>
   listVendedores: () => Promise<string[]>
   escolherFoto: (vendedor: string) => Promise<FotoResultado | null>
-  removerFoto: (vendedor: string) => Promise<FotoRemovida>
+  removerFoto: (vendedor: string) => Promise<FotoResultado>
   getAutoStart: () => Promise<AutoStartView>
   setAutoStart: (enabled: boolean) => Promise<AutoStartView>
   minimize: () => Promise<void>

@@ -43,7 +43,7 @@ import { brl, brl0, int, pct } from '@/lib/format'
 import { fileName, MES_LABEL } from '@/lib/labels'
 import { useWindowMaximized } from '@/lib/useWindowMaximized'
 import { cn } from '@/lib/utils'
-import type { FotoOrigem, KpiSnapshot, Mes } from '../../shared/types'
+import type { KpiSnapshot, Mes } from '../../shared/types'
 import { MESES } from '../../shared/types'
 
 export function App() {
@@ -56,8 +56,8 @@ export function App() {
   const maximized = useWindowMaximized()
   const [snap, setSnap] = useState<KpiSnapshot | null>(null)
   // Quem tem foto: o conteúdo vem pelo protocolo foto://, então guardamos só
-  // o nome e a origem.
-  const [fotos, setFotos] = useState<Record<string, FotoOrigem>>({})
+  // o nome.
+  const [fotos, setFotos] = useState<Set<string>>(new Set())
   const [vendedores, setVendedores] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
@@ -87,7 +87,7 @@ export function App() {
         api.getFotos(),
         api.listVendedores(),
       ])
-      setFotos(Object.fromEntries(lista.map(f => [f.vendedor, f.origem])))
+      setFotos(new Set(lista.map(f => f.vendedor)))
       setVendedores(nomes)
     } catch {}
   }, [])
@@ -102,15 +102,15 @@ export function App() {
     const r = await api.escolherFoto(vendedor)
     // Cancelar no dialog não é erro.
     if (!r) return
-    setFotos(f => ({ ...f, [r.vendedor]: r.origem }))
+    setFotos(f => new Set(f).add(r.vendedor))
   }
 
   const removerFoto = async (vendedor: string): Promise<void> => {
     if (!api) return
     await api.removerFoto(vendedor)
     setFotos(f => {
-      const next = { ...f }
-      delete next[vendedor]
+      const next = new Set(f)
+      next.delete(vendedor)
       return next
     })
   }
@@ -257,7 +257,7 @@ export function App() {
               <SellerCards
                 ano={ano}
                 vendedores={snap?.porVendedor ?? []}
-                fotos={new Set(Object.keys(fotos))}
+                fotos={fotos}
                 selected={vendedor}
                 onSelect={setVendedor}
               />

@@ -78,21 +78,21 @@ CREATE INDEX IF NOT EXISTS idx_import_items_import ON import_items (import_id);
 CREATE TABLE IF NOT EXISTS vendedor_fotos (
   vendedor TEXT PRIMARY KEY,
   mime TEXT NOT NULL DEFAULT 'image/png',
-  img BLOB NOT NULL,
-  origem TEXT NOT NULL DEFAULT 'excel'
+  img BLOB NOT NULL
 );
 `
 
-const SCHEMA_VERSION = 7
+const SCHEMA_VERSION = 8
 
-function addFotoOrigemColumn(db: DatabaseSync): void {
+// v7 -> v8: a foto deixou de vir da planilha (a extração do .xlsx saiu) e passa
+// a ser escolhida sempre em Configurações, então a coluna origem não tinha mais
+// o que distinguir.
+function dropFotoOrigemColumn(db: DatabaseSync): void {
   const cols = db.prepare('PRAGMA table_info(vendedor_fotos)').all() as {
     name: string
   }[]
-  if (cols.some(c => c.name === 'origem')) return
-  db.exec(
-    "ALTER TABLE vendedor_fotos ADD COLUMN origem TEXT NOT NULL DEFAULT 'excel'",
-  )
+  if (!cols.some(c => c.name === 'origem')) return
+  db.exec('ALTER TABLE vendedor_fotos DROP COLUMN origem')
 }
 
 export class SalesDatabase {
@@ -105,17 +105,21 @@ export class SalesDatabase {
       user_version: number
     }
     if (user_version < SCHEMA_VERSION) {
+      // Migração v3 -> v4 (reconciliação por codigo): preserva os dados, apenas
+      // elimina eventuais duplicatas mantendo a linha mais recente por codigo.
       try {
         db.exec(
           'DELETE FROM vendas WHERE id NOT IN (SELECT MAX(id) FROM vendas GROUP BY codigo)',
         )
-      } catch {}
+      } catch {
+        // tabela ainda não existe (instalação nova) — o SCHEMA abaixo cria.
+      }
       db.exec(SCHEMA)
-      addFotoOrigemColumn(db)
+      dropFotoOrigemColumn(db)
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`)
     } else {
       db.exec(SCHEMA)
-      addFotoOrigemColumn(db)
+      dropFotoOrigemColumn(db)
     }
   }
 
@@ -446,35 +450,14 @@ export class SalesDatabase {
     return Number.isFinite(parsed) ? parsed : null
   }
 
-  saveVendedorFotos(
-    fotos: { vendedor: string; mime: string; img: Uint8Array }[],
-  ): void {
-    if (fotos.length === 0) return
-    this.db.exec('BEGIN')
-    try {
-      this.db.exec("DELETE FROM vendedor_fotos WHERE origem = 'excel'")
-      const stmt = this.db.prepare(
-        `INSERT INTO vendedor_fotos (vendedor, mime, img, origem)
-         VALUES (?, ?, ?, 'excel')
-         ON CONFLICT(vendedor) DO UPDATE SET
-           mime = excluded.mime, img = excluded.img
-         WHERE vendedor_fotos.origem = 'excel'`,
-      )
-      for (const f of fotos) stmt.run(f.vendedor, f.mime, f.img)
-      this.db.exec('COMMIT')
-    } catch (err) {
-      this.db.exec('ROLLBACK')
-      throw err
-    }
-  }
-
-  setVendedorFotoManual(vendedor: string, mime: string, img: Uint8Array): void {
+  // Foto escolhida em Configurações: a planilha não traz imagem de vendedor,
+  // então esta é a única forma de ter foto.
+  setVendedorFoto(vendedor: string, mime: string, img: Uint8Array): void {
     this.db
       .prepare(
-        `INSERT INTO vendedor_fotos (vendedor, mime, img, origem)
-         VALUES (?, ?, ?, 'manual')
+        `INSERT INTO vendedor_fotos (vendedor, mime, img) VALUES (?, ?, ?)
          ON CONFLICT(vendedor) DO UPDATE SET
-           mime = excluded.mime, img = excluded.img, origem = 'manual'`,
+           mime = excluded.mime, img = excluded.img`,
       )
       .run(vendedor, mime, img)
   }
@@ -495,11 +478,13 @@ export class SalesDatabase {
     return row ? { mime: row.mime, img: row.img } : null
   }
 
-  listVendedorFotos(): { vendedor: string; origem: string }[] {
+  // Sem os bytes: o renderer só precisa saber quem tem foto, o conteúdo vem
+  // pelo protocolo foto://.
+  listVendedorFotos(): { vendedor: string }[] {
     const rows = this.db
-      .prepare('SELECT vendedor, origem FROM vendedor_fotos')
-      .all() as unknown as { vendedor: string; origem: string }[]
-    return rows.map(r => ({ vendedor: r.vendedor, origem: r.origem }))
+      .prepare('SELECT vendedor FROM vendedor_fotos')
+      .all() as unknown as { vendedor: string }[]
+    return rows.map(r => ({ vendedor: r.vendedor }))
   }
 
   listVendedores(): string[] {

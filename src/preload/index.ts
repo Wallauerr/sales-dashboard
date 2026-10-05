@@ -2,7 +2,6 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type {
   AutoStartView,
   CodigoHistory,
-  FotoRemovida,
   FotoResultado,
   ImportRecord,
   ImportResult,
@@ -45,7 +44,7 @@ const api = {
       vendedor,
     ) as Promise<FotoResultado | null>,
   removerFoto: (vendedor: string) =>
-    ipcRenderer.invoke('foto:remover', vendedor) as Promise<FotoRemovida>,
+    ipcRenderer.invoke('foto:remover', vendedor) as Promise<FotoResultado>,
   getAutoStart: () =>
     ipcRenderer.invoke('app:autostart-get') as Promise<AutoStartView>,
   setAutoStart: (enabled: boolean) =>

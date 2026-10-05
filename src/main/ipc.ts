@@ -56,8 +56,8 @@ export function registerIpc(db: SalesDatabase): void {
     if (canceled || filePaths.length === 0) return null
 
     const foto = await lerFotoEscolhida(filePaths[0])
-    db.setVendedorFotoManual(nome, foto.mime, foto.img)
-    return { vendedor: nome, origem: 'manual' }
+    db.setVendedorFoto(nome, foto.mime, foto.img)
+    return { vendedor: nome }
   })
 
   ipcMain.handle('foto:remover', (_event, vendedor: unknown) => {
