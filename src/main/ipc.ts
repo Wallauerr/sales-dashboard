@@ -1,6 +1,12 @@
 import { dialog, ipcMain } from 'electron'
+import { z } from 'zod'
 import { metasSetInputSchema } from '../shared/schemas.ts'
 import type { SnapshotFilter } from '../shared/types.ts'
+import {
+  AUTOSTART_SUPPORTED,
+  isAutoStartEnabled,
+  setAutoStartEnabled,
+} from './autostart.ts'
 import type { SalesDatabase } from './db/database.ts'
 import { importWorkbook } from './ingest/index.ts'
 import { getMetaConfig, getSnapshot, setMetaConfig } from './kpis/index.ts'
@@ -42,6 +48,21 @@ export function registerIpc(db: SalesDatabase): void {
   ipcMain.handle('metas:set', (_event, ano: number, input: unknown) => {
     setMetaConfig(db, Number(ano), metasSetInputSchema.parse(input))
     return getMetaConfig(db, Number(ano))
+  })
+
+  ipcMain.handle('app:autostart-get', () => {
+    return {
+      supported: AUTOSTART_SUPPORTED,
+      enabled: isAutoStartEnabled(),
+    }
+  })
+
+  ipcMain.handle('app:autostart-set', (_event, enabled: unknown) => {
+    const on = z.boolean().parse(enabled)
+    return {
+      supported: AUTOSTART_SUPPORTED,
+      enabled: on ? setAutoStartEnabled(true) : setAutoStartEnabled(false),
+    }
   })
 }
 

@@ -54,6 +54,11 @@ export interface VendedorFoto {
   dataUrl: string
 }
 
+export interface AutoStartView {
+  supported: boolean
+  enabled: boolean
+}
+
 export interface FunnelMonth {
   mes: Mes
   orcamento: number

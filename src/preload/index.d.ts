@@ -1,4 +1,5 @@
 import type {
+  AutoStartView,
   CodigoHistory,
   ImportRecord,
   ImportResult,
@@ -24,6 +25,8 @@ interface Api {
   getMetaConfig: (ano: number) => Promise<MetaConfigView>
   setMetaConfig: (ano: number, input: MetasSetInput) => Promise<MetaConfigView>
   getFotos: () => Promise<VendedorFoto[]>
+  getAutoStart: () => Promise<AutoStartView>
+  setAutoStart: (enabled: boolean) => Promise<AutoStartView>
   minimize: () => Promise<void>
   toggleMaximize: () => Promise<void>
   closeWindow: () => Promise<void>
