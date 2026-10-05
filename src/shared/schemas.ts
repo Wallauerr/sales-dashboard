@@ -93,3 +93,10 @@ export const metasSetInputSchema = z.object({
   ),
 })
 export type MetasSetInput = z.infer<typeof metasSetInputSchema>
+
+export const vendedorSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120)
+  .refine(v => !v.includes('/'), 'Nome de vendedor inválido.')

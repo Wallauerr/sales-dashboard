@@ -12,6 +12,7 @@ import {
   getSnapshot,
   setMetaConfig,
 } from '../src/main/kpis/index.ts'
+import { FOTO_MAX_BYTES, lerFotoEscolhida } from '../src/main/photos/pick.ts'
 import { buildWorkbookWithPhoto } from './photo-fixture.ts'
 
 const HEADERS = [
@@ -681,12 +682,64 @@ async function main(): Promise<void> {
   await importWorkbook(db, fotoPath)
   const fotos = db.listVendedorFotos()
   check('foto extraída para Rosemeri', fotos[0]?.vendedor, 'Rosemeri')
-  check('foto com mime png', fotos[0]?.mime, 'image/png')
-  check('foto não vazia', (fotos[0]?.img.length ?? 0) > 0, true)
+  check('foto marcada como vinda do Excel', fotos[0]?.origem, 'excel')
   check(
-    'apenas fotos mapeadas',
-    (fotos[0]?.img.length ?? 0) > 0 && fotos.every(f => f.vendedor),
+    'foto tem bytes no banco',
+    (db.getVendedorFoto('Rosemeri')?.img.length ?? 0) > 0,
     true,
+  )
+
+  console.log('\n— Foto escolhida na mão em Configurações —')
+  db.setVendedorFotoManual('Rosemeri', 'image/jpeg', Buffer.from([1, 2, 3, 4]))
+  check(
+    'foto manual substitui a do Excel',
+    db.listVendedorFotos().find(f => f.vendedor === 'Rosemeri')?.origem,
+    'manual',
+  )
+  check(
+    'mime da foto manual',
+    db.getVendedorFoto('Rosemeri')?.mime,
+    'image/jpeg',
+  )
+
+  console.log('\n— Import não pode apagar a foto manual —')
+  await importWorkbook(db, fotoPath)
+  check(
+    'foto manual sobrevive ao import',
+    db.listVendedorFotos().find(f => f.vendedor === 'Rosemeri')?.origem,
+    'manual',
+  )
+  db.saveVendedorFotos([])
+  check(
+    'planilha sem foto não zera as fotos',
+    db.listVendedorFotos().find(f => f.vendedor === 'Rosemeri')?.origem,
+    'manual',
+  )
+  db.removeVendedorFoto('Rosemeri')
+  check(
+    'remover foto volta ao avatar de iniciais',
+    db.getVendedorFoto('Rosemeri'),
+    null,
+  )
+
+  console.log('\n— Lista de vendedores para Configurações —')
+  const nomes = db.listVendedores()
+  check('lista sem o pseudo-vendedor VENDAS', nomes.includes('VENDAS'), false)
+  check('lista traz quem tem venda', nomes.includes('Rosemeri'), true)
+
+  console.log('\n— Validação da foto escolhida —')
+  const naoImagem = join(tmpdir(), `smoke-nao-imagem-${Date.now()}.txt`)
+  writeFileSync(naoImagem, 'isto nao e uma imagem')
+  await assert.rejects(() => lerFotoEscolhida(naoImagem), /não é uma imagem/)
+  const grande = join(tmpdir(), `smoke-grande-${Date.now()}.png`)
+  writeFileSync(grande, Buffer.alloc(FOTO_MAX_BYTES + 1))
+  await assert.rejects(() => lerFotoEscolhida(grande), /limite é/)
+  const jpg = join(tmpdir(), `smoke-foto-${Date.now()}.jpg`)
+  writeFileSync(jpg, Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]))
+  check(
+    'jpg reconhecido pela assinatura',
+    (await lerFotoEscolhida(jpg)).mime,
+    'image/jpeg',
   )
 
   console.log('SMOKE PASS')
