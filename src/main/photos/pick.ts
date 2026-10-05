@@ -1,19 +1,15 @@
 import { readFile, stat } from 'node:fs/promises'
 import { extname } from 'node:path'
 
-// A foto de vendedor entra no banco crua e sai servida por `foto://`. Se o
-// mime estiver errado o Chromium recusa a imagem, então conferimos a assinatura
-// do arquivo em vez de confiar na extensão. O limite de tamanho evita que
-// alguém arraste um PNG de 30MB para dentro do .db.
+// A foto vai crua para o banco e sai servida por `foto://`, então o mime errado
+// faria o Chromium recusar a imagem: conferimos a assinatura do arquivo em vez da
+// extensão, e o limite de tamanho evita um PNG de 30MB dentro do .db.
 
 export const FOTO_MAX_BYTES = 2 * 1024 * 1024
 
 const ASSINATURAS: { mime: string; bytes: number[]; label: string }[] = [
-  // 89 50 4E 47 (PNG)
   { mime: 'image/png', bytes: [0x89, 0x50, 0x4e, 0x47], label: 'PNG' },
-  // FF D8 FF (JPEG)
   { mime: 'image/jpeg', bytes: [0xff, 0xd8, 0xff], label: 'JPG' },
-  // 47 49 46 (GIF)
   { mime: 'image/gif', bytes: [0x47, 0x49, 0x46], label: 'GIF' },
 ]
 
@@ -52,8 +48,7 @@ export async function lerFotoEscolhida(
   if (achada) return { mime: achada.mime, img }
   if (isWebp(head)) return { mime: 'image/webp', img }
 
-  // SVG fica de fora de propósito: é XML com script, e não queremos abrir esse
-  // buraco num arquivo escolhido do disco.
+  // SVG fica de fora: é XML com script.
   if (extname(filePath).toLowerCase() === '.svg') {
     throw new Error('SVG não é aceito. Salve a foto como PNG ou JPG.')
   }

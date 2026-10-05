@@ -201,9 +201,8 @@ export async function importWorkbook(
         result.discarded += 1
         continue
       }
-      // Reconciliação por codigo (número sequencial do orçamento/pedido no SIGE):
-      // codigo novo -> insere; existente -> atualiza status/campos. Nada é apagado,
-      // então um orçamento que evolui para pedido nunca duplica nas métricas.
+      // Reconciliação pelo código sequencial do SIGE, que não muda quando o
+      // orçamento vira pedido: por isso nada é apagado e nunca duplica.
       const nr = normalizeRow(raw)
       const op = db.upsertSale(nr)
       if (op === 'inserted') {

@@ -44,9 +44,6 @@ export interface SnapshotFilter {
   vendedor?: string | null
 }
 
-// Sem bytes: o renderer só precisa saber quem tem foto. O conteúdo vem pelo
-// protocolo foto://, que o CSP `img-src 'self'` aceita. A foto é sempre escolhida
-// na mão em Configurações — a planilha do SIGE não traz imagem de vendedor.
 export interface VendedorFoto {
   vendedor: string
 }

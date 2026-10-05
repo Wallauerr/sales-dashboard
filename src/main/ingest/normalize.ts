@@ -88,9 +88,8 @@ const STATUS_CANONICO = new Map(
   STATUS_SISTEMA.map(status => [semAcento(status).toLowerCase(), status]),
 )
 
-// Normaliza o status para o canônico do SIGE, tolerando variações de caixa e
-// acento (ex.: `pedido`, `PEDIDO`, `Pedido Não Faturado`). Status desconhecido
-// passa direto, só com trim.
+// Canônico do SIGE, sem acento e caixa: `PEDIDO` vira `Pedido`. Status fora da
+// lista passa direto, só com trim.
 export function statusRaw(status: string): string {
   const s = String(status).trim()
   if (!s) return s
@@ -98,10 +97,9 @@ export function statusRaw(status: string): string {
 }
 
 /**
- * Data de referência para o mês/ano da venda, conforme o status atual:
- * orçamento usa a data do orçamento, pedido a da aprovação do pedido,
- * faturado a do faturamento/emissão fiscal — assim uma venda aprovada
- * em julho (nascida como orçamento em maio) conta nas métricas de julho.
+ * Cada status tem sua própria data de referência: orçamento, aprovação do
+ * pedido, faturamento/emissão fiscal — assim uma venda aprovada em julho
+ * (nascida como orçamento em maio) conta nas métricas de julho.
  */
 export function referenceDate(
   status: string,

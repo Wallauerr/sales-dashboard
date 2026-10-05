@@ -84,9 +84,8 @@ CREATE TABLE IF NOT EXISTS vendedor_fotos (
 
 const SCHEMA_VERSION = 8
 
-// v7 -> v8: a foto deixou de vir da planilha (a extração do .xlsx saiu) e passa
-// a ser escolhida sempre em Configurações, então a coluna origem não tinha mais
-// o que distinguir.
+// v7 -> v8: com a extração do .xlsx removida a foto é sempre escolhida em
+// Configurações, então origem não tinha mais o que distinguir.
 function dropFotoOrigemColumn(db: DatabaseSync): void {
   const cols = db.prepare('PRAGMA table_info(vendedor_fotos)').all() as {
     name: string
@@ -450,8 +449,6 @@ export class SalesDatabase {
     return Number.isFinite(parsed) ? parsed : null
   }
 
-  // Foto escolhida em Configurações: a planilha não traz imagem de vendedor,
-  // então esta é a única forma de ter foto.
   setVendedorFoto(vendedor: string, mime: string, img: Uint8Array): void {
     this.db
       .prepare(
@@ -478,8 +475,6 @@ export class SalesDatabase {
     return row ? { mime: row.mime, img: row.img } : null
   }
 
-  // Sem os bytes: o renderer só precisa saber quem tem foto, o conteúdo vem
-  // pelo protocolo foto://.
   listVendedorFotos(): { vendedor: string }[] {
     const rows = this.db
       .prepare('SELECT vendedor FROM vendedor_fotos')

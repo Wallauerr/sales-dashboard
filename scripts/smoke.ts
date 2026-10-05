@@ -673,7 +673,6 @@ async function main(): Promise<void> {
   )
 
   console.log('\n— Foto escolhida em Configurações —')
-  // A planilha não traz imagem de vendedor: a foto vem sempre do disco.
   db.setVendedorFoto('Rosemeri', 'image/jpeg', Buffer.from([1, 2, 3, 4]))
   check(
     'foto gravada',

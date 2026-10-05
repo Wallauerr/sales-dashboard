@@ -1,15 +1,13 @@
 import { protocol } from 'electron'
 import type { SalesDatabase } from '../db/database.ts'
 
-// As fotos vivem como BLOB no banco, mas o CSP do renderer é `img-src 'self'` e
-// não aceita `data:`. Servir por um protocolo próprio deixa o CSP estrito e
-// ainda evita mandar todas as fotos em base64 pelo IPC a cada refresh: o
-// renderer só recebe `foto://img/<vendedor>`.
+// As fotos são BLOB no banco, mas o CSP do renderer é `img-src 'self'` e não
+// aceita `data:`. Um protocolo próprio mantém o CSP estrito e poupa o IPC de
+// mandar base64 a cada refresh.
 export const FOTO_SCHEME = 'foto'
 const FOTO_HOST = 'img'
 
-// Precisa rodar antes do app ficar ready, senão o Chromium jáNavigate sem
-// considerar o esquema privilegiado.
+// Antes do app ready, senão o Chromium ignora o esquema privilegiado.
 export function registerFotoSchemePrivileges(): void {
   protocol.registerSchemesAsPrivileged([
     {
@@ -33,7 +31,6 @@ export function registerFotoProtocol(db: SalesDatabase): void {
     return new Response(foto.img, {
       headers: {
         'content-type': foto.mime,
-        // Foto trocada em Configurações precisa aparecer sem reiniciar.
         'cache-control': 'no-cache',
       },
     })

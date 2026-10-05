@@ -55,8 +55,6 @@ export function App() {
   const [layoutResetKey, setLayoutResetKey] = useState(0)
   const maximized = useWindowMaximized()
   const [snap, setSnap] = useState<KpiSnapshot | null>(null)
-  // Quem tem foto: o conteúdo vem pelo protocolo foto://, então guardamos só
-  // o nome.
   const [fotos, setFotos] = useState<Set<string>>(new Set())
   const [vendedores, setVendedores] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)

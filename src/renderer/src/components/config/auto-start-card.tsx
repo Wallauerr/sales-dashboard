@@ -31,8 +31,6 @@ export function AutoStartCard() {
     }
   }, [])
 
-  // Fora do Windows não há autostart: escondemos o card em vez de mostrar um
-  // toggle que não faz nada.
   if (view && !view.supported) return null
 
   const toggle = async (next: boolean): Promise<void> => {

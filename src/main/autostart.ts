@@ -1,15 +1,12 @@
 import { app } from 'electron'
 
-// O TODO pede autostart no Windows. app.setLoginItemSettings no Linux exigiria
-// um .desktop em ~/.config/autostart (e em dev apontaria para o binário do
-// Electron, não para o app empacotado), então fora do Windows devolvemos false
-// e a UI esconde o toggle.
+// Só Windows: no Linux exigiria um .desktop em ~/.config/autostart, que em dev
+// apontaria para o binário do Electron em vez do app empacotado.
 export const AUTOSTART_SUPPORTED = process.platform === 'win32'
 
 export function isAutoStartEnabled(): boolean {
   if (!AUTOSTART_SUPPORTED) return false
-  // No Windows o registro é por executável, então o path precisa bater com o do
-  // app empacotado.
+  // O registro do Windows é por executável.
   return app.getLoginItemSettings({ path: process.execPath, args: [] })
     .openAtLogin
 }
