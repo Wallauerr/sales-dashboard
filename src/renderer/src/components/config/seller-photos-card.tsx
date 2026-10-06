@@ -61,7 +61,7 @@ export function SellerPhotosCard({
         <CardDescription>
           {vendedores.length === 0
             ? 'Nenhum vendedor encontrado — importe a planilha do SIGE.'
-            : `${comFoto} de ${vendedores.length} com foto. Escolha um arquivo do computador; os import do SIGE não alteram as fotos.`}
+            : `${comFoto} de ${vendedores.length} com foto. Escolha um arquivo do computador.`}
         </CardDescription>
       </CardHeader>
       <CardContent>
