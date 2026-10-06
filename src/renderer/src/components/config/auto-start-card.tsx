@@ -33,13 +33,13 @@ export function AutoStartCard() {
 
   if (view && !view.supported) return null
 
-  const toggle = async (next: boolean): Promise<void> => {
+  const toggle = async (): Promise<void> => {
     if (!window.api) return
     setBusy(true)
     setErr(null)
     setMsg(null)
     try {
-      const v = await window.api.setAutoStart(next)
+      const v = await window.api.setAutoStart(!view?.enabled)
       setView(v)
       setMsg(
         v.enabled
@@ -55,27 +55,25 @@ export function AutoStartCard() {
 
   return (
     <Card>
-      <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
-        <div>
-          <CardTitle>Abrir junto com o Windows</CardTitle>
-          <CardDescription>
-            Deixa o dashboard aberto automaticamente quando a TV é ligada.
-          </CardDescription>
-        </div>
+      <CardHeader>
+        <CardTitle>Abrir junto com o Windows</CardTitle>
+        <CardDescription>
+          Deixa o dashboard aberto automaticamente quando a TV é ligada.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col items-start gap-2">
         <Button
           type="button"
+          className="w-full"
           variant={view?.enabled ? 'secondary' : 'outline'}
           disabled={busy || !view?.supported}
-          onClick={() => void toggle(!view?.enabled)}
-          aria-pressed={view?.enabled ?? false}>
+          onClick={() => void toggle()}>
           {busy ? 'Salvando…' : view?.enabled ? 'Desativar' : 'Ativar'}
         </Button>
-      </CardHeader>
-      <CardContent>
         {err ? <p className="text-xs text-destructive">Erro: {err}</p> : null}
         {msg && !err ? <p className="text-xs text-primary">{msg}</p> : null}
         {err || msg ? (
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             O autostart é registrado pelo Windows na pasta “Inicializar”.
           </p>
         ) : null}
