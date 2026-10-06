@@ -25,6 +25,7 @@ import { TitleBar } from '@/components/title-bar'
 import { Button } from '@/components/ui/button'
 import {
   Card,
+  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -213,20 +214,22 @@ export function App() {
                     onRemover={removerFoto}
                   />
                   <Card>
-                    <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <CardTitle>Layout da dashboard</CardTitle>
-                        <CardDescription>
-                          Arraste os cartões pelo título e redimensione pelo
-                          canto; o layout fica salvo neste computador.
-                        </CardDescription>
-                      </div>
+                    <CardHeader>
+                      <CardTitle>Layout da dashboard</CardTitle>
+                      <CardDescription>
+                        Arraste os cartões pelo título e redimensione pelo
+                        canto; o layout fica salvo neste computador.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
                       <Button
+                        type="button"
                         variant="outline"
+                        className="w-full"
                         onClick={() => setLayoutResetKey(k => k + 1)}>
                         Restaurar padrão
                       </Button>
-                    </CardHeader>
+                    </CardContent>
                   </Card>
                 </TabsContent>
               </Tabs>
