@@ -80,12 +80,16 @@ CREATE TABLE IF NOT EXISTS vendedor_fotos (
   mime TEXT NOT NULL DEFAULT 'image/png',
   img BLOB NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS vendedor_desativado (
+  vendedor TEXT PRIMARY KEY
+);
 `
 
-const SCHEMA_VERSION = 8
+const SCHEMA_VERSION = 9
 
-// v7 -> v8: sem extração do .xlsx a foto é sempre manual, então origem não
-// tinha mais o que distinguir.
+// v8 -> v9: vendedor pode ser desativado (some do ranking/filtro) sem apagar as
+// vendas, que continuam contando nas métricas globais.
 function dropFotoOrigemColumn(db: DatabaseSync): void {
   const cols = db.prepare('PRAGMA table_info(vendedor_fotos)').all() as {
     name: string
@@ -485,12 +489,35 @@ export class SalesDatabase {
     const rows = this.db
       .prepare(
         `SELECT vendedor FROM vendas WHERE vendedor <> ''
+           AND vendedor NOT IN (SELECT vendedor FROM vendedor_desativado)
          UNION
          SELECT vendedor FROM vendedor_fotos
+           WHERE vendedor NOT IN (SELECT vendedor FROM vendedor_desativado)
          ORDER BY vendedor COLLATE NOCASE`,
       )
       .all() as unknown as { vendedor: string }[]
     return rows.map(r => r.vendedor).filter(v => v !== ROTULO_SEM_VENDEDOR)
+  }
+
+  listVendedoresDesativados(): string[] {
+    const rows = this.db
+      .prepare('SELECT vendedor FROM vendedor_desativado')
+      .all() as unknown as { vendedor: string }[]
+    return rows.map(r => r.vendedor)
+  }
+
+  setVendedorDesativado(vendedor: string, desativado: boolean): void {
+    if (desativado) {
+      this.db
+        .prepare(
+          'INSERT OR IGNORE INTO vendedor_desativado (vendedor) VALUES (?)',
+        )
+        .run(vendedor)
+    } else {
+      this.db
+        .prepare('DELETE FROM vendedor_desativado WHERE vendedor = ?')
+        .run(vendedor)
+    }
   }
 
   listAnos(): number[] {
