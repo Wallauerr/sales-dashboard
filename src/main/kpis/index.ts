@@ -65,7 +65,7 @@ function faturamentoClause(): { sql: string; params: string[] } {
 function escopo(
   ano: number,
   filtro: SnapshotFilter | null | undefined,
-  opts: { faturamento?: boolean; ativos?: boolean } = {},
+  opts: { faturamento?: boolean } = {},
 ): Escopo {
   const faturamento = opts.faturamento ?? true
   const where: string[] = ['ano = ?']
@@ -80,11 +80,14 @@ function escopo(
     params.push(filtro.mes)
   }
   if (filtro?.vendedor) {
-    where.push('vendedor = ?')
-    params.push(filtro.vendedor)
-  }
-  if (opts.ativos) {
-    where.push('vendedor NOT IN (SELECT vendedor FROM vendedor_desativado)')
+    if (filtro.vendedor === ROTULO_SEM_VENDEDOR) {
+      where.push(
+        `(vendedor = '' OR vendedor IN (SELECT vendedor FROM vendedor_desativado))`,
+      )
+    } else {
+      where.push('vendedor = ?')
+      params.push(filtro.vendedor)
+    }
   }
   return { where: `WHERE ${where.join(' AND ')}`, params }
 }
@@ -133,10 +136,17 @@ function somaPor(
   scope: Escopo,
 ): { chave: string; valor: number }[] {
   const campo = COLUNA_GRUPO[coluna]
+  const vendaSemNome =
+    coluna === 'vendedor'
+      ? `CASE WHEN ${campo} = '' THEN '${ROTULO_SEM_VENDEDOR}'
+              WHEN ${campo} IN (SELECT vendedor FROM vendedor_desativado)
+                THEN '${ROTULO_SEM_VENDEDOR}'
+              ELSE ${campo} END`
+      : campo
   return db.raw
     .prepare(
-      `SELECT ${campo} AS chave, SUM(valor_total) AS valor FROM vendas
-       ${scope.where} GROUP BY ${campo} ORDER BY valor DESC`,
+      `SELECT ${vendaSemNome} AS chave, SUM(valor_total) AS valor FROM vendas
+       ${scope.where} GROUP BY chave ORDER BY valor DESC`,
     )
     .all(...scope.params) as { chave: string; valor: number }[]
 }
@@ -345,7 +355,7 @@ export function getSnapshot(
     quantidadePorMes: quantidadePorMes(db, ano, filtro),
     porVendedor: porVendedor(
       db,
-      escopo(ano, { ...filtro, vendedor: null }, { ativos: true }),
+      escopo(ano, { ...filtro, vendedor: null }),
       totalAno,
     ),
     porEstado: porEstado(db, escopo(ano, filtro), totalAno),
