@@ -38,6 +38,7 @@ const api = {
   getFotos: () => ipcRenderer.invoke('fotos:list') as Promise<VendedorFoto[]>,
   listVendedores: () =>
     ipcRenderer.invoke('vendedores:list') as Promise<string[]>,
+  listAnos: () => ipcRenderer.invoke('anos:list') as Promise<number[]>,
   escolherFoto: (vendedor: string) =>
     ipcRenderer.invoke(
       'foto:escolher',

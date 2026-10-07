@@ -38,6 +38,8 @@ export function registerIpc(db: SalesDatabase): void {
 
   ipcMain.handle('vendedores:list', () => db.listVendedores())
 
+  ipcMain.handle('anos:list', () => db.listAnos())
+
   ipcMain.handle('foto:escolher', async (_event, vendedor: unknown) => {
     const nome = vendedorSchema.parse(vendedor)
     const owner = BrowserWindow.getFocusedWindow()
