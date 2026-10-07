@@ -222,6 +222,7 @@ async function main(): Promise<void> {
 
   const result = await importWorkbook(db, filePath)
   check('import inserted', result.inserted, ROWS.length)
+  check('anos distintos', db.listAnos(), [2025, 2026])
 
   const s = await getSnapshot(db, 2026)
   check('totalPeriodo 2026', s.totalPeriodo, 10000)
