@@ -547,6 +547,44 @@ async function main(): Promise<void> {
   })
   check('filtro mês+vendedor', sUrsulaFev.totalPeriodo, 4000)
 
+  console.log('\n— Vendedores desativados —')
+  check('lista de desativados começa vazia', db.listVendedoresDesativados(), [])
+  db.setVendedorDesativado('Bruno Keller', true)
+  db.setVendedorDesativado('Bruno Keller', true)
+  check('desativar é idempotente', db.listVendedoresDesativados(), [
+    'Bruno Keller',
+  ])
+  check(
+    'listVendedores esconde o desativado',
+    db.listVendedores().includes('Bruno Keller'),
+    false,
+  )
+  check(
+    'listVendedores mantém os demais',
+    db.listVendedores().includes('Ursula'),
+    true,
+  )
+  const sSemBruno = await getSnapshot(db, 2026)
+  check('totais seguem contando o desativado', sSemBruno.totalPeriodo, 10000)
+  check(
+    'ranking esconde o desativado',
+    sSemBruno.porVendedor.some(v => v.vendedor === 'Bruno Keller'),
+    false,
+  )
+  check(
+    'ranking mantém os demais',
+    sSemBruno.porVendedor.some(v => v.vendedor === 'Ursula'),
+    true,
+  )
+  db.setVendedorDesativado('Bruno Keller', false)
+  check(
+    'reativar devolve o vendedor ao ranking',
+    (await getSnapshot(db, 2026)).porVendedor.some(
+      v => v.vendedor === 'Bruno Keller',
+    ),
+    true,
+  )
+
   console.log('\n— Regra de faturamento (pedido aprovado S/F por categoria) —')
   const db3 = SalesDatabase.open(new DatabaseSync(':memory:'))
   const ruleRow = (
