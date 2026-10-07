@@ -65,7 +65,7 @@ function faturamentoClause(): { sql: string; params: string[] } {
 function escopo(
   ano: number,
   filtro: SnapshotFilter | null | undefined,
-  opts: { faturamento?: boolean } = {},
+  opts: { faturamento?: boolean; ativos?: boolean } = {},
 ): Escopo {
   const faturamento = opts.faturamento ?? true
   const where: string[] = ['ano = ?']
@@ -82,6 +82,9 @@ function escopo(
   if (filtro?.vendedor) {
     where.push('vendedor = ?')
     params.push(filtro.vendedor)
+  }
+  if (opts.ativos) {
+    where.push('vendedor NOT IN (SELECT vendedor FROM vendedor_desativado)')
   }
   return { where: `WHERE ${where.join(' AND ')}`, params }
 }
@@ -342,7 +345,7 @@ export function getSnapshot(
     quantidadePorMes: quantidadePorMes(db, ano, filtro),
     porVendedor: porVendedor(
       db,
-      escopo(ano, { ...filtro, vendedor: null }),
+      escopo(ano, { ...filtro, vendedor: null }, { ativos: true }),
       totalAno,
     ),
     porEstado: porEstado(db, escopo(ano, filtro), totalAno),
