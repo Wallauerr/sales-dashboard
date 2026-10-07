@@ -42,15 +42,19 @@
 12. ✅ Desativar vendedores sem perder métricas (10): tabela `vendedor_desativado` (schema v9). Quando um vendedor sai da empresa (ex.: Bruno), o comercial o desativa: o nome some do ranking e de `listVendedores`, mas as vendas dele **passam a contar como `VENDAS`** — o `somaPor` (`src/main/kpis/index.ts`) funde o desativado no mesmo balde dos pedidos sem vendedor, então dá pra filtrar por `VENDAS` (o `escopo` trata o label como `vendedor = '' OR vendedor IN (desativados)`) e o filtro do vendedor selecionado é limpo. Totais de faturamento/funil/ticket não mudam. Gestão + foto num card único em Configurações → Geral (`vendedores-card.tsx`); o popover de vendedores avisa quantos estão desativados.
 13. Multi-seleção de vendedores e meses (11).
 
-### Fase 4 — Polish/infra
+### Fase 4 — Migração para inglês
 
-14. Migrar `smoke.ts` para vitest (14) + testes da regra de faturamento.
-15. Ambientes `dev`, `prod` e `test` (base para e2e), usando Faker pt-BR para gerar os dados fictícios; avaliar usar o Faker também nos dados mock do app.
-16. Campos de meta formatados em BRL, com zod (00).
-17. Meta em % configurável (ano e meses), com seletor de unidade: hoje o `fator` já existe no banco (`fator:<ano>`, default `1.15`) mas `setFator` (`src/main/db/database.ts:376`) nunca é chamado, então o 115% está travado sem nenhum campo na UI. Expor o % do ano e dos 12 meses (base do mês em {ano-1} × %) com **seletor único por ano** entre `%` e valor fixo em R$ — nada de misturar unidade: o ano é todo % ou todo R$. O vazio continua sendo automático, sem chave extra para isso. % uniforme no ano equivale a distribuir pela participação de cada mês no ano anterior, então ano e mês em % não se contradizem e a meta anual continua sendo a soma dos 12 meses (`src/main/kpis/index.ts:314`). Mesmo trabalho do item 16: os inputs de meta mudam de outra vez.
-18. Fundo no gráfico de acumulado anual × meta (8).
-19. Releases versionadas no GitHub / auto-update (13).
+14. Refac geral do projeto para **inglês no código**: o padrão hoje é pt-br em identificadores/nomes misturado com inglês (shadcn, `db.raw`, `WHERE ...` no SQL), ex.: `somaPor`, `escopo`, `faturamentoClause`, `funilPorMes`, `vendas:list`, `vendas`/`mesesPor` — converter funções, tipos, variáveis, arquivos/módulos e canais de IPC para inglês (`sumBy`, `scope`, `billingClause`, `funnelPerMonth`, `sales:list`...). **Só as strings de UI ficam em pt-BR** (o comercial é brasileiro). O banco (`vendas`, `ano`, `mes`, colunas) não muda — schema é dado, não código.
+
+### Fase 5 — Polish/infra
+
+15. Migrar `smoke.ts` para vitest (14) + testes da regra de faturamento.
+16. Ambientes `dev`, `prod` e `test` (base para e2e), usando Faker pt-BR para gerar os dados fictícios; avaliar usar o Faker também nos dados mock do app.
+17. Campos de meta formatados em BRL, com zod (00).
+18. Meta em % configurável (ano e meses), com seletor de unidade: hoje o `fator` já existe no banco (`fator:<ano>`, default `1.15`) mas `setFator` (`src/main/db/database.ts:376`) nunca é chamado, então o 115% está travado sem nenhum campo na UI. Expor o % do ano e dos 12 meses (base do mês em {ano-1} × %) com **seletor único por ano** entre `%` e valor fixo em R$ — nada de misturar unidade: o ano é todo % ou todo R$. O vazio continua sendo automático, sem chave extra para isso. % uniforme no ano equivale a distribuir pela participação de cada mês no ano anterior, então ano e mês em % não se contradizem e a meta anual continua sendo a soma dos 12 meses (`src/main/kpis/index.ts:314`). Mesmo trabalho do item 17: os inputs de meta mudam de outra vez.
+19. Fundo no gráfico de acumulado anual × meta (8).
+20. Releases versionadas no GitHub / auto-update (13).
 
 ### Quick win
 
-20. Cursor pointer no modal de ajustes: botão X do `ui/dialog.tsx` (nunca foi coberto pelos commits de cursor). Ver também o overlay.
+21. Cursor pointer no modal de ajustes: botão X do `ui/dialog.tsx` (nunca foi coberto pelos commits de cursor). Ver também o overlay.
