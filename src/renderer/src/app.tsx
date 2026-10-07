@@ -201,7 +201,7 @@ export function App() {
           />
 
           <Dialog open={metasOpen} onOpenChange={setMetasOpen}>
-            <DialogContent className="flex max-h-[85vh] flex-col gap-3 overflow-hidden sm:max-w-3xl">
+            <DialogContent className="flex max-h-[85vh] flex-col gap-3 overflow-hidden sm:max-w-5xl">
               <DialogHeader>
                 <DialogTitle>Configurações</DialogTitle>
                 <DialogDescription>
