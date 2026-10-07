@@ -492,4 +492,13 @@ export class SalesDatabase {
       .all() as unknown as { vendedor: string }[]
     return rows.map(r => r.vendedor).filter(v => v !== ROTULO_SEM_VENDEDOR)
   }
+
+  listAnos(): number[] {
+    const rows = this.db
+      .prepare(
+        'SELECT DISTINCT ano FROM vendas WHERE ano IS NOT NULL ORDER BY ano',
+      )
+      .all() as unknown as { ano: number }[]
+    return rows.map(r => Number(r.ano)).filter(a => Number.isFinite(a))
+  }
 }
