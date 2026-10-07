@@ -38,6 +38,14 @@ const api = {
   getFotos: () => ipcRenderer.invoke('fotos:list') as Promise<VendedorFoto[]>,
   listVendedores: () =>
     ipcRenderer.invoke('vendedores:list') as Promise<string[]>,
+  listVendedoresDesativados: () =>
+    ipcRenderer.invoke('vendedores:desativados') as Promise<string[]>,
+  setVendedorDesativado: (vendedor: string, desativado: boolean) =>
+    ipcRenderer.invoke(
+      'vendedor:set-desativado',
+      vendedor,
+      desativado,
+    ) as Promise<void>,
   listAnos: () => ipcRenderer.invoke('anos:list') as Promise<number[]>,
   escolherFoto: (vendedor: string) =>
     ipcRenderer.invoke(
