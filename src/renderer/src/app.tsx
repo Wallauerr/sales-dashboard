@@ -14,7 +14,6 @@ import {
 } from '@/components/charts/region-donut'
 import { AutoStartCard } from '@/components/config/auto-start-card'
 import { ConfigTab } from '@/components/config/config-tab'
-import { SellerPhotosCard } from '@/components/config/seller-photos-card'
 import { VendedoresCard } from '@/components/config/vendedores-card'
 import { DashboardGrid } from '@/components/dashboard-grid'
 import { DashboardHeader } from '@/components/dashboard-header'
@@ -233,13 +232,10 @@ export function App() {
                   <VendedoresCard
                     ativos={vendedores}
                     desativados={desativados}
-                    onToggle={alternarVendedor}
-                  />
-                  <SellerPhotosCard
-                    vendedores={vendedores}
                     fotos={fotos}
                     onEscolher={escolherFoto}
                     onRemover={removerFoto}
+                    onToggle={alternarVendedor}
                   />
                   <Card>
                     <CardHeader>
