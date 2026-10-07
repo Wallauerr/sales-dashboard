@@ -24,6 +24,7 @@ interface Props {
   fotos: Set<string>
   selected: string | null
   onSelect: (vendedor: string | null) => void
+  desativados: number
 }
 
 function initials(name: string): string {
@@ -41,6 +42,7 @@ export function SellerCards({
   fotos,
   selected,
   onSelect,
+  desativados,
 }: Props) {
   const [open, setOpen] = useState(false)
 
@@ -112,6 +114,15 @@ export function SellerCards({
             )
           })}
         </div>
+        {desativados > 0 ? (
+          <p className="px-2 py-1.5 text-[11px] text-muted-foreground">
+            {desativados}{' '}
+            {desativados === 1
+              ? 'vendedor desativado'
+              : 'vendedores desativados'}{' '}
+            — gerencie em Configurações → Geral.
+          </p>
+        ) : null}
       </PopoverContent>
     </Popover>
   )

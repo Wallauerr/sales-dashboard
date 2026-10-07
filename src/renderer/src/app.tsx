@@ -15,6 +15,7 @@ import {
 import { AutoStartCard } from '@/components/config/auto-start-card'
 import { ConfigTab } from '@/components/config/config-tab'
 import { SellerPhotosCard } from '@/components/config/seller-photos-card'
+import { VendedoresCard } from '@/components/config/vendedores-card'
 import { DashboardGrid } from '@/components/dashboard-grid'
 import { DashboardHeader } from '@/components/dashboard-header'
 import { HistoryTab } from '@/components/history/history-tab'
@@ -59,6 +60,7 @@ export function App() {
   const [snap, setSnap] = useState<KpiSnapshot | null>(null)
   const [fotos, setFotos] = useState<Set<string>>(new Set())
   const [vendedores, setVendedores] = useState<string[]>([])
+  const [desativados, setDesativados] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const [importMsg, setImportMsg] = useState<string | null>(null)
@@ -90,12 +92,14 @@ export function App() {
   const loadFotos = useCallback(async () => {
     if (!api) return
     try {
-      const [lista, nomes] = await Promise.all([
+      const [lista, nomes, desat] = await Promise.all([
         api.getFotos(),
         api.listVendedores(),
+        api.listVendedoresDesativados(),
       ])
       setFotos(new Set(lista.map(f => f.vendedor)))
       setVendedores(nomes)
+      setDesativados(desat)
     } catch {}
   }, [])
 
@@ -103,6 +107,16 @@ export function App() {
     void load()
     void loadFotos()
   }, [load, loadFotos])
+
+  const alternarVendedor = async (
+    nome: string,
+    desativar: boolean,
+  ): Promise<void> => {
+    if (!api) return
+    await api.setVendedorDesativado(nome, desativar)
+    if (desativar && nome === vendedor) setVendedor(null)
+    setReload(k => k + 1)
+  }
 
   const escolherFoto = async (vendedor: string): Promise<void> => {
     if (!api) return
@@ -216,6 +230,11 @@ export function App() {
                   value="geral"
                   className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
                   <AutoStartCard />
+                  <VendedoresCard
+                    ativos={vendedores}
+                    desativados={desativados}
+                    onToggle={alternarVendedor}
+                  />
                   <SellerPhotosCard
                     vendedores={vendedores}
                     fotos={fotos}
@@ -270,6 +289,7 @@ export function App() {
                   fotos={fotos}
                   selected={vendedor}
                   onSelect={setVendedor}
+                  desativados={desativados.length}
                 />
               ) : null}
             </div>
