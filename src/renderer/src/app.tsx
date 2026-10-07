@@ -263,13 +263,15 @@ export function App() {
                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                 <TabsTrigger value="historico">Histórico</TabsTrigger>
               </TabsList>
-              <SellerCards
-                ano={ano}
-                vendedores={snap?.porVendedor ?? []}
-                fotos={fotos}
-                selected={vendedor}
-                onSelect={setVendedor}
-              />
+              {view === 'dashboard' ? (
+                <SellerCards
+                  ano={ano}
+                  vendedores={snap?.porVendedor ?? []}
+                  fotos={fotos}
+                  selected={vendedor}
+                  onSelect={setVendedor}
+                />
+              ) : null}
             </div>
             <TabsContent value="dashboard" className="flex flex-col gap-3">
               {!snap ? (
