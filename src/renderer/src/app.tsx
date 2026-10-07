@@ -48,7 +48,8 @@ import type { KpiSnapshot, Mes } from '../../shared/types'
 import { MESES } from '../../shared/types'
 
 export function App() {
-  const [ano, setAno] = useState(2026)
+  const [ano, setAno] = useState(() => new Date().getFullYear())
+  const [anos, setAnos] = useState<number[]>([])
   const [mes, setMes] = useState<Mes | 'todos'>('todos')
   const [vendedor, setVendedor] = useState<string | null>(null)
   const [view, setView] = useState<'dashboard' | 'historico'>('dashboard')
@@ -69,10 +70,17 @@ export function App() {
     if (!api) return
     setError(null)
     try {
-      const s = await api.getSnapshot(ano, {
-        mes: mes === 'todos' ? null : mes,
-        vendedor,
-      })
+      const [s, listaAnos] = await Promise.all([
+        api.getSnapshot(ano, {
+          mes: mes === 'todos' ? null : mes,
+          vendedor,
+        }),
+        api.listAnos(),
+      ])
+      setAnos(listaAnos)
+      if (listaAnos.length > 0 && !listaAnos.includes(ano)) {
+        setAno(Math.max(...listaAnos))
+      }
       setSnap(s)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -176,6 +184,7 @@ export function App() {
             importing={importing}
             onImport={() => void handleImport()}
             onOpenMetas={() => setMetasOpen(true)}
+            anos={anos}
           />
 
           <Dialog open={metasOpen} onOpenChange={setMetasOpen}>

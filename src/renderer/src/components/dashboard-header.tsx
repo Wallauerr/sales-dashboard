@@ -17,8 +17,6 @@ import type { Mes } from '../../../shared/types'
 import { MESES } from '../../../shared/types'
 import { ThemeToggle } from './theme-toggle'
 
-const ANOS = [2024, 2025, 2026]
-
 export function DashboardHeader({
   ano,
   onAno,
@@ -28,6 +26,7 @@ export function DashboardHeader({
   importing,
   onImport,
   onOpenMetas,
+  anos,
 }: {
   ano: number
   onAno: (v: number) => void
@@ -37,6 +36,7 @@ export function DashboardHeader({
   importing: boolean
   onImport: () => void
   onOpenMetas: () => void
+  anos: number[]
 }) {
   const mesAtivo = mes !== 'todos'
   return (
@@ -54,7 +54,7 @@ export function DashboardHeader({
       </div>
       <div className="no-print flex flex-wrap items-center gap-2">
         <div className="flex rounded-lg border bg-muted p-0.5">
-          {ANOS.map(a => (
+          {anos.map(a => (
             <button
               key={a}
               type="button"
