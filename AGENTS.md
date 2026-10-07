@@ -37,7 +37,7 @@
 
 ### Fase 3 — Filtros
 
-10. Anos dinâmicos (1): hoje `[2024, 2025, 2026]` hardcoded; 2022 e 2023 já ficam de fora.
+10. ✅ Anos dinâmicos (1): os anos do selector vêm de `SELECT DISTINCT ano FROM vendas ORDER BY ano` (`listAnos` em `src/main/db/database.ts`, exposto por `anos:list`), então 2022/2023 aparecem sozinhos. O ano padrão é o atual (`new Date().getFullYear()`) e, se ele não existir no banco, o app cai para o ano mais recente. Lista vazia (instalação nova) deixa o selector sem nenhum ano.
 11. Esconder vendedores no filtro da aba histórico (9).
 12. Desativar vendedores sem perder métricas (10) — ex.: "Sul Magnéticos ... Eireli" (R$ 7,9M).
 13. Multi-seleção de vendedores e meses (11).
