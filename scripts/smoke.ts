@@ -19,6 +19,7 @@ import {
   telaDoPonto,
   telaDosBounds,
 } from '../src/main/window-maximize.ts'
+import { ROTULO_SEM_VENDEDOR } from '../src/shared/types.ts'
 
 const HEADERS = [
   'Código',
@@ -572,8 +573,17 @@ async function main(): Promise<void> {
     false,
   )
   check(
-    'ranking mantém os demais',
-    sSemBruno.porVendedor.some(v => v.vendedor === 'Ursula'),
+    'desativado engorda o VENDAS',
+    sSemBruno.porVendedor.find(v => v.vendedor === ROTULO_SEM_VENDEDOR)?.valor,
+    1000,
+  )
+  const sVendas = await getSnapshot(db, 2026, {
+    vendedor: ROTULO_SEM_VENDEDOR,
+  })
+  check('filtro VENDAS pega o desativado', sVendas.totalPeriodo, 1000)
+  check(
+    'filtro VENDAS mantém o ranking completo',
+    sVendas.porVendedor.some(v => v.vendedor === 'Ursula'),
     true,
   )
   db.setVendedorDesativado('Bruno Keller', false)
