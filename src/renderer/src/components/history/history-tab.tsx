@@ -49,11 +49,11 @@ function StatusBadge({ status }: { status: string }) {
 export function HistoryTab({
   reloadKey,
   ano,
-  mes,
+  meses,
 }: {
   reloadKey: number
   ano: number
-  mes: Mes | 'todos'
+  meses: Mes[]
 }) {
   const [imports, setImports] = useState<ImportRecord[]>([])
   const [loadingImports, setLoadingImports] = useState(true)
@@ -68,10 +68,10 @@ export function HistoryTab({
     const year = `${ano}-`
     return imports.filter(i => {
       if (!i.importedAt.startsWith(year)) return false
-      if (mes === 'todos') return true
-      return i.importedAt.slice(5, 7) === MES_NUM[mes]
+      if (meses.length === 0) return true
+      return meses.some(m => i.importedAt.slice(5, 7) === MES_NUM[m])
     })
-  }, [imports, ano, mes])
+  }, [imports, ano, meses])
 
   const loadImports = useCallback(async () => {
     if (!window.api) return
@@ -117,13 +117,12 @@ export function HistoryTab({
       <Card>
         <CardHeader className="flex-row items-center justify-between gap-3">
           <CardTitle>Importações realizadas</CardTitle>
-          {mes === 'todos' ? (
-            <span className="text-xs text-muted-foreground">só de {ano}</span>
-          ) : (
-            <span className="text-xs text-muted-foreground">
-              só de {MES_LABEL[mes]}/{ano}
-            </span>
-          )}
+          <span className="text-xs text-muted-foreground">
+            só de{' '}
+            {meses.length === 0
+              ? ano
+              : meses.map(m => `${MES_LABEL[m]}/${ano}`).join(' · ')}
+          </span>
         </CardHeader>
         <CardContent>
           {err ? (
