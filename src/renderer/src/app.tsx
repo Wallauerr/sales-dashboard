@@ -47,11 +47,22 @@ import { cn } from '@/lib/utils'
 import type { KpiSnapshot, Mes } from '../../shared/types'
 import { MESES } from '../../shared/types'
 
+function proximoMesFunil(meses: Mes[], snap: KpiSnapshot): number {
+  if (meses.length > 0) {
+    const i = MESES.findLastIndex(
+      (m, j) => meses.includes(m) && snap.funilPorMes[j].total > 0,
+    )
+    return i === -1 ? MESES.findLastIndex(m => meses.includes(m)) : i
+  }
+  const i = MESES.findLastIndex((_m, j) => snap.funilPorMes[j].total > 0)
+  return i === -1 ? 11 : i
+}
+
 export function App() {
   const [ano, setAno] = useState(() => new Date().getFullYear())
   const [anos, setAnos] = useState<number[]>([])
-  const [mes, setMes] = useState<Mes | 'todos'>('todos')
-  const [vendedor, setVendedor] = useState<string | null>(null)
+  const [meses, setMeses] = useState<Mes[]>([])
+  const [vendSel, setVendSel] = useState<string[]>([])
   const [view, setView] = useState<'dashboard' | 'historico'>('dashboard')
   const [metasOpen, setMetasOpen] = useState(false)
   const [layoutResetKey, setLayoutResetKey] = useState(0)
@@ -73,8 +84,8 @@ export function App() {
     try {
       const [s, listaAnos] = await Promise.all([
         api.getSnapshot(ano, {
-          mes: mes === 'todos' ? null : mes,
-          vendedor,
+          meses: meses.length ? meses : null,
+          vendedores: vendSel.length ? vendSel : null,
         }),
         api.listAnos(),
       ])
@@ -86,7 +97,7 @@ export function App() {
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     }
-  }, [ano, mes, vendedor])
+  }, [ano, meses, vendSel])
 
   const loadFotos = useCallback(async () => {
     if (!api) return
@@ -113,7 +124,9 @@ export function App() {
   ): Promise<void> => {
     if (!api) return
     await api.setVendedorDesativado(nome, desativar)
-    if (desativar && nome === vendedor) setVendedor(null)
+    if (desativar) {
+      setVendSel(prev => prev.filter(x => x !== nome))
+    }
     setReload(k => k + 1)
   }
 
@@ -132,6 +145,18 @@ export function App() {
       next.delete(vendedor)
       return next
     })
+  }
+
+  const alternarMes = (m: Mes): void => {
+    setMeses(prev =>
+      prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m],
+    )
+  }
+
+  const alternarVend = (nome: string): void => {
+    setVendSel(prev =>
+      prev.includes(nome) ? prev.filter(x => x !== nome) : [...prev, nome],
+    )
   }
 
   useEffect(() => {
@@ -172,8 +197,14 @@ export function App() {
     )
   }
 
-  const mesAtivo = mes !== 'todos'
-  const { kpis, kgrid } = buildKpis({ ano, mes, vendedor, snap })
+  const mesAtivo = meses.length > 0
+  const vendTitulo =
+    vendSel.length === 1
+      ? vendSel[0]
+      : vendSel.length > 1
+        ? `${vendSel.length} vendedores`
+        : null
+  const { kpis, kgrid } = buildKpis({ ano, meses, vendedores: vendSel, snap })
 
   return (
     <div
@@ -191,8 +222,9 @@ export function App() {
           <DashboardHeader
             ano={ano}
             onAno={setAno}
-            mes={mes}
-            onMes={setMes}
+            meses={meses}
+            onMes={alternarMes}
+            onClearMeses={() => setMeses([])}
             view={view}
             importing={importing}
             onImport={() => void handleImport()}
@@ -283,8 +315,9 @@ export function App() {
                   ano={ano}
                   vendedores={snap?.porVendedor ?? []}
                   fotos={fotos}
-                  selected={vendedor}
-                  onSelect={setVendedor}
+                  selected={vendSel}
+                  onSelect={alternarVend}
+                  onClear={() => setVendSel([])}
                   desativados={desativados.length}
                 />
               ) : null}
@@ -298,13 +331,17 @@ export function App() {
               ) : (
                 <div className="flex flex-col gap-3">
                   <ActiveFilters
-                    mes={mes}
-                    vendedor={vendedor}
-                    onClearMes={() => setMes('todos')}
-                    onClearVendedor={() => setVendedor(null)}
+                    meses={meses}
+                    vendedores={vendSel}
+                    onClearMes={m =>
+                      setMeses(prev => prev.filter(x => x !== m))
+                    }
+                    onClearVendedor={n =>
+                      setVendSel(prev => prev.filter(x => x !== n))
+                    }
                     onClearAll={() => {
-                      setMes('todos')
-                      setVendedor(null)
+                      setMeses([])
+                      setVendSel([])
                     }}
                   />
 
@@ -325,8 +362,8 @@ export function App() {
                         key="fat-mensal"
                         headerClassName="card-drag-handle cursor-move"
                         title={
-                          vendedor
-                            ? `Faturamento mensal — ${vendedor}`
+                          vendTitulo
+                            ? `Faturamento mensal — ${vendTitulo}`
                             : 'Faturamento mensal × meta'
                         }
                         contentClassName="flex flex-col gap-2">
@@ -339,7 +376,7 @@ export function App() {
                               color: chartColor(1),
                               values: MESES.map(m => snap.faturamentoPorMes[m]),
                             },
-                            ...(!vendedor
+                            ...(!vendTitulo
                               ? [
                                   {
                                     name: 'Meta',
@@ -352,7 +389,7 @@ export function App() {
                                 ]
                               : []),
                           ]}
-                          onClick={i => setMes(MESES[i])}
+                          onClick={i => alternarMes(MESES[i])}
                         />
                       </ChartCard>
                     ) : null}
@@ -362,14 +399,14 @@ export function App() {
                         key="acumulado"
                         headerClassName="card-drag-handle cursor-move"
                         title={
-                          vendedor
-                            ? `Acumulado ${ano} — ${vendedor}`
+                          vendTitulo
+                            ? `Acumulado ${ano} — ${vendTitulo}`
                             : 'Acumulado anual × meta'
                         }>
                         <AccumulatedLine
                           labels={MESES.map(m => MES_LABEL[m])}
                           values={MESES.map(m => snap.acumuladoPorMes[m])}
-                          target={vendedor ? undefined : snap.metaAnual}
+                          target={vendTitulo ? undefined : snap.metaAnual}
                         />
                       </ChartCard>
                     ) : null}
@@ -409,16 +446,7 @@ export function App() {
                       headerClassName="card-drag-handle cursor-move"
                       title="Funil de vendas">
                       <HorizontalBars
-                        data={funnelItems(
-                          MESES.indexOf(
-                            mes === 'todos'
-                              ? (MESES.findLast(
-                                  (_m, i) => snap.funilPorMes[i].total > 0,
-                                ) ?? 'dez')
-                              : mes,
-                          ),
-                          snap,
-                        )}
+                        data={funnelItems(proximoMesFunil(meses, snap), snap)}
                         showValue
                         valueFormat={int}
                       />
@@ -514,7 +542,7 @@ export function App() {
               )}
             </TabsContent>
             <TabsContent value="historico">
-              <HistoryTab reloadKey={reload} ano={ano} mes={mes} />
+              <HistoryTab reloadKey={reload} ano={ano} meses={meses} />
             </TabsContent>
           </Tabs>
         </main>
