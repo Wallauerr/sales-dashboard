@@ -11,19 +11,31 @@ function variacao(atual: number, anterior: number): string | null {
   return `${v >= 0 ? '+' : '-'}${pct(Math.abs(v))}`
 }
 
+function periodoLabel(meses: Mes[]): string {
+  if (meses.length === 1) return MES_LABEL[meses[0]]
+  if (meses.length <= 3) return meses.map(m => MES_LABEL[m]).join('·')
+  return `${meses.length} meses`
+}
+
+function vendNome(vendedores: string[]): string {
+  if (vendedores.length === 1) return vendedores[0]
+  return `${vendedores.length} vendedores`
+}
+
 export function buildKpis({
   ano,
-  mes,
-  vendedor,
+  meses,
+  vendedores,
   snap,
 }: {
   ano: number
-  mes: Mes | 'todos'
-  vendedor: string | null
+  meses: Mes[]
+  vendedores: string[]
   snap: KpiSnapshot | null
 }): { kpis: KpiDef[]; kgrid: string } {
-  const mesAtivo = mes !== 'todos'
-  const kgrid = vendedor
+  const mesAtivo = meses.length > 0
+  const vendedorFiltro = vendedores.length > 0
+  const kgrid = vendedorFiltro
     ? 'lg:grid-cols-3'
     : mesAtivo
       ? 'lg:grid-cols-6'
@@ -32,22 +44,28 @@ export function buildKpis({
   const kpis: KpiDef[] = []
   if (!snap) return { kpis, kgrid }
 
-  const mesIndex = mesAtivo ? MESES.indexOf(mes as Mes) : -1
-  const metaMes = mesAtivo ? snap.metasPorMes[mesIndex].meta : 0
-  const faturamentoMes = mesAtivo ? snap.faturamentoPorMes[mes as Mes] : 0
+  const mesLabel = periodoLabel(meses)
+  const vendLabel = vendNome(vendedores)
+  const mesIndexes = meses.map(m => MESES.indexOf(m))
+  const metaPeriodo = mesAtivo
+    ? mesIndexes.reduce((acc, i) => acc + snap.metasPorMes[i].meta, 0)
+    : 0
   const metaPct =
-    !vendedor && !mesAtivo && snap.metaAnual > 0
+    !vendedorFiltro && !mesAtivo && snap.metaAnual > 0
       ? snap.totalPeriodo / snap.metaAnual
       : 0
-  const metaMesPct =
-    mesAtivo && metaMes > 0 ? (faturamentoMes ?? 0) / metaMes : 0
+  const metaPeriodoPct =
+    mesAtivo && !vendedorFiltro && metaPeriodo > 0
+      ? snap.totalPeriodo / metaPeriodo
+      : 0
   const restanteAno = snap.restanteAnoPorMes.dez
-  const restanteMes = mesAtivo
-    ? Math.max(metaMes - (faturamentoMes ?? 0), 0)
-    : 0
+  const restanteMes =
+    mesAtivo && !vendedorFiltro
+      ? Math.max(metaPeriodo - snap.totalPeriodo, 0)
+      : 0
 
   const totalQtd = mesAtivo
-    ? snap.quantidadePorMes[mes as Mes]
+    ? mesIndexes.reduce((acc, i) => acc + snap.quantidadePorMes[MESES[i]], 0)
     : MESES.reduce((acc, m) => acc + snap.quantidadePorMes[m], 0)
 
   const mesesComDados = (() => {
@@ -58,39 +76,47 @@ export function buildKpis({
   })()
 
   const runRate =
-    !mesAtivo && !vendedor && snap.totalPeriodo > 0 && mesesComDados > 0
+    !mesAtivo && !vendedorFiltro && snap.totalPeriodo > 0 && mesesComDados > 0
       ? {
           projection: (snap.totalPeriodo / mesesComDados) * 12,
           elapsed: mesesComDados,
         }
       : null
 
-  const quantHint = vendedor
+  const quantHint = vendedorFiltro
     ? mesAtivo
-      ? `vendas de ${vendedor} em ${MES_LABEL[mes as Mes]}`
-      : `vendas de ${vendedor}`
+      ? `vendas de ${vendLabel} em ${mesLabel}`
+      : `vendas de ${vendLabel}`
     : mesAtivo
-      ? `vendas em ${MES_LABEL[mes as Mes]}`
+      ? `vendas em ${mesLabel}`
       : 'vendas no ano'
 
   const prevAno = ano - 1
-  const prevPeriodo = MESES.slice(0, mesesComDados).reduce(
-    (acc, _m, i) => acc + snap.metasPorMes[i].faturamentoAnoAnterior,
-    0,
-  )
-  const shareVendedor = vendedor
-    ? snap.porVendedor.find(v => v.vendedor === vendedor)?.share
-    : undefined
+  const prevPeriodo =
+    mesAtivo && !vendedorFiltro
+      ? mesIndexes.reduce(
+          (acc, i) => acc + snap.metasPorMes[i].faturamentoAnoAnterior,
+          0,
+        )
+      : MESES.slice(0, mesesComDados).reduce(
+          (acc, _m, i) => acc + snap.metasPorMes[i].faturamentoAnoAnterior,
+          0,
+        )
+  const shareVendedores =
+    vendedorFiltro && snap.porVendedor.length > 0
+      ? snap.porVendedor
+          .filter(v => vendedores.includes(v.vendedor))
+          .reduce((acc, v) => acc + v.share, 0)
+      : undefined
   const faturamentoHint = (() => {
-    if (vendedor) {
-      return shareVendedor === undefined
+    if (vendedorFiltro) {
+      return shareVendedores === undefined
         ? undefined
-        : `part. ${pct(shareVendedor)} do ${mesAtivo ? MES_LABEL[mes as Mes] : ano}`
+        : `part. ${pct(shareVendedores)} do ${mesAtivo ? mesLabel : ano}`
     }
     if (mesAtivo) {
-      const prevMes = snap.metasPorMes[mesIndex].faturamentoAnoAnterior
-      const delta = variacao(faturamentoMes, prevMes)
-      return `${MES_LABEL[mes as Mes]} ${prevAno}: ${brlCompact(prevMes)}${delta ? ` · ${delta}` : ''}`
+      const delta = variacao(snap.totalPeriodo, prevPeriodo)
+      return `${mesLabel} ${prevAno}: ${brlCompact(prevPeriodo)}${delta ? ` · ${delta}` : ''}`
     }
     const periodo =
       mesesComDados > 0 && mesesComDados < 12
@@ -101,21 +127,21 @@ export function buildKpis({
   })()
 
   kpis.push({
-    title: vendedor
-      ? `Faturamento ${vendedor}${mesAtivo ? ` · ${MES_LABEL[mes as Mes]}` : ''}`
+    title: vendedorFiltro
+      ? `Faturamento ${vendLabel}${mesAtivo ? ` · ${mesLabel}` : ''}`
       : mesAtivo
-        ? `Faturamento ${MES_LABEL[mes as Mes]} ${ano}`
+        ? `Faturamento ${mesLabel} ${ano}`
         : `Faturamento ${ano}`,
     value: brl0(snap.totalPeriodo),
     hint: faturamentoHint,
   })
-  if (!vendedor) {
+  if (!vendedorFiltro) {
     kpis.push(
       mesAtivo
         ? {
-            title: `Meta ${MES_LABEL[mes as Mes]}`,
-            value: brl0(metaMes),
-            hint: 'meta do mês (empresa)',
+            title: `Meta ${mesLabel}`,
+            value: brl0(metaPeriodo),
+            hint: 'meta do período (empresa)',
           }
         : {
             title: 'Meta anual',
@@ -124,11 +150,11 @@ export function buildKpis({
           },
       {
         title: '% da meta',
-        value: pct(mesAtivo ? metaMesPct : metaPct),
-        hint: mesAtivo ? 'realizado do mês ÷ meta' : 'realizado ÷ meta',
+        value: pct(mesAtivo ? metaPeriodoPct : metaPct),
+        hint: mesAtivo ? 'realizado do período ÷ meta' : 'realizado ÷ meta',
       },
       {
-        title: mesAtivo ? 'Restante p/ meta do mês' : 'Restante p/ meta',
+        title: mesAtivo ? 'Restante p/ meta do período' : 'Restante p/ meta',
         value: mesAtivo
           ? restanteMes > 0
             ? brl0(restanteMes)
@@ -138,7 +164,7 @@ export function buildKpis({
             : '—',
         hint: mesAtivo
           ? restanteMes > 0
-            ? 'no mês'
+            ? 'no período'
             : 'meta atingida'
           : restanteAno > 0
             ? 'no acumulado de dez'
