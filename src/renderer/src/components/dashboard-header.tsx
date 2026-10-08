@@ -7,8 +7,10 @@ import {
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MES_LABEL } from '@/lib/labels'
@@ -20,8 +22,9 @@ import { ThemeToggle } from './theme-toggle'
 export function DashboardHeader({
   ano,
   onAno,
-  mes,
+  meses,
   onMes,
+  onClearMeses,
   view,
   importing,
   onImport,
@@ -30,15 +33,21 @@ export function DashboardHeader({
 }: {
   ano: number
   onAno: (v: number) => void
-  mes: Mes | 'todos'
-  onMes: (v: Mes | 'todos') => void
+  meses: Mes[]
+  onMes: (m: Mes) => void
+  onClearMeses: () => void
   view: 'dashboard' | 'historico'
   importing: boolean
   onImport: () => void
   onOpenMetas: () => void
   anos: number[]
 }) {
-  const mesAtivo = mes !== 'todos'
+  const selTxt =
+    meses.length === 0
+      ? 'Todos os meses'
+      : meses.length === 1
+        ? MES_LABEL[meses[0]]
+        : `${meses.length} meses`
   return (
     <header className="flex flex-wrap items-center justify-between gap-4">
       <div>
@@ -74,25 +83,32 @@ export function DashboardHeader({
             <Button
               variant="outline"
               className="h-9 w-36 justify-between gap-2 px-3 text-sm font-normal">
-              {mesAtivo ? MES_LABEL[mes as Mes] : 'Todos os meses'}
+              {selTxt}
               <ChevronDownIcon className="size-4 opacity-50" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-36">
+          <DropdownMenuContent align="end" className="w-40">
             <DropdownMenuItem
-              onSelect={() => onMes('todos')}
+              onSelect={onClearMeses}
               className="justify-between">
               Todos os meses
-              {!mesAtivo ? <CheckIcon className="size-4" /> : null}
+              {meses.length === 0 ? (
+                <span className="size-4 text-primary">
+                  <CheckIcon className="size-4" />
+                </span>
+              ) : null}
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
             {MESES.map(m => (
-              <DropdownMenuItem
+              <DropdownMenuCheckboxItem
                 key={m}
-                onSelect={() => onMes(m)}
-                className="justify-between">
+                checked={meses.includes(m)}
+                onSelect={e => {
+                  e.preventDefault()
+                  onMes(m)
+                }}>
                 {MES_LABEL[m]}
-                {mes === m ? <CheckIcon className="size-4" /> : null}
-              </DropdownMenuItem>
+              </DropdownMenuCheckboxItem>
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
