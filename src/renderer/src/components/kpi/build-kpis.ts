@@ -11,7 +11,7 @@ function variacao(atual: number, anterior: number): string | null {
   return `${v >= 0 ? '+' : '-'}${pct(Math.abs(v))}`
 }
 
-function periodoLabel(meses: Mes[]): string {
+export function periodoLabel(meses: Mes[]): string {
   if (meses.length === 1) return MES_LABEL[meses[0]]
   if (meses.length <= 3) return meses.map(m => MES_LABEL[m]).join('·')
   return `${meses.length} meses`

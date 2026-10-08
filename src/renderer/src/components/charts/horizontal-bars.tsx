@@ -11,8 +11,26 @@ import { brlCompact } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { KpiSnapshot } from '../../../../shared/types'
 
-export function funnelItems(mesIndex: number, snap: KpiSnapshot): HBarDatum[] {
-  const f = snap.funilPorMes[mesIndex]
+export function funnelItems(snap: KpiSnapshot): HBarDatum[] {
+  const f = snap.funilPorMes.reduce(
+    (acc, m) => {
+      acc.orcamento += m.orcamento
+      acc.pedido += m.pedido
+      acc.pedidoAprovadoSemFaturamento += m.pedidoAprovadoSemFaturamento
+      acc.pedidoCancelado += m.pedidoCancelado
+      acc.pedidoFaturado += m.pedidoFaturado
+      acc.pedidoNaoFaturado += m.pedidoNaoFaturado
+      return acc
+    },
+    {
+      orcamento: 0,
+      pedido: 0,
+      pedidoAprovadoSemFaturamento: 0,
+      pedidoCancelado: 0,
+      pedidoFaturado: 0,
+      pedidoNaoFaturado: 0,
+    },
+  )
   const rows = [
     { singular: 'Orçamento', plural: 'Orçamentos', v: f.orcamento },
     { singular: 'Pedido', plural: 'Pedidos', v: f.pedido },

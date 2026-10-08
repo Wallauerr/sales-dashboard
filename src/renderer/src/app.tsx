@@ -18,7 +18,7 @@ import { VendedoresCard } from '@/components/config/vendedores-card'
 import { DashboardGrid } from '@/components/dashboard-grid'
 import { DashboardHeader } from '@/components/dashboard-header'
 import { HistoryTab } from '@/components/history/history-tab'
-import { buildKpis } from '@/components/kpi/build-kpis'
+import { buildKpis, periodoLabel } from '@/components/kpi/build-kpis'
 import { KpiCard } from '@/components/kpi/kpi-card'
 import { SellerCards } from '@/components/sellers/seller-cards'
 import { TitleBar } from '@/components/title-bar'
@@ -46,17 +46,6 @@ import { useWindowMaximized } from '@/lib/useWindowMaximized'
 import { cn } from '@/lib/utils'
 import type { KpiSnapshot, Mes } from '../../shared/types'
 import { MESES } from '../../shared/types'
-
-function proximoMesFunil(meses: Mes[], snap: KpiSnapshot): number {
-  if (meses.length > 0) {
-    const i = MESES.findLastIndex(
-      (m, j) => meses.includes(m) && snap.funilPorMes[j].total > 0,
-    )
-    return i === -1 ? MESES.findLastIndex(m => meses.includes(m)) : i
-  }
-  const i = MESES.findLastIndex((_m, j) => snap.funilPorMes[j].total > 0)
-  return i === -1 ? 11 : i
-}
 
 export function App() {
   const [ano, setAno] = useState(() => new Date().getFullYear())
@@ -198,6 +187,7 @@ export function App() {
   }
 
   const mesAtivo = meses.length > 0
+  const vendedorFiltro = vendSel.length === 1 ? vendSel[0] : null
   const vendTitulo =
     vendSel.length === 1
       ? vendSel[0]
@@ -444,9 +434,14 @@ export function App() {
                     <ChartCard
                       key="funil"
                       headerClassName="card-drag-handle cursor-move"
-                      title="Funil de vendas">
+                      title={`Funil de vendas · ${[
+                        vendedorFiltro,
+                        mesAtivo ? `${periodoLabel(meses)}/${ano}` : ano,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}`}>
                       <HorizontalBars
-                        data={funnelItems(proximoMesFunil(meses, snap), snap)}
+                        data={funnelItems(snap)}
                         showValue
                         valueFormat={int}
                       />
