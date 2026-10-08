@@ -54,7 +54,8 @@
 18. Meta em % configurável (ano e meses), com seletor de unidade: hoje o `fator` já existe no banco (`fator:<ano>`, default `1.15`) mas `setFator` (`src/main/db/database.ts:376`) nunca é chamado, então o 115% está travado sem nenhum campo na UI. Expor o % do ano e dos 12 meses (base do mês em {ano-1} × %) com **seletor único por ano** entre `%` e valor fixo em R$ — nada de misturar unidade: o ano é todo % ou todo R$. O vazio continua sendo automático, sem chave extra para isso. % uniforme no ano equivale a distribuir pela participação de cada mês no ano anterior, então ano e mês em % não se contradizem e a meta anual continua sendo a soma dos 12 meses (`src/main/kpis/index.ts:314`). Mesmo trabalho do item 17: os inputs de meta mudam de outra vez.
 19. Fundo no gráfico de acumulado anual × meta (8).
 20. Releases versionadas no GitHub / auto-update (13).
+21. Cards responsivos na vertical: quando o usuário redimensiona a altura de um card (horizontal já acompanha via ResponsiveContainer), o conteúdo interno tem altura fixa (ex.: gráficos `h-[150px]` em `horizontal-bars.tsx`/`region-donut.tsx`, listas) e sobra vão embaixo. Fazer gráficos/listas acompanharem a altura do card (ex.: `height: 100%` + medir a área disponível, `KpiCard`/ticket idem). A persistência de layout ao arrastar/redimensionar já existe (`onLayoutChange` → `saveDashboardLayout` em `dashboard-grid.tsx`).
 
 ### Quick win
 
-21. Cursor pointer no modal de ajustes: botão X do `ui/dialog.tsx` (nunca foi coberto pelos commits de cursor). Ver também o overlay.
+22. Cursor pointer no modal de ajustes: botão X do `ui/dialog.tsx` (nunca foi coberto pelos commits de cursor). Ver também o overlay.
