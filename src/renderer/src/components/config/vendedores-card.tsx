@@ -142,7 +142,8 @@ export function VendedoresCard({
         {desativados.length > 0 ? (
           <section className="flex flex-col gap-0.5">
             <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Desativados · {desativados.length} — vendas contam como VENDAS
+              Desativados · {desativados.length} — vendedores desativados contam
+              como VENDAS
             </p>
             <ul className="flex flex-col gap-0.5">
               {desativados.map(v => (
