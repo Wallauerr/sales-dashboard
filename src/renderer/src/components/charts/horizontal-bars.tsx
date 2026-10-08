@@ -82,7 +82,8 @@ export function HorizontalBars({
         <YAxis
           type="category"
           dataKey="label"
-          width={128}
+          width={148}
+          interval={0}
           tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
           axisLine={false}
           tickLine={false}
