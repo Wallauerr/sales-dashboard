@@ -11,8 +11,26 @@ import { brlCompact } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { KpiSnapshot } from '../../../../shared/types'
 
-export function funnelItems(mesIndex: number, snap: KpiSnapshot): HBarDatum[] {
-  const f = snap.funilPorMes[mesIndex]
+export function funnelItems(snap: KpiSnapshot): HBarDatum[] {
+  const f = snap.funilPorMes.reduce(
+    (acc, m) => {
+      acc.orcamento += m.orcamento
+      acc.pedido += m.pedido
+      acc.pedidoAprovadoSemFaturamento += m.pedidoAprovadoSemFaturamento
+      acc.pedidoCancelado += m.pedidoCancelado
+      acc.pedidoFaturado += m.pedidoFaturado
+      acc.pedidoNaoFaturado += m.pedidoNaoFaturado
+      return acc
+    },
+    {
+      orcamento: 0,
+      pedido: 0,
+      pedidoAprovadoSemFaturamento: 0,
+      pedidoCancelado: 0,
+      pedidoFaturado: 0,
+      pedidoNaoFaturado: 0,
+    },
+  )
   const rows = [
     { singular: 'Orçamento', plural: 'Orçamentos', v: f.orcamento },
     { singular: 'Pedido', plural: 'Pedidos', v: f.pedido },
@@ -72,17 +90,18 @@ export function HorizontalBars({
   return (
     <ChartContainer
       config={config}
-      className={cn('h-[130px] w-full', className)}>
+      className={cn('h-[155px] w-full', className)}>
       <BarChart
         data={data}
         layout="vertical"
-        margin={{ top: 0, right: showValue ? 48 : 8, left: 0, bottom: 0 }}
+        margin={{ top: 0, right: showValue ? 48 : 8, left: -30, bottom: 0 }}
         barCategoryGap={6}>
         <XAxis type="number" hide />
         <YAxis
           type="category"
           dataKey="label"
-          width={128}
+          width={152}
+          interval={0}
           tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
           axisLine={false}
           tickLine={false}

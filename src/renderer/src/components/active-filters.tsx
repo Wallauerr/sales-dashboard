@@ -4,42 +4,51 @@ import { MES_LABEL } from '@/lib/labels'
 import type { Mes } from '../../../shared/types'
 
 export function ActiveFilters({
-  mes,
-  vendedor,
+  meses,
+  vendedores,
   onClearMes,
   onClearVendedor,
   onClearAll,
 }: {
-  mes: Mes | 'todos'
-  vendedor: string | null
-  onClearMes: () => void
-  onClearVendedor: () => void
+  meses: Mes[]
+  vendedores: string[]
+  onClearMes: (m: Mes) => void
+  onClearVendedor: (v: string) => void
   onClearAll: () => void
 }) {
-  const mesAtivo = mes !== 'todos'
-  if (!mesAtivo && !vendedor) return null
+  if (meses.length === 0 && vendedores.length === 0) return null
   return (
     <div className="no-print flex flex-wrap items-center gap-2">
       <span className="text-xs font-medium text-muted-foreground">
         Filtrando por:
       </span>
-      {mesAtivo ? (
-        <button
-          type="button"
-          onClick={onClearMes}
-          className="flex cursor-pointer items-center gap-1 rounded-full border bg-muted px-3 py-1 text-xs font-medium outline-none hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring">
-          Mês: {MES_LABEL[mes as Mes]}
-          <XIcon className="size-3" />
-        </button>
+      {meses.length > 0 ? (
+        <span className="flex flex-wrap items-center gap-1.5">
+          {meses.map(m => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => onClearMes(m)}
+              className="flex cursor-pointer items-center gap-1 rounded-full border bg-muted px-3 py-1 text-xs font-medium outline-none hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring">
+              {MES_LABEL[m]}
+              <XIcon className="size-3" />
+            </button>
+          ))}
+        </span>
       ) : null}
-      {vendedor ? (
-        <button
-          type="button"
-          onClick={onClearVendedor}
-          className="flex cursor-pointer items-center gap-1 rounded-full border bg-muted px-3 py-1 text-xs font-medium outline-none hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring">
-          Vendedor: {vendedor}
-          <XIcon className="size-3" />
-        </button>
+      {vendedores.length > 0 ? (
+        <span className="flex flex-wrap items-center gap-1.5">
+          {vendedores.map(v => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => onClearVendedor(v)}
+              className="flex cursor-pointer items-center gap-1 rounded-full border bg-muted px-3 py-1 text-xs font-medium outline-none hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring">
+              {v}
+              <XIcon className="size-3" />
+            </button>
+          ))}
+        </span>
       ) : null}
       <Button variant="outline" size="sm" onClick={onClearAll}>
         Limpar filtros

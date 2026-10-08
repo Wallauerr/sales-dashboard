@@ -19,6 +19,7 @@ import {
   telaDoPonto,
   telaDosBounds,
 } from '../src/main/window-maximize.ts'
+import { ROTULO_SEM_VENDEDOR } from '../src/shared/types.ts'
 
 const HEADERS = [
   'Código',
@@ -222,6 +223,7 @@ async function main(): Promise<void> {
 
   const result = await importWorkbook(db, filePath)
   check('import inserted', result.inserted, ROWS.length)
+  check('anos distintos', db.listAnos(), [2025, 2026])
 
   const s = await getSnapshot(db, 2026)
   check('totalPeriodo 2026', s.totalPeriodo, 10000)
@@ -525,15 +527,15 @@ async function main(): Promise<void> {
     { venda: null, eventos: 0 },
   )
 
-  console.log('\n— Filtros de escopo (mês e vendedor) —')
-  const sUrsula = await getSnapshot(db, 2026, { vendedor: 'Ursula' })
+  console.log('\n— Filtros de escopo (meses e vendedores) —')
+  const sUrsula = await getSnapshot(db, 2026, { vendedores: ['Ursula'] })
   check('filtro vendedor faturamento', sUrsula.totalPeriodo, 4000)
   check(
     'filtro vendedor mantém lista completa',
     sUrsula.porVendedor.some(v => v.vendedor === 'Ursula'),
     true,
   )
-  const sFev = await getSnapshot(db, 2026, { mes: 'fev' })
+  const sFev = await getSnapshot(db, 2026, { meses: ['fev'] })
   check('filtro mês faturamento', sFev.totalPeriodo, 4000)
   check(
     'filtro mês zera outros meses',
@@ -541,10 +543,73 @@ async function main(): Promise<void> {
     1,
   )
   const sUrsulaFev = await getSnapshot(db, 2026, {
-    mes: 'fev',
-    vendedor: 'Ursula',
+    meses: ['fev'],
+    vendedores: ['Ursula'],
   })
   check('filtro mês+vendedor', sUrsulaFev.totalPeriodo, 4000)
+  const sJanFev = await getSnapshot(db, 2026, { meses: ['jan', 'fev'] })
+  check('filtro multi-mês soma', sJanFev.totalPeriodo, 10000)
+  check(
+    'filtro multi-mês esconde fora do escopo',
+    Object.values(sJanFev.faturamentoPorMes).filter(v => v > 0).length,
+    2,
+  )
+  const sDuas = await getSnapshot(db, 2026, {
+    vendedores: ['Ursula', 'Rosemeri'],
+  })
+  check('filtro multi-vendedor soma', sDuas.totalPeriodo, 6000)
+  const sDuasMeses = await getSnapshot(db, 2026, {
+    meses: ['jan', 'fev'],
+    vendedores: ['Ursula', 'Stephani Strack da Silva'],
+  })
+  check('filtro multi-mês+vendedor', sDuasMeses.totalPeriodo, 7000)
+
+  console.log('\n— Vendedores desativados —')
+  check('lista de desativados começa vazia', db.listVendedoresDesativados(), [])
+  db.setVendedorDesativado('Bruno Keller', true)
+  db.setVendedorDesativado('Bruno Keller', true)
+  check('desativar é idempotente', db.listVendedoresDesativados(), [
+    'Bruno Keller',
+  ])
+  check(
+    'listVendedores esconde o desativado',
+    db.listVendedores().includes('Bruno Keller'),
+    false,
+  )
+  check(
+    'listVendedores mantém os demais',
+    db.listVendedores().includes('Ursula'),
+    true,
+  )
+  const sSemBruno = await getSnapshot(db, 2026)
+  check('totais seguem contando o desativado', sSemBruno.totalPeriodo, 10000)
+  check(
+    'ranking esconde o desativado',
+    sSemBruno.porVendedor.some(v => v.vendedor === 'Bruno Keller'),
+    false,
+  )
+  check(
+    'desativado engorda o VENDAS',
+    sSemBruno.porVendedor.find(v => v.vendedor === ROTULO_SEM_VENDEDOR)?.valor,
+    1000,
+  )
+  const sVendas = await getSnapshot(db, 2026, {
+    vendedores: [ROTULO_SEM_VENDEDOR],
+  })
+  check('filtro VENDAS pega o desativado', sVendas.totalPeriodo, 1000)
+  check(
+    'filtro VENDAS mantém o ranking completo',
+    sVendas.porVendedor.some(v => v.vendedor === 'Ursula'),
+    true,
+  )
+  db.setVendedorDesativado('Bruno Keller', false)
+  check(
+    'reativar devolve o vendedor ao ranking',
+    (await getSnapshot(db, 2026)).porVendedor.some(
+      v => v.vendedor === 'Bruno Keller',
+    ),
+    true,
+  )
 
   console.log('\n— Regra de faturamento (pedido aprovado S/F por categoria) —')
   const db3 = SalesDatabase.open(new DatabaseSync(':memory:'))

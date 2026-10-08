@@ -14,11 +14,11 @@ import {
 } from '@/components/charts/region-donut'
 import { AutoStartCard } from '@/components/config/auto-start-card'
 import { ConfigTab } from '@/components/config/config-tab'
-import { SellerPhotosCard } from '@/components/config/seller-photos-card'
+import { VendedoresCard } from '@/components/config/vendedores-card'
 import { DashboardGrid } from '@/components/dashboard-grid'
 import { DashboardHeader } from '@/components/dashboard-header'
 import { HistoryTab } from '@/components/history/history-tab'
-import { buildKpis } from '@/components/kpi/build-kpis'
+import { buildKpis, periodoLabel } from '@/components/kpi/build-kpis'
 import { KpiCard } from '@/components/kpi/kpi-card'
 import { SellerCards } from '@/components/sellers/seller-cards'
 import { TitleBar } from '@/components/title-bar'
@@ -48,9 +48,10 @@ import type { KpiSnapshot, Mes } from '../../shared/types'
 import { MESES } from '../../shared/types'
 
 export function App() {
-  const [ano, setAno] = useState(2026)
-  const [mes, setMes] = useState<Mes | 'todos'>('todos')
-  const [vendedor, setVendedor] = useState<string | null>(null)
+  const [ano, setAno] = useState(() => new Date().getFullYear())
+  const [anos, setAnos] = useState<number[]>([])
+  const [meses, setMeses] = useState<Mes[]>([])
+  const [vendSel, setVendSel] = useState<string[]>([])
   const [view, setView] = useState<'dashboard' | 'historico'>('dashboard')
   const [metasOpen, setMetasOpen] = useState(false)
   const [layoutResetKey, setLayoutResetKey] = useState(0)
@@ -58,6 +59,7 @@ export function App() {
   const [snap, setSnap] = useState<KpiSnapshot | null>(null)
   const [fotos, setFotos] = useState<Set<string>>(new Set())
   const [vendedores, setVendedores] = useState<string[]>([])
+  const [desativados, setDesativados] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const [importMsg, setImportMsg] = useState<string | null>(null)
@@ -69,25 +71,34 @@ export function App() {
     if (!api) return
     setError(null)
     try {
-      const s = await api.getSnapshot(ano, {
-        mes: mes === 'todos' ? null : mes,
-        vendedor,
-      })
+      const [s, listaAnos] = await Promise.all([
+        api.getSnapshot(ano, {
+          meses: meses.length ? meses : null,
+          vendedores: vendSel.length ? vendSel : null,
+        }),
+        api.listAnos(),
+      ])
+      setAnos(listaAnos)
+      if (listaAnos.length > 0 && !listaAnos.includes(ano)) {
+        setAno(Math.max(...listaAnos))
+      }
       setSnap(s)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     }
-  }, [ano, mes, vendedor])
+  }, [ano, meses, vendSel])
 
   const loadFotos = useCallback(async () => {
     if (!api) return
     try {
-      const [lista, nomes] = await Promise.all([
+      const [lista, nomes, desat] = await Promise.all([
         api.getFotos(),
         api.listVendedores(),
+        api.listVendedoresDesativados(),
       ])
       setFotos(new Set(lista.map(f => f.vendedor)))
       setVendedores(nomes)
+      setDesativados(desat)
     } catch {}
   }, [])
 
@@ -95,6 +106,18 @@ export function App() {
     void load()
     void loadFotos()
   }, [load, loadFotos])
+
+  const alternarVendedor = async (
+    nome: string,
+    desativar: boolean,
+  ): Promise<void> => {
+    if (!api) return
+    await api.setVendedorDesativado(nome, desativar)
+    if (desativar) {
+      setVendSel(prev => prev.filter(x => x !== nome))
+    }
+    setReload(k => k + 1)
+  }
 
   const escolherFoto = async (vendedor: string): Promise<void> => {
     if (!api) return
@@ -111,6 +134,18 @@ export function App() {
       next.delete(vendedor)
       return next
     })
+  }
+
+  const alternarMes = (m: Mes): void => {
+    setMeses(prev =>
+      prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m],
+    )
+  }
+
+  const alternarVend = (nome: string): void => {
+    setVendSel(prev =>
+      prev.includes(nome) ? prev.filter(x => x !== nome) : [...prev, nome],
+    )
   }
 
   useEffect(() => {
@@ -151,8 +186,15 @@ export function App() {
     )
   }
 
-  const mesAtivo = mes !== 'todos'
-  const { kpis, kgrid } = buildKpis({ ano, mes, vendedor, snap })
+  const mesAtivo = meses.length > 0
+  const vendedorFiltro = vendSel.length === 1 ? vendSel[0] : null
+  const vendTitulo =
+    vendSel.length === 1
+      ? vendSel[0]
+      : vendSel.length > 1
+        ? `${vendSel.length} vendedores`
+        : null
+  const { kpis, kgrid } = buildKpis({ ano, meses, vendedores: vendSel, snap })
 
   return (
     <div
@@ -170,16 +212,18 @@ export function App() {
           <DashboardHeader
             ano={ano}
             onAno={setAno}
-            mes={mes}
-            onMes={setMes}
+            meses={meses}
+            onMes={alternarMes}
+            onClearMeses={() => setMeses([])}
             view={view}
             importing={importing}
             onImport={() => void handleImport()}
             onOpenMetas={() => setMetasOpen(true)}
+            anos={anos}
           />
 
           <Dialog open={metasOpen} onOpenChange={setMetasOpen}>
-            <DialogContent className="flex max-h-[85vh] flex-col gap-3 overflow-hidden sm:max-w-3xl">
+            <DialogContent className="flex max-h-[85vh] flex-col gap-3 overflow-hidden sm:max-w-5xl">
               <DialogHeader>
                 <DialogTitle>Configurações</DialogTitle>
                 <DialogDescription>
@@ -207,11 +251,13 @@ export function App() {
                   value="geral"
                   className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
                   <AutoStartCard />
-                  <SellerPhotosCard
-                    vendedores={vendedores}
+                  <VendedoresCard
+                    ativos={vendedores}
+                    desativados={desativados}
                     fotos={fotos}
                     onEscolher={escolherFoto}
                     onRemover={removerFoto}
+                    onToggle={alternarVendedor}
                   />
                   <Card>
                     <CardHeader>
@@ -254,13 +300,17 @@ export function App() {
                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                 <TabsTrigger value="historico">Histórico</TabsTrigger>
               </TabsList>
-              <SellerCards
-                ano={ano}
-                vendedores={snap?.porVendedor ?? []}
-                fotos={fotos}
-                selected={vendedor}
-                onSelect={setVendedor}
-              />
+              {view === 'dashboard' ? (
+                <SellerCards
+                  ano={ano}
+                  vendedores={snap?.porVendedor ?? []}
+                  fotos={fotos}
+                  selected={vendSel}
+                  onSelect={alternarVend}
+                  onClear={() => setVendSel([])}
+                  desativados={desativados.length}
+                />
+              ) : null}
             </div>
             <TabsContent value="dashboard" className="flex flex-col gap-3">
               {!snap ? (
@@ -271,13 +321,17 @@ export function App() {
               ) : (
                 <div className="flex flex-col gap-3">
                   <ActiveFilters
-                    mes={mes}
-                    vendedor={vendedor}
-                    onClearMes={() => setMes('todos')}
-                    onClearVendedor={() => setVendedor(null)}
+                    meses={meses}
+                    vendedores={vendSel}
+                    onClearMes={m =>
+                      setMeses(prev => prev.filter(x => x !== m))
+                    }
+                    onClearVendedor={n =>
+                      setVendSel(prev => prev.filter(x => x !== n))
+                    }
                     onClearAll={() => {
-                      setMes('todos')
-                      setVendedor(null)
+                      setMeses([])
+                      setVendSel([])
                     }}
                   />
 
@@ -298,8 +352,8 @@ export function App() {
                         key="fat-mensal"
                         headerClassName="card-drag-handle cursor-move"
                         title={
-                          vendedor
-                            ? `Faturamento mensal — ${vendedor}`
+                          vendTitulo
+                            ? `Faturamento mensal — ${vendTitulo}`
                             : 'Faturamento mensal × meta'
                         }
                         contentClassName="flex flex-col gap-2">
@@ -312,7 +366,7 @@ export function App() {
                               color: chartColor(1),
                               values: MESES.map(m => snap.faturamentoPorMes[m]),
                             },
-                            ...(!vendedor
+                            ...(!vendTitulo
                               ? [
                                   {
                                     name: 'Meta',
@@ -325,7 +379,7 @@ export function App() {
                                 ]
                               : []),
                           ]}
-                          onClick={i => setMes(MESES[i])}
+                          onClick={i => alternarMes(MESES[i])}
                         />
                       </ChartCard>
                     ) : null}
@@ -335,14 +389,14 @@ export function App() {
                         key="acumulado"
                         headerClassName="card-drag-handle cursor-move"
                         title={
-                          vendedor
-                            ? `Acumulado ${ano} — ${vendedor}`
+                          vendTitulo
+                            ? `Acumulado ${ano} — ${vendTitulo}`
                             : 'Acumulado anual × meta'
                         }>
                         <AccumulatedLine
                           labels={MESES.map(m => MES_LABEL[m])}
                           values={MESES.map(m => snap.acumuladoPorMes[m])}
-                          target={vendedor ? undefined : snap.metaAnual}
+                          target={vendTitulo ? undefined : snap.metaAnual}
                         />
                       </ChartCard>
                     ) : null}
@@ -380,18 +434,14 @@ export function App() {
                     <ChartCard
                       key="funil"
                       headerClassName="card-drag-handle cursor-move"
-                      title="Funil de vendas">
+                      title={`Funil de vendas · ${[
+                        vendedorFiltro,
+                        mesAtivo ? `${periodoLabel(meses)}/${ano}` : ano,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}`}>
                       <HorizontalBars
-                        data={funnelItems(
-                          MESES.indexOf(
-                            mes === 'todos'
-                              ? (MESES.findLast(
-                                  (_m, i) => snap.funilPorMes[i].total > 0,
-                                ) ?? 'dez')
-                              : mes,
-                          ),
-                          snap,
-                        )}
+                        data={funnelItems(snap)}
                         showValue
                         valueFormat={int}
                       />
@@ -427,7 +477,7 @@ export function App() {
                       key="ticket"
                       headerClassName="card-drag-handle cursor-move"
                       title="Ticket médio por produto">
-                      <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-2">
                         {snap.ticketMedio.map(t => (
                           <div
                             key={t.produto}
@@ -487,7 +537,7 @@ export function App() {
               )}
             </TabsContent>
             <TabsContent value="historico">
-              <HistoryTab reloadKey={reload} ano={ano} mes={mes} />
+              <HistoryTab reloadKey={reload} ano={ano} meses={meses} />
             </TabsContent>
           </Tabs>
         </main>

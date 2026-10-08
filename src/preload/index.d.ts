@@ -27,6 +27,12 @@ interface Api {
   setMetaConfig: (ano: number, input: MetasSetInput) => Promise<MetaConfigView>
   getFotos: () => Promise<VendedorFoto[]>
   listVendedores: () => Promise<string[]>
+  listVendedoresDesativados: () => Promise<string[]>
+  setVendedorDesativado: (
+    vendedor: string,
+    desativado: boolean,
+  ) => Promise<void>
+  listAnos: () => Promise<number[]>
   escolherFoto: (vendedor: string) => Promise<FotoResultado | null>
   removerFoto: (vendedor: string) => Promise<FotoResultado>
   getAutoStart: () => Promise<AutoStartView>

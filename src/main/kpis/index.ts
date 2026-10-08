@@ -63,6 +63,7 @@ function faturamentoClause(): { sql: string; params: string[] } {
 // O filtro de faturamento é opcional porque o funil e o nº de fechamento contam
 // cada status individualmente.
 function escopo(
+  db: SalesDatabase,
   ano: number,
   filtro: SnapshotFilter | null | undefined,
   opts: { faturamento?: boolean } = {},
@@ -75,13 +76,22 @@ function escopo(
     where.push(clause.sql)
     params.push(...clause.params)
   }
-  if (filtro?.mes) {
-    where.push('mes = ?')
-    params.push(filtro.mes)
+  if (filtro?.meses?.length) {
+    where.push(`mes IN (${filtro.meses.map(() => '?').join(', ')})`)
+    params.push(...filtro.meses)
   }
-  if (filtro?.vendedor) {
-    where.push('vendedor = ?')
-    params.push(filtro.vendedor)
+  if (filtro?.vendedores?.length) {
+    const valores = new Set<string>()
+    for (const v of filtro.vendedores) {
+      if (v === ROTULO_SEM_VENDEDOR) {
+        valores.add('')
+        for (const desat of db.listVendedoresDesativados()) valores.add(desat)
+      } else {
+        valores.add(v)
+      }
+    }
+    where.push(`vendedor IN (${[...valores].map(() => '?').join(', ')})`)
+    params.push(...valores)
   }
   return { where: `WHERE ${where.join(' AND ')}`, params }
 }
@@ -107,7 +117,7 @@ function faturamentoPorMes(
   ano: number,
   filtro?: SnapshotFilter | null,
 ): Record<Mes, number> {
-  return metricasPorMes(db, 'SUM(valor_total)', escopo(ano, filtro))
+  return metricasPorMes(db, 'SUM(valor_total)', escopo(db, ano, filtro))
 }
 
 function quantidadePorMes(
@@ -115,7 +125,7 @@ function quantidadePorMes(
   ano: number,
   filtro?: SnapshotFilter | null,
 ): Record<Mes, number> {
-  return metricasPorMes(db, 'COUNT(*)', escopo(ano, filtro))
+  return metricasPorMes(db, 'COUNT(*)', escopo(db, ano, filtro))
 }
 
 const COLUNA_GRUPO = {
@@ -130,10 +140,17 @@ function somaPor(
   scope: Escopo,
 ): { chave: string; valor: number }[] {
   const campo = COLUNA_GRUPO[coluna]
+  const vendaSemNome =
+    coluna === 'vendedor'
+      ? `CASE WHEN ${campo} = '' THEN '${ROTULO_SEM_VENDEDOR}'
+              WHEN ${campo} IN (SELECT vendedor FROM vendedor_desativado)
+                THEN '${ROTULO_SEM_VENDEDOR}'
+              ELSE ${campo} END`
+      : campo
   return db.raw
     .prepare(
-      `SELECT ${campo} AS chave, SUM(valor_total) AS valor FROM vendas
-       ${scope.where} GROUP BY ${campo} ORDER BY valor DESC`,
+      `SELECT ${vendaSemNome} AS chave, SUM(valor_total) AS valor FROM vendas
+       ${scope.where} GROUP BY chave ORDER BY valor DESC`,
     )
     .all(...scope.params) as { chave: string; valor: number }[]
 }
@@ -198,7 +215,7 @@ function funilPorMes(
   ano: number,
   filtro?: SnapshotFilter | null,
 ): FunnelMonth[] {
-  const scope = escopo(ano, filtro, { faturamento: false })
+  const scope = escopo(db, ano, filtro, { faturamento: false })
   return MESES.map(mes => {
     const orcamento = countStatus(db, scope, mes, 'Orçamento')
     const pedido = countStatus(db, scope, mes, 'Pedido')
@@ -235,7 +252,7 @@ function numeroFechamento(
   ano: number,
   filtro?: SnapshotFilter | null,
 ): Record<Mes, { orcamento: number; pedido: number }> {
-  const scope = escopo(ano, filtro, { faturamento: false })
+  const scope = escopo(db, ano, filtro, { faturamento: false })
   const out = {} as Record<Mes, { orcamento: number; pedido: number }>
   for (const mes of MESES) {
     const orcamento =
@@ -255,7 +272,7 @@ function ticketMedio(
   ano: number,
   filtro?: SnapshotFilter | null,
 ): TicketMedio[] {
-  const scope = escopo(ano, filtro)
+  const scope = escopo(db, ano, filtro)
   const out: TicketMedio[] = []
   for (const [produto, vendedores] of Object.entries(PRODUTOS_VENDEDORES)) {
     const q = `SELECT COALESCE(SUM(valor_total), 0) AS valor, COUNT(*) AS volume FROM vendas
@@ -342,11 +359,11 @@ export function getSnapshot(
     quantidadePorMes: quantidadePorMes(db, ano, filtro),
     porVendedor: porVendedor(
       db,
-      escopo(ano, { ...filtro, vendedor: null }),
+      escopo(db, ano, { ...filtro, vendedores: null }),
       totalAno,
     ),
-    porEstado: porEstado(db, escopo(ano, filtro), totalAno),
-    porRegiao: porRegiao(db, escopo(ano, filtro), totalAno),
+    porEstado: porEstado(db, escopo(db, ano, filtro), totalAno),
+    porRegiao: porRegiao(db, escopo(db, ano, filtro), totalAno),
     funilPorMes: funilPorMes(db, ano, filtro),
     numeroFechamento: numeroFechamento(db, ano, filtro),
     ticketMedio: ticketMedio(db, ano, filtro),

@@ -38,6 +38,20 @@ export function registerIpc(db: SalesDatabase): void {
 
   ipcMain.handle('vendedores:list', () => db.listVendedores())
 
+  ipcMain.handle('vendedores:desativados', () => db.listVendedoresDesativados())
+
+  ipcMain.handle(
+    'vendedor:set-desativado',
+    (_event, vendedor: unknown, desativado: unknown) => {
+      db.setVendedorDesativado(
+        vendedorSchema.parse(vendedor),
+        Boolean(desativado),
+      )
+    },
+  )
+
+  ipcMain.handle('anos:list', () => db.listAnos())
+
   ipcMain.handle('foto:escolher', async (_event, vendedor: unknown) => {
     const nome = vendedorSchema.parse(vendedor)
     const owner = BrowserWindow.getFocusedWindow()

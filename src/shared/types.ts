@@ -40,8 +40,8 @@ export const STATUS_SISTEMA = [
 ]
 
 export interface SnapshotFilter {
-  mes?: Mes | null
-  vendedor?: string | null
+  meses?: Mes[] | null
+  vendedores?: string[] | null
 }
 
 export interface VendedorFoto {
