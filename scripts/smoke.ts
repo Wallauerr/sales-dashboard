@@ -527,15 +527,15 @@ async function main(): Promise<void> {
     { venda: null, eventos: 0 },
   )
 
-  console.log('\n— Filtros de escopo (mês e vendedor) —')
-  const sUrsula = await getSnapshot(db, 2026, { vendedor: 'Ursula' })
+  console.log('\n— Filtros de escopo (meses e vendedores) —')
+  const sUrsula = await getSnapshot(db, 2026, { vendedores: ['Ursula'] })
   check('filtro vendedor faturamento', sUrsula.totalPeriodo, 4000)
   check(
     'filtro vendedor mantém lista completa',
     sUrsula.porVendedor.some(v => v.vendedor === 'Ursula'),
     true,
   )
-  const sFev = await getSnapshot(db, 2026, { mes: 'fev' })
+  const sFev = await getSnapshot(db, 2026, { meses: ['fev'] })
   check('filtro mês faturamento', sFev.totalPeriodo, 4000)
   check(
     'filtro mês zera outros meses',
@@ -543,10 +543,26 @@ async function main(): Promise<void> {
     1,
   )
   const sUrsulaFev = await getSnapshot(db, 2026, {
-    mes: 'fev',
-    vendedor: 'Ursula',
+    meses: ['fev'],
+    vendedores: ['Ursula'],
   })
   check('filtro mês+vendedor', sUrsulaFev.totalPeriodo, 4000)
+  const sJanFev = await getSnapshot(db, 2026, { meses: ['jan', 'fev'] })
+  check('filtro multi-mês soma', sJanFev.totalPeriodo, 10000)
+  check(
+    'filtro multi-mês esconde fora do escopo',
+    Object.values(sJanFev.faturamentoPorMes).filter(v => v > 0).length,
+    2,
+  )
+  const sDuas = await getSnapshot(db, 2026, {
+    vendedores: ['Ursula', 'Rosemeri'],
+  })
+  check('filtro multi-vendedor soma', sDuas.totalPeriodo, 6000)
+  const sDuasMeses = await getSnapshot(db, 2026, {
+    meses: ['jan', 'fev'],
+    vendedores: ['Ursula', 'Stephani Strack da Silva'],
+  })
+  check('filtro multi-mês+vendedor', sDuasMeses.totalPeriodo, 7000)
 
   console.log('\n— Vendedores desativados —')
   check('lista de desativados começa vazia', db.listVendedoresDesativados(), [])
@@ -578,7 +594,7 @@ async function main(): Promise<void> {
     1000,
   )
   const sVendas = await getSnapshot(db, 2026, {
-    vendedor: ROTULO_SEM_VENDEDOR,
+    vendedores: [ROTULO_SEM_VENDEDOR],
   })
   check('filtro VENDAS pega o desativado', sVendas.totalPeriodo, 1000)
   check(
