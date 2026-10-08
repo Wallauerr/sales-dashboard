@@ -454,7 +454,7 @@ export function App() {
                       key="ticket"
                       headerClassName="card-drag-handle cursor-move"
                       title="Ticket médio por produto">
-                      <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-2">
                         {snap.ticketMedio.map(t => (
                           <div
                             key={t.produto}

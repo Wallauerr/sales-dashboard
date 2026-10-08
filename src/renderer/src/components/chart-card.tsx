@@ -20,7 +20,7 @@ export function ChartCard({
 }: ChartCardProps) {
   return (
     <Card className={cn('gap-2 py-3', className)} {...cardProps}>
-      <CardHeader className={cn('px-4 pb-1', headerClassName)}>
+      <CardHeader className={cn('px-4', headerClassName)}>
         <CardTitle className="text-sm leading-tight">{title}</CardTitle>
       </CardHeader>
       <CardContent className={cn('px-4', contentClassName)}>
