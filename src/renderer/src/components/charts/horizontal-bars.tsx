@@ -72,17 +72,17 @@ export function HorizontalBars({
   return (
     <ChartContainer
       config={config}
-      className={cn('h-[130px] w-full', className)}>
+      className={cn('h-[155px] w-full', className)}>
       <BarChart
         data={data}
         layout="vertical"
-        margin={{ top: 0, right: showValue ? 48 : 8, left: 0, bottom: 0 }}
+        margin={{ top: 0, right: showValue ? 48 : 8, left: -30, bottom: 0 }}
         barCategoryGap={6}>
         <XAxis type="number" hide />
         <YAxis
           type="category"
           dataKey="label"
-          width={148}
+          width={152}
           interval={0}
           tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
           axisLine={false}
