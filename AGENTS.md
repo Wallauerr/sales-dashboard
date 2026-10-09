@@ -45,7 +45,7 @@
 
 ### Fase 4 — Migração para inglês
 
-14. Refac geral do projeto para **inglês no código**: o padrão hoje é pt-br em identificadores/nomes misturado com inglês (shadcn, `db.raw`, `WHERE ...` no SQL), ex.: `somaPor`, `escopo`, `faturamentoClause`, `funilPorMes`, `vendas:list`, `vendas`/`mesesPor` — converter funções, tipos, variáveis, arquivos/módulos e canais de IPC para inglês (`sumBy`, `scope`, `billingClause`, `funnelPerMonth`, `sales:list`...). **Só as strings de UI ficam em pt-BR** (o comercial é brasileiro). O banco (`vendas`, `ano`, `mes`, colunas) não muda — schema é dado, não código.
+14. ✅ Refac geral do projeto para **inglês no código**: o padrão hoje é pt-br em identificadores/nomes misturado com inglês (shadcn, `db.raw`, `WHERE ...` no SQL), ex.: `somaPor`, `escopo`, `faturamentoClause`, `funilPorMes`, `vendas:list`, `vendas`/`mesesPor` — converter funções, tipos, variáveis, arquivos/módulos e canais de IPC para inglês (`sumBy`, `scope`, `billingClause`, `funnelPerMonth`, `sales:list`...). **Só as strings de UI ficam em pt-BR** (o comercial é brasileiro). O banco (`vendas`, `ano`, `mes`, colunas) não muda — schema é dado, não código. `Mes/MESES → Month/MONTHS`, `foto:// → photo://`, `brl*` mantidos, layout `sd:dashboard-layout:v3 → v4`.
 
 ### Fase 5 — Polish/infra
 
