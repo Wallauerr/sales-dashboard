@@ -12,47 +12,47 @@ import { cn } from '@/lib/utils'
 import type { KpiSnapshot } from '../../../../shared/types'
 
 export function funnelItems(snap: KpiSnapshot): HBarDatum[] {
-  const f = snap.funilPorMes.reduce(
+  const f = snap.funnelByMonth.reduce(
     (acc, m) => {
-      acc.orcamento += m.orcamento
-      acc.pedido += m.pedido
-      acc.pedidoAprovadoSemFaturamento += m.pedidoAprovadoSemFaturamento
-      acc.pedidoCancelado += m.pedidoCancelado
-      acc.pedidoFaturado += m.pedidoFaturado
-      acc.pedidoNaoFaturado += m.pedidoNaoFaturado
+      acc.quote += m.quote
+      acc.order += m.order
+      acc.approvedWithoutInvoicing += m.approvedWithoutInvoicing
+      acc.cancelled += m.cancelled
+      acc.invoiced += m.invoiced
+      acc.notInvoiced += m.notInvoiced
       return acc
     },
     {
-      orcamento: 0,
-      pedido: 0,
-      pedidoAprovadoSemFaturamento: 0,
-      pedidoCancelado: 0,
-      pedidoFaturado: 0,
-      pedidoNaoFaturado: 0,
+      quote: 0,
+      order: 0,
+      approvedWithoutInvoicing: 0,
+      cancelled: 0,
+      invoiced: 0,
+      notInvoiced: 0,
     },
   )
   const rows = [
-    { singular: 'Orçamento', plural: 'Orçamentos', v: f.orcamento },
-    { singular: 'Pedido', plural: 'Pedidos', v: f.pedido },
+    { singular: 'Orçamento', plural: 'Orçamentos', v: f.quote },
+    { singular: 'Pedido', plural: 'Pedidos', v: f.order },
     {
       singular: 'Pedido Aprovado S/F',
       plural: 'Pedidos Aprovados S/F',
-      v: f.pedidoAprovadoSemFaturamento,
+      v: f.approvedWithoutInvoicing,
     },
     {
       singular: 'Pedido Cancelado',
       plural: 'Pedidos Cancelados',
-      v: f.pedidoCancelado,
+      v: f.cancelled,
     },
     {
       singular: 'Pedido Faturado',
       plural: 'Pedidos Faturados',
-      v: f.pedidoFaturado,
+      v: f.invoiced,
     },
     {
       singular: 'Pedido Não Faturado',
       plural: 'Pedidos Não Faturados',
-      v: f.pedidoNaoFaturado,
+      v: f.notInvoiced,
     },
   ]
   return rows.map((r, i) => ({

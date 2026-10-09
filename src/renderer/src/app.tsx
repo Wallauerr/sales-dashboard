@@ -14,11 +14,11 @@ import {
 } from '@/components/charts/region-donut'
 import { AutoStartCard } from '@/components/config/auto-start-card'
 import { ConfigTab } from '@/components/config/config-tab'
-import { VendedoresCard } from '@/components/config/vendedores-card'
+import { SellersCard } from '@/components/config/sellers-card'
 import { DashboardGrid } from '@/components/dashboard-grid'
 import { DashboardHeader } from '@/components/dashboard-header'
 import { HistoryTab } from '@/components/history/history-tab'
-import { buildKpis, periodoLabel } from '@/components/kpi/build-kpis'
+import { buildKpis, periodLabel } from '@/components/kpi/build-kpis'
 import { KpiCard } from '@/components/kpi/kpi-card'
 import { SellerCards } from '@/components/sellers/seller-cards'
 import { TitleBar } from '@/components/title-bar'
@@ -41,25 +41,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { WindowResizeHandles } from '@/components/window-resize-handles'
 import { chartColor } from '@/lib/colors'
 import { brl, brl0, int, pct } from '@/lib/format'
-import { fileName, MES_LABEL } from '@/lib/labels'
+import { fileName, MONTH_LABEL } from '@/lib/labels'
 import { useWindowMaximized } from '@/lib/useWindowMaximized'
 import { cn } from '@/lib/utils'
-import type { KpiSnapshot, Mes } from '../../shared/types'
-import { MESES } from '../../shared/types'
+import type { KpiSnapshot, Month } from '../../shared/types'
+import { MONTHS } from '../../shared/types'
 
 export function App() {
-  const [ano, setAno] = useState(() => new Date().getFullYear())
-  const [anos, setAnos] = useState<number[]>([])
-  const [meses, setMeses] = useState<Mes[]>([])
-  const [vendSel, setVendSel] = useState<string[]>([])
-  const [view, setView] = useState<'dashboard' | 'historico'>('dashboard')
-  const [metasOpen, setMetasOpen] = useState(false)
+  const [year, setYear] = useState(() => new Date().getFullYear())
+  const [years, setYears] = useState<number[]>([])
+  const [months, setMonths] = useState<Month[]>([])
+  const [selectedSellers, setSelectedSellers] = useState<string[]>([])
+  const [view, setView] = useState<'dashboard' | 'history'>('dashboard')
+  const [goalsOpen, setGoalsOpen] = useState(false)
   const [layoutResetKey, setLayoutResetKey] = useState(0)
   const maximized = useWindowMaximized()
   const [snap, setSnap] = useState<KpiSnapshot | null>(null)
-  const [fotos, setFotos] = useState<Set<string>>(new Set())
-  const [vendedores, setVendedores] = useState<string[]>([])
-  const [desativados, setDesativados] = useState<string[]>([])
+  const [photos, setPhotos] = useState<Set<string>>(new Set())
+  const [sellers, setSellers] = useState<string[]>([])
+  const [disabled, setDisabled] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const [importMsg, setImportMsg] = useState<string | null>(null)
@@ -71,80 +71,82 @@ export function App() {
     if (!api) return
     setError(null)
     try {
-      const [s, listaAnos] = await Promise.all([
-        api.getSnapshot(ano, {
-          meses: meses.length ? meses : null,
-          vendedores: vendSel.length ? vendSel : null,
+      const [s, yearsList] = await Promise.all([
+        api.getSnapshot(year, {
+          months: months.length ? months : null,
+          sellers: selectedSellers.length ? selectedSellers : null,
         }),
-        api.listAnos(),
+        api.listYears(),
       ])
-      setAnos(listaAnos)
-      if (listaAnos.length > 0 && !listaAnos.includes(ano)) {
-        setAno(Math.max(...listaAnos))
+      setYears(yearsList)
+      if (yearsList.length > 0 && !yearsList.includes(year)) {
+        setYear(Math.max(...yearsList))
       }
       setSnap(s)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     }
-  }, [ano, meses, vendSel])
+  }, [year, months, selectedSellers])
 
-  const loadFotos = useCallback(async () => {
+  const loadPhotos = useCallback(async () => {
     if (!api) return
     try {
-      const [lista, nomes, desat] = await Promise.all([
-        api.getFotos(),
-        api.listVendedores(),
-        api.listVendedoresDesativados(),
+      const [list, active, disabledList] = await Promise.all([
+        api.getPhotos(),
+        api.listSellers(),
+        api.listDisabledSellers(),
       ])
-      setFotos(new Set(lista.map(f => f.vendedor)))
-      setVendedores(nomes)
-      setDesativados(desat)
+      setPhotos(new Set(list.map(f => f.seller)))
+      setSellers(active)
+      setDisabled(disabledList)
     } catch {}
   }, [])
 
   const refresh = useCallback(() => {
     void load()
-    void loadFotos()
-  }, [load, loadFotos])
+    void loadPhotos()
+  }, [load, loadPhotos])
 
-  const alternarVendedor = async (
-    nome: string,
-    desativar: boolean,
+  const toggleSellerDisable = async (
+    seller: string,
+    disable: boolean,
   ): Promise<void> => {
     if (!api) return
-    await api.setVendedorDesativado(nome, desativar)
-    if (desativar) {
-      setVendSel(prev => prev.filter(x => x !== nome))
+    await api.setSellerDisabled(seller, disable)
+    if (disable) {
+      setSelectedSellers(prev => prev.filter(x => x !== seller))
     }
     setReload(k => k + 1)
   }
 
-  const escolherFoto = async (vendedor: string): Promise<void> => {
+  const pickPhoto = async (seller: string): Promise<void> => {
     if (!api) return
-    const r = await api.escolherFoto(vendedor)
+    const r = await api.pickPhoto(seller)
     if (!r) return
-    setFotos(f => new Set(f).add(r.vendedor))
+    setPhotos(f => new Set(f).add(r.seller))
   }
 
-  const removerFoto = async (vendedor: string): Promise<void> => {
+  const removePhoto = async (seller: string): Promise<void> => {
     if (!api) return
-    await api.removerFoto(vendedor)
-    setFotos(f => {
+    await api.removePhoto(seller)
+    setPhotos(f => {
       const next = new Set(f)
-      next.delete(vendedor)
+      next.delete(seller)
       return next
     })
   }
 
-  const alternarMes = (m: Mes): void => {
-    setMeses(prev =>
+  const toggleMonth = (m: Month): void => {
+    setMonths(prev =>
       prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m],
     )
   }
 
-  const alternarVend = (nome: string): void => {
-    setVendSel(prev =>
-      prev.includes(nome) ? prev.filter(x => x !== nome) : [...prev, nome],
+  const toggleSeller = (seller: string): void => {
+    setSelectedSellers(prev =>
+      prev.includes(seller)
+        ? prev.filter(x => x !== seller)
+        : [...prev, seller],
     )
   }
 
@@ -186,15 +188,20 @@ export function App() {
     )
   }
 
-  const mesAtivo = meses.length > 0
-  const vendedorFiltro = vendSel.length === 1 ? vendSel[0] : null
-  const vendTitulo =
-    vendSel.length === 1
-      ? vendSel[0]
-      : vendSel.length > 1
-        ? `${vendSel.length} vendedores`
+  const monthActive = months.length > 0
+  const sellerFilter = selectedSellers.length === 1 ? selectedSellers[0] : null
+  const sellerTitle =
+    selectedSellers.length === 1
+      ? selectedSellers[0]
+      : selectedSellers.length > 1
+        ? `${selectedSellers.length} vendedores`
         : null
-  const { kpis, kgrid } = buildKpis({ ano, meses, vendedores: vendSel, snap })
+  const { kpis, gridClass } = buildKpis({
+    year,
+    months,
+    sellers: selectedSellers,
+    snap,
+  })
 
   return (
     <div
@@ -210,19 +217,19 @@ export function App() {
       <div className="min-h-0 flex-1 overflow-y-auto">
         <main className="flex w-full flex-col gap-3 p-3 pt-2">
           <DashboardHeader
-            ano={ano}
-            onAno={setAno}
-            meses={meses}
-            onMes={alternarMes}
-            onClearMeses={() => setMeses([])}
+            year={year}
+            onYear={setYear}
+            months={months}
+            onMonth={toggleMonth}
+            onClearMonths={() => setMonths([])}
             view={view}
             importing={importing}
             onImport={() => void handleImport()}
-            onOpenMetas={() => setMetasOpen(true)}
-            anos={anos}
+            onOpenMeta={() => setGoalsOpen(true)}
+            years={years}
           />
 
-          <Dialog open={metasOpen} onOpenChange={setMetasOpen}>
+          <Dialog open={goalsOpen} onOpenChange={setGoalsOpen}>
             <DialogContent className="flex max-h-[85vh] flex-col gap-3 overflow-hidden sm:max-w-5xl">
               <DialogHeader>
                 <DialogTitle>Configurações</DialogTitle>
@@ -232,32 +239,32 @@ export function App() {
                 </DialogDescription>
               </DialogHeader>
               <Tabs
-                defaultValue="metas"
+                defaultValue="goals"
                 className="flex min-h-0 flex-1 flex-col gap-3">
                 <TabsList className="w-fit shrink-0">
-                  <TabsTrigger value="metas">Métricas</TabsTrigger>
-                  <TabsTrigger value="geral">Geral</TabsTrigger>
+                  <TabsTrigger value="goals">Métricas</TabsTrigger>
+                  <TabsTrigger value="general">Geral</TabsTrigger>
                 </TabsList>
                 <TabsContent
-                  value="metas"
+                  value="goals"
                   className="min-h-0 flex-1 overflow-y-auto pr-1">
                   <ConfigTab
                     key={reload}
-                    ano={ano}
+                    year={year}
                     onSaved={() => setReload(k => k + 1)}
                   />
                 </TabsContent>
                 <TabsContent
-                  value="geral"
+                  value="general"
                   className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
                   <AutoStartCard />
-                  <VendedoresCard
-                    ativos={vendedores}
-                    desativados={desativados}
-                    fotos={fotos}
-                    onEscolher={escolherFoto}
-                    onRemover={removerFoto}
-                    onToggle={alternarVendedor}
+                  <SellersCard
+                    active={sellers}
+                    disabled={disabled}
+                    photos={photos}
+                    onPick={pickPhoto}
+                    onRemove={removePhoto}
+                    onToggle={toggleSellerDisable}
                   />
                   <Card>
                     <CardHeader>
@@ -293,22 +300,22 @@ export function App() {
 
           <Tabs
             value={view}
-            onValueChange={v => setView(v as 'dashboard' | 'historico')}
+            onValueChange={v => setView(v as 'dashboard' | 'history')}
             className="flex min-h-0 flex-1 flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <TabsList className="w-fit">
                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-                <TabsTrigger value="historico">Histórico</TabsTrigger>
+                <TabsTrigger value="history">Histórico</TabsTrigger>
               </TabsList>
               {view === 'dashboard' ? (
                 <SellerCards
-                  ano={ano}
-                  vendedores={snap?.porVendedor ?? []}
-                  fotos={fotos}
-                  selected={vendSel}
-                  onSelect={alternarVend}
-                  onClear={() => setVendSel([])}
-                  desativados={desativados.length}
+                  year={year}
+                  sellers={snap?.bySeller ?? []}
+                  photos={photos}
+                  selected={selectedSellers}
+                  onSelect={toggleSeller}
+                  onClear={() => setSelectedSellers([])}
+                  disabled={disabled.length}
                 />
               ) : null}
             </div>
@@ -321,21 +328,22 @@ export function App() {
               ) : (
                 <div className="flex flex-col gap-3">
                   <ActiveFilters
-                    meses={meses}
-                    vendedores={vendSel}
-                    onClearMes={m =>
-                      setMeses(prev => prev.filter(x => x !== m))
+                    months={months}
+                    sellers={selectedSellers}
+                    onClearMonth={m =>
+                      setMonths(prev => prev.filter(x => x !== m))
                     }
-                    onClearVendedor={n =>
-                      setVendSel(prev => prev.filter(x => x !== n))
+                    onClearSeller={n =>
+                      setSelectedSellers(prev => prev.filter(x => x !== n))
                     }
                     onClearAll={() => {
-                      setMeses([])
-                      setVendSel([])
+                      setMonths([])
+                      setSelectedSellers([])
                     }}
                   />
 
-                  <section className={cn('grid gap-2 sm:grid-cols-3', kgrid)}>
+                  <section
+                    className={cn('grid gap-2 sm:grid-cols-3', gridClass)}>
                     {kpis.map(k => (
                       <KpiCard
                         key={k.title}
@@ -347,83 +355,83 @@ export function App() {
                   </section>
 
                   <DashboardGrid resetKey={layoutResetKey}>
-                    {!mesAtivo ? (
+                    {!monthActive ? (
                       <ChartCard
-                        key="fat-mensal"
+                        key="billing-monthly"
                         headerClassName="card-drag-handle cursor-move"
                         title={
-                          vendTitulo
-                            ? `Faturamento mensal — ${vendTitulo}`
+                          sellerTitle
+                            ? `Faturamento mensal — ${sellerTitle}`
                             : 'Faturamento mensal × meta'
                         }
                         contentClassName="flex flex-col gap-2">
                         <GroupedBars
-                          labels={MESES.map(m => MES_LABEL[m])}
+                          labels={MONTHS.map(m => MONTH_LABEL[m])}
                           series={[
                             {
                               name: 'Realizado',
                               kind: 'bar',
                               color: chartColor(1),
-                              values: MESES.map(m => snap.faturamentoPorMes[m]),
+                              values: MONTHS.map(m => snap.billingByMonth[m]),
                             },
-                            ...(!vendTitulo
+                            ...(!sellerTitle
                               ? [
                                   {
                                     name: 'Meta',
                                     kind: 'line' as const,
                                     color: chartColor(3),
-                                    values: MESES.map(
-                                      (_m, i) => snap.metasPorMes[i].meta,
+                                    values: MONTHS.map(
+                                      (_m, i) => snap.monthlyGoals[i].goal,
                                     ),
                                   },
                                 ]
                               : []),
                           ]}
-                          onClick={i => alternarMes(MESES[i])}
+                          onClick={i => toggleMonth(MONTHS[i])}
                         />
                       </ChartCard>
                     ) : null}
 
-                    {!mesAtivo ? (
+                    {!monthActive ? (
                       <ChartCard
-                        key="acumulado"
+                        key="cumulative"
                         headerClassName="card-drag-handle cursor-move"
                         title={
-                          vendTitulo
-                            ? `Acumulado ${ano} — ${vendTitulo}`
+                          sellerTitle
+                            ? `Acumulado ${year} — ${sellerTitle}`
                             : 'Acumulado anual × meta'
                         }>
                         <AccumulatedLine
-                          labels={MESES.map(m => MES_LABEL[m])}
-                          values={MESES.map(m => snap.acumuladoPorMes[m])}
-                          target={vendTitulo ? undefined : snap.metaAnual}
+                          labels={MONTHS.map(m => MONTH_LABEL[m])}
+                          values={MONTHS.map(m => snap.cumulativeByMonth[m])}
+                          target={sellerTitle ? undefined : snap.annualGoal}
                         />
                       </ChartCard>
                     ) : null}
 
-                    {!mesAtivo ? (
+                    {!monthActive ? (
                       <ChartCard
-                        key="fechamento"
+                        key="closing"
                         headerClassName="card-drag-handle cursor-move"
                         title="Nº de fechamento por mês">
                         <GroupedBars
-                          labels={MESES.map(m => MES_LABEL[m])}
+                          labels={MONTHS.map(m => MONTH_LABEL[m])}
                           valueFormat={v => int(v)}
                           series={[
                             {
                               name: 'Orçamentos',
                               kind: 'bar',
                               color: chartColor(2),
-                              values: MESES.map(
-                                m => snap.numeroFechamento[m].orcamento,
+                              values: MONTHS.map(
+                                m => snap.closingCounts[m].quote,
                               ),
                             },
                             {
                               name: 'Pedidos',
                               kind: 'bar',
                               color: chartColor(3),
-                              values: MESES.map(
-                                m => snap.numeroFechamento[m].pedido,
+                              values: MONTHS.map(
+                                m => snap.closingCounts[m].order,
                               ),
                             },
                           ]}
@@ -432,11 +440,11 @@ export function App() {
                     ) : null}
 
                     <ChartCard
-                      key="funil"
+                      key="funnel"
                       headerClassName="card-drag-handle cursor-move"
                       title={`Funil de vendas · ${[
-                        vendedorFiltro,
-                        mesAtivo ? `${periodoLabel(meses)}/${ano}` : ano,
+                        sellerFilter,
+                        monthActive ? `${periodLabel(months)}/${year}` : year,
                       ]
                         .filter(Boolean)
                         .join(' · ')}`}>
@@ -448,7 +456,7 @@ export function App() {
                     </ChartCard>
 
                     <ChartCard
-                      key="regioes"
+                      key="regions"
                       headerClassName="card-drag-handle cursor-move"
                       title="Regiões"
                       contentClassName="flex flex-col gap-2">
@@ -460,13 +468,13 @@ export function App() {
                     </ChartCard>
 
                     <ChartCard
-                      key="estados"
+                      key="states"
                       headerClassName="card-drag-handle cursor-move"
                       title="Estados">
                       <HorizontalBars
-                        data={snap.porEstado.slice(0, 8).map(e => ({
-                          label: `${e.estado} · ${pct(e.share)}`,
-                          value: e.valor,
+                        data={snap.byState.slice(0, 8).map(e => ({
+                          label: `${e.state} · ${pct(e.share)}`,
+                          value: e.value,
                           color: chartColor(2),
                         }))}
                         valueFormat={brl0}
@@ -478,14 +486,14 @@ export function App() {
                       headerClassName="card-drag-handle cursor-move"
                       title="Ticket médio por produto">
                       <div className="flex flex-col gap-2">
-                        {snap.ticketMedio.map(t => (
+                        {snap.averageTickets.map(t => (
                           <div
-                            key={t.produto}
+                            key={t.product}
                             className="flex items-center justify-between gap-2 text-sm">
                             <div>
-                              <p className="font-medium">{t.produto}</p>
+                              <p className="font-medium">{t.product}</p>
                               <p className="text-xs text-muted-foreground">
-                                {int(t.volume)} vendas · {brl0(t.valor)}
+                                {int(t.volume)} vendas · {brl0(t.value)}
                               </p>
                             </div>
                             <span className="text-lg font-semibold tabular-nums">
@@ -497,26 +505,26 @@ export function App() {
                     </ChartCard>
 
                     <ChartCard
-                      key="historico"
+                      key="history"
                       headerClassName="card-drag-handle cursor-move"
                       title="Histórico">
                       <div className="flex flex-col gap-3 text-sm">
                         {[
                           {
                             label: 'Faturamento total (todos os anos)',
-                            value: brl0(snap.totalHistorico),
+                            value: brl0(snap.historyTotal),
                           },
                           {
-                            label: `Participação de ${ano}`,
-                            value: pct(snap.participacaoAno),
+                            label: `Participação de ${year}`,
+                            value: pct(snap.yearShare),
                           },
                           {
-                            label: `Base meta ${ano}`,
-                            value: brl0(snap.metaAnualBase),
+                            label: `Base meta ${year}`,
+                            value: brl0(snap.annualGoalBase),
                           },
                           {
                             label: 'Fator de meta',
-                            value: `×${(snap.fator * 100).toFixed(0)}%`,
+                            value: `×${(snap.factor * 100).toFixed(0)}%`,
                           },
                         ].map(row => (
                           <div
@@ -536,8 +544,8 @@ export function App() {
                 </div>
               )}
             </TabsContent>
-            <TabsContent value="historico">
-              <HistoryTab reloadKey={reload} ano={ano} meses={meses} />
+            <TabsContent value="history">
+              <HistoryTab reloadKey={reload} year={year} months={months} />
             </TabsContent>
           </Tabs>
         </main>

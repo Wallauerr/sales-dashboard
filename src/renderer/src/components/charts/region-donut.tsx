@@ -10,7 +10,7 @@ import { chartColor } from '@/lib/colors'
 import { brl0, brlCompact, pct } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { KpiSnapshot } from '../../../../shared/types'
-import { ROTULO_SEM_ESTADO } from '../../../../shared/types'
+import { NO_STATE_LABEL } from '../../../../shared/types'
 
 const REGION_COLORS: Record<string, string> = {
   Norte: chartColor(1),
@@ -19,23 +19,23 @@ const REGION_COLORS: Record<string, string> = {
   Sudeste: chartColor(2),
   Sul: chartColor(5),
   Exterior: 'var(--muted-foreground)',
-  [ROTULO_SEM_ESTADO]: 'var(--muted-foreground)',
+  [NO_STATE_LABEL]: 'var(--muted-foreground)',
 }
 
 export function regionDonutData(snap: KpiSnapshot): DonutDatum[] {
-  return snap.porRegiao.map(r => ({
-    label: r.regiao,
-    value: r.valor,
+  return snap.byRegion.map(r => ({
+    label: r.region,
+    value: r.value,
     share: r.share,
-    color: REGION_COLORS[r.regiao],
+    color: REGION_COLORS[r.region],
   }))
 }
 
 export function regionBarData(snap: KpiSnapshot): DonutDatum[] {
-  return snap.porRegiao.map(r => ({
-    label: r.regiao,
-    value: r.valor,
-    color: REGION_COLORS[r.regiao],
+  return snap.byRegion.map(r => ({
+    label: r.region,
+    value: r.value,
+    color: REGION_COLORS[r.region],
   }))
 }
 
