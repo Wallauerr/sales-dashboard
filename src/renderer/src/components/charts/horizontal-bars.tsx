@@ -90,7 +90,7 @@ export function HorizontalBars({
   return (
     <ChartContainer
       config={config}
-      className={cn('h-[155px] w-full', className)}>
+      className={cn('aspect-auto min-h-[90px] w-full flex-1', className)}>
       <BarChart
         data={data}
         layout="vertical"

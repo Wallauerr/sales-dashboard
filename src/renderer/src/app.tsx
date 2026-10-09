@@ -364,7 +364,7 @@ export function App() {
                             ? `Faturamento mensal — ${sellerTitle}`
                             : 'Faturamento mensal × meta'
                         }
-                        contentClassName="flex flex-col gap-2">
+                        contentClassName="gap-2">
                         <GroupedBars
                           labels={MONTHS.map(m => MONTH_LABEL[m])}
                           series={[
@@ -459,7 +459,7 @@ export function App() {
                       key="regions"
                       headerClassName="card-drag-handle cursor-move"
                       title="Regiões"
-                      contentClassName="flex flex-col gap-2">
+                      contentClassName="gap-2">
                       <RegionDonut data={regionDonutData(snap)} />
                       <HorizontalBars
                         data={regionBarData(snap)}
@@ -485,7 +485,7 @@ export function App() {
                       key="ticket"
                       headerClassName="card-drag-handle cursor-move"
                       title="Ticket médio por produto">
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-1 flex-col justify-evenly gap-2">
                         {snap.averageTickets.map(t => (
                           <div
                             key={t.product}
@@ -508,7 +508,7 @@ export function App() {
                       key="history"
                       headerClassName="card-drag-handle cursor-move"
                       title="Histórico">
-                      <div className="flex flex-col gap-3 text-sm">
+                      <div className="flex flex-1 flex-col justify-evenly gap-3 text-sm">
                         {[
                           {
                             label: 'Faturamento total (todos os anos)',

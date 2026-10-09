@@ -41,7 +41,7 @@ export function AccumulatedLine({
   return (
     <ChartContainer
       config={config}
-      className={cn('h-[150px] w-full', className)}>
+      className={cn('aspect-auto min-h-[90px] w-full flex-1', className)}>
       <LineChart data={data} margin={{ top: 2, right: 2, left: 2, bottom: 0 }}>
         <CartesianGrid
           strokeDasharray="3 3"

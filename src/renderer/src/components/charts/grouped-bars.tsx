@@ -98,7 +98,7 @@ export function GroupedBars({
     <ChartContainer
       config={config}
       className={cn(
-        'h-[150px] w-full',
+        'aspect-auto min-h-[90px] w-full flex-1',
         onClick && '[&_.recharts-bar-rectangle]:cursor-pointer',
         className,
       )}>
