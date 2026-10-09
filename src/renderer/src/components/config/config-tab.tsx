@@ -9,7 +9,13 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { brl } from '@/lib/format'
+import {
+  brl,
+  brl0,
+  brlDraftSchema,
+  brlInputValue,
+  maskBrlText,
+} from '@/lib/format'
 import { MONTH_LABEL } from '@/lib/labels'
 import type {
   GoalConfigView,
@@ -19,9 +25,8 @@ import type {
 import { MONTHS } from '../../../../shared/types'
 
 function parseDraft(value: string): number | null {
-  if (value.trim() === '') return null
-  const n = Number(value)
-  return Number.isFinite(n) && n >= 0 ? n : NaN
+  const parsed = brlDraftSchema.safeParse(value)
+  return parsed.success ? parsed.data : NaN
 }
 
 export function ConfigTab({
@@ -41,12 +46,14 @@ export function ConfigTab({
   const [err, setErr] = useState<string | null>(null)
 
   const syncDrafts = useCallback((v: GoalConfigView) => {
-    setAnnualDraft(v.annualCustom === null ? '' : String(v.annualCustom))
+    setAnnualDraft(v.annualCustom === null ? '' : brlInputValue(v.annualCustom))
     setMonthsDraft(
       Object.fromEntries(
         MONTHS.map(m => [
           m,
-          v.monthsCustom[m] ? String(v.monthsCustom[m]) : '',
+          v.monthsCustom[m] === undefined
+            ? ''
+            : brlInputValue(v.monthsCustom[m]),
         ]),
       ) as Record<Month, string>,
     )
@@ -212,14 +219,10 @@ export function ConfigTab({
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
-            <Input
-              type="number"
-              min={0}
-              step="0.01"
-              inputMode="decimal"
+            <MoneyInput
               value={annualDraft}
-              placeholder={view ? String(Math.round(view.annualGoalAuto)) : '0'}
-              onChange={e => setAnnualDraft(e.target.value)}
+              placeholder={view ? brl0(view.annualGoalAuto) : '0,00'}
+              onChange={setAnnualDraft}
               className="w-56"
             />
             <span className="text-xs text-muted-foreground">
@@ -248,17 +251,13 @@ export function ConfigTab({
                   <span className="w-12 shrink-0 text-sm font-medium">
                     {MONTH_LABEL[month]}
                   </span>
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    inputMode="decimal"
+                  <MoneyInput
                     value={monthsDraft[month]}
                     placeholder="automática"
-                    onChange={e =>
+                    onChange={v =>
                       setMonthsDraft(prev => ({
                         ...prev,
-                        [month]: e.target.value,
+                        [month]: v,
                       }))
                     }
                     className="h-9 w-32"
@@ -332,4 +331,26 @@ function overridesDiffer(
     if (presentA && va !== vb) return true
   }
   return false
+}
+
+function MoneyInput({
+  value,
+  onChange,
+  className,
+  placeholder,
+}: {
+  value: string
+  onChange: (v: string) => void
+  className?: string
+  placeholder?: string
+}) {
+  return (
+    <Input
+      inputMode="numeric"
+      value={value}
+      placeholder={placeholder}
+      onChange={e => onChange(maskBrlText(e.target.value))}
+      className={className}
+    />
+  )
 }
