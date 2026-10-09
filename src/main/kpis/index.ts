@@ -1,24 +1,24 @@
 import type {
+  AverageTicket,
   FunnelMonth,
+  GoalConfigView,
+  GoalSetInput,
   KpiSnapshot,
-  Mes,
-  MetaConfigView,
-  MetasMes,
-  MetasSetInput,
-  SnapshotFilter,
-  TicketMedio,
+  Month,
+  MonthlyGoal,
+  SnapshotScope,
 } from '../../shared/types.ts'
 import {
-  CATEGORIAS_FORA_FATURAMENTO,
-  MESES,
-  ROTULO_SEM_ESTADO,
-  ROTULO_SEM_VENDEDOR,
-  STATUS_APROVADO_SEM_FATURAMENTO,
-  STATUS_FATURAMENTO,
+  APPROVED_WITHOUT_BILLING_STATUS,
+  BILLING_STATUSES,
+  MONTHS,
+  NO_SELLER_LABEL,
+  NO_STATE_LABEL,
+  NON_BILLING_CATEGORIES,
 } from '../../shared/types.ts'
 import type { SalesDatabase } from '../db/database.ts'
 
-const PRODUTOS_VENDEDORES: Record<string, string[]> = {
+const PRODUCT_SELLERS: Record<string, string[]> = {
   Equipamentos: [
     'Bruno Keller',
     'Iago Gernhardt Benedetto',
@@ -29,7 +29,7 @@ const PRODUTOS_VENDEDORES: Record<string, string[]> = {
   'Follow-Up': ['Stephani Strack da Silva'],
 }
 
-const REGIAO_MAPA: Record<string, { x: number; y: number }> = {
+const REGION_POSITION: Record<string, { x: number; y: number }> = {
   Norte: { x: 30, y: 80 },
   Nordeste: { x: 90, y: 70 },
   'Centro-Oeste': { x: 50, y: 50 },
@@ -37,7 +37,7 @@ const REGIAO_MAPA: Record<string, { x: number; y: number }> = {
   Sul: { x: 60, y: 10 },
 }
 
-interface Escopo {
+interface Scope {
   where: string
   params: (string | number)[]
 }
@@ -45,247 +45,250 @@ interface Escopo {
 // Filtro de faturamento: `Pedido`/`Pedido Faturado` sempre entram;
 // `Pedido Aprovado Sem Faturamento` só quando a categoria não é remessa nem
 // amostra — categoria vazia conta.
-function faturamentoClause(): { sql: string; params: string[] } {
-  const inStatus = STATUS_FATURAMENTO.map(() => '?').join(', ')
-  const notLike = CATEGORIAS_FORA_FATURAMENTO.map(
-    () => 'categoria NOT LIKE ?',
-  ).join(' AND ')
+function billingClause(): { sql: string; params: string[] } {
+  const inStatus = BILLING_STATUSES.map(() => '?').join(', ')
+  const notLike = NON_BILLING_CATEGORIES.map(() => 'categoria NOT LIKE ?').join(
+    ' AND ',
+  )
   return {
     sql: `(status_sistema IN (${inStatus}) OR (status_sistema = ? AND ${notLike}))`,
     params: [
-      ...STATUS_FATURAMENTO,
-      STATUS_APROVADO_SEM_FATURAMENTO,
-      ...CATEGORIAS_FORA_FATURAMENTO,
+      ...BILLING_STATUSES,
+      APPROVED_WITHOUT_BILLING_STATUS,
+      ...NON_BILLING_CATEGORIES,
     ],
   }
 }
 
 // O filtro de faturamento é opcional porque o funil e o nº de fechamento contam
 // cada status individualmente.
-function escopo(
+function scope(
   db: SalesDatabase,
-  ano: number,
-  filtro: SnapshotFilter | null | undefined,
-  opts: { faturamento?: boolean } = {},
-): Escopo {
-  const faturamento = opts.faturamento ?? true
+  year: number,
+  filter: SnapshotScope | null | undefined,
+  opts: { billing?: boolean } = {},
+): Scope {
+  const billing = opts.billing ?? true
   const where: string[] = ['ano = ?']
-  const params: (string | number)[] = [ano]
-  if (faturamento) {
-    const clause = faturamentoClause()
+  const params: (string | number)[] = [year]
+  if (billing) {
+    const clause = billingClause()
     where.push(clause.sql)
     params.push(...clause.params)
   }
-  if (filtro?.meses?.length) {
-    where.push(`mes IN (${filtro.meses.map(() => '?').join(', ')})`)
-    params.push(...filtro.meses)
+  if (filter?.months?.length) {
+    where.push(`mes IN (${filter.months.map(() => '?').join(', ')})`)
+    params.push(...filter.months)
   }
-  if (filtro?.vendedores?.length) {
-    const valores = new Set<string>()
-    for (const v of filtro.vendedores) {
-      if (v === ROTULO_SEM_VENDEDOR) {
-        valores.add('')
-        for (const desat of db.listVendedoresDesativados()) valores.add(desat)
+  if (filter?.sellers?.length) {
+    const values = new Set<string>()
+    for (const v of filter.sellers) {
+      if (v === NO_SELLER_LABEL) {
+        values.add('')
+        for (const disabled of db.listDisabledSellers()) values.add(disabled)
       } else {
-        valores.add(v)
+        values.add(v)
       }
     }
-    where.push(`vendedor IN (${[...valores].map(() => '?').join(', ')})`)
-    params.push(...valores)
+    where.push(`vendedor IN (${[...values].map(() => '?').join(', ')})`)
+    params.push(...values)
   }
   return { where: `WHERE ${where.join(' AND ')}`, params }
 }
 
-function metricasPorMes(
+function metricsByMonth(
   db: SalesDatabase,
   expr: 'SUM(valor_total)' | 'COUNT(*)',
-  scope: Escopo,
-): Record<Mes, number> {
+  sc: Scope,
+): Record<Month, number> {
   const rows = db.raw
-    .prepare(`SELECT mes, ${expr} AS v FROM vendas ${scope.where} GROUP BY mes`)
-    .all(...scope.params) as { mes: string | null; v: number }[]
-  const out = Object.fromEntries(MESES.map(m => [m, 0])) as Record<Mes, number>
+    .prepare(`SELECT mes, ${expr} AS v FROM vendas ${sc.where} GROUP BY mes`)
+    .all(...sc.params) as { mes: string | null; v: number }[]
+  const out = Object.fromEntries(MONTHS.map(m => [m, 0])) as Record<
+    Month,
+    number
+  >
   for (const r of rows) {
-    const key = r.mes as Mes
+    const key = r.mes as Month
     if (Object.hasOwn(out, key)) out[key] = r.v
   }
   return out
 }
 
-function faturamentoPorMes(
+function billingByMonth(
   db: SalesDatabase,
-  ano: number,
-  filtro?: SnapshotFilter | null,
-): Record<Mes, number> {
-  return metricasPorMes(db, 'SUM(valor_total)', escopo(db, ano, filtro))
+  year: number,
+  filter?: SnapshotScope | null,
+): Record<Month, number> {
+  return metricsByMonth(db, 'SUM(valor_total)', scope(db, year, filter))
 }
 
-function quantidadePorMes(
+function quantityByMonth(
   db: SalesDatabase,
-  ano: number,
-  filtro?: SnapshotFilter | null,
-): Record<Mes, number> {
-  return metricasPorMes(db, 'COUNT(*)', escopo(db, ano, filtro))
+  year: number,
+  filter?: SnapshotScope | null,
+): Record<Month, number> {
+  return metricsByMonth(db, 'COUNT(*)', scope(db, year, filter))
 }
 
-const COLUNA_GRUPO = {
-  vendedor: 'vendedor',
-  estado: 'estado',
-  regiao: 'regiao',
+const GROUP_COLUMN = {
+  seller: 'vendedor',
+  state: 'estado',
+  region: 'regiao',
 } as const
 
-function somaPor(
+function sumBy(
   db: SalesDatabase,
-  coluna: keyof typeof COLUNA_GRUPO,
-  scope: Escopo,
-): { chave: string; valor: number }[] {
-  const campo = COLUNA_GRUPO[coluna]
-  const vendaSemNome =
-    coluna === 'vendedor'
-      ? `CASE WHEN ${campo} = '' THEN '${ROTULO_SEM_VENDEDOR}'
-              WHEN ${campo} IN (SELECT vendedor FROM vendedor_desativado)
-                THEN '${ROTULO_SEM_VENDEDOR}'
-              ELSE ${campo} END`
-      : campo
+  column: keyof typeof GROUP_COLUMN,
+  sc: Scope,
+): { key: string; value: number }[] {
+  const field = GROUP_COLUMN[column]
+  const unnamedLabel =
+    column === 'seller'
+      ? `CASE WHEN ${field} = '' THEN '${NO_SELLER_LABEL}'
+              WHEN ${field} IN (SELECT vendedor FROM vendedor_desativado)
+                THEN '${NO_SELLER_LABEL}'
+              ELSE ${field} END`
+      : field
   return db.raw
     .prepare(
-      `SELECT ${vendaSemNome} AS chave, SUM(valor_total) AS valor FROM vendas
-       ${scope.where} GROUP BY chave ORDER BY valor DESC`,
+      `SELECT ${unnamedLabel} AS key, SUM(valor_total) AS value FROM vendas
+       ${sc.where} GROUP BY key ORDER BY value DESC`,
     )
-    .all(...scope.params) as { chave: string; valor: number }[]
+    .all(...sc.params) as { key: string; value: number }[]
 }
 
-function shareDe(valor: number, total: number): number {
-  return total ? valor / total : 0
+function shareOf(value: number, total: number): number {
+  return total ? value / total : 0
 }
 
-function porVendedor(
+function bySeller(
   db: SalesDatabase,
-  scope: Escopo,
+  sc: Scope,
   total: number,
-): { vendedor: string; valor: number; share: number }[] {
-  return somaPor(db, 'vendedor', scope).map(r => ({
-    vendedor: r.chave || ROTULO_SEM_VENDEDOR,
-    valor: r.valor,
-    share: shareDe(r.valor, total),
+): { seller: string; value: number; share: number }[] {
+  return sumBy(db, 'seller', sc).map(r => ({
+    seller: r.key || NO_SELLER_LABEL,
+    value: r.value,
+    share: shareOf(r.value, total),
   }))
 }
 
-function porEstado(
+function byState(
   db: SalesDatabase,
-  scope: Escopo,
+  sc: Scope,
   total: number,
-): { estado: string; valor: number; share: number }[] {
-  return somaPor(db, 'estado', scope).map(r => ({
-    estado: r.chave || ROTULO_SEM_ESTADO,
-    valor: r.valor,
-    share: shareDe(r.valor, total),
+): { state: string; value: number; share: number }[] {
+  return sumBy(db, 'state', sc).map(r => ({
+    state: r.key || NO_STATE_LABEL,
+    value: r.value,
+    share: shareOf(r.value, total),
   }))
 }
 
-function porRegiao(
+function byRegion(
   db: SalesDatabase,
-  scope: Escopo,
+  sc: Scope,
   total: number,
-): { regiao: string; valor: number; share: number; x: number; y: number }[] {
-  return somaPor(db, 'regiao', scope).map(r => ({
-    regiao: r.chave || ROTULO_SEM_ESTADO,
-    valor: r.valor,
-    share: shareDe(r.valor, total),
-    ...(REGIAO_MAPA[r.chave] ?? { x: 0, y: 0 }),
+): { region: string; value: number; share: number; x: number; y: number }[] {
+  return sumBy(db, 'region', sc).map(r => ({
+    region: r.key || NO_STATE_LABEL,
+    value: r.value,
+    share: shareOf(r.value, total),
+    ...(REGION_POSITION[r.key] ?? { x: 0, y: 0 }),
   }))
 }
 
 function countStatus(
   db: SalesDatabase,
-  scope: Escopo,
-  mes: Mes,
+  sc: Scope,
+  month: Month,
   status: string,
 ): number {
   const r = db.raw
     .prepare(
-      `SELECT COUNT(*) AS n FROM vendas ${scope.where} AND mes = ? AND status_sistema = ?`,
+      `SELECT COUNT(*) AS n FROM vendas ${sc.where} AND mes = ? AND status_sistema = ?`,
     )
-    .get(...scope.params, mes, status) as { n: number }
+    .get(...sc.params, month, status) as { n: number }
   return r.n
 }
 
-function funilPorMes(
+function funnelByMonth(
   db: SalesDatabase,
-  ano: number,
-  filtro?: SnapshotFilter | null,
+  year: number,
+  filter?: SnapshotScope | null,
 ): FunnelMonth[] {
-  const scope = escopo(db, ano, filtro, { faturamento: false })
-  return MESES.map(mes => {
-    const orcamento = countStatus(db, scope, mes, 'Orçamento')
-    const pedido = countStatus(db, scope, mes, 'Pedido')
-    const pedidoAprovadoSemFaturamento = countStatus(
+  const sc = scope(db, year, filter, { billing: false })
+  return MONTHS.map(month => {
+    const quote = countStatus(db, sc, month, 'Orçamento')
+    const order = countStatus(db, sc, month, 'Pedido')
+    const approvedWithoutInvoicing = countStatus(
       db,
-      scope,
-      mes,
+      sc,
+      month,
       'Pedido Aprovado Sem Faturamento',
     )
-    const pedidoCancelado = countStatus(db, scope, mes, 'Pedido Cancelado')
-    const pedidoFaturado = countStatus(db, scope, mes, 'Pedido Faturado')
-    const pedidoNaoFaturado = countStatus(db, scope, mes, 'Pedido Nao Faturado')
+    const cancelled = countStatus(db, sc, month, 'Pedido Cancelado')
+    const invoiced = countStatus(db, sc, month, 'Pedido Faturado')
+    const notInvoiced = countStatus(db, sc, month, 'Pedido Nao Faturado')
     return {
-      mes,
-      orcamento,
-      pedido,
-      pedidoAprovadoSemFaturamento,
-      pedidoCancelado,
-      pedidoFaturado,
-      pedidoNaoFaturado,
+      month,
+      quote,
+      order,
+      approvedWithoutInvoicing,
+      cancelled,
+      invoiced,
+      notInvoiced,
       total:
-        orcamento +
-        pedido +
-        pedidoAprovadoSemFaturamento +
-        pedidoCancelado +
-        pedidoFaturado +
-        pedidoNaoFaturado,
+        quote +
+        order +
+        approvedWithoutInvoicing +
+        cancelled +
+        invoiced +
+        notInvoiced,
     } as FunnelMonth
   })
 }
 
-function numeroFechamento(
+function closingCounts(
   db: SalesDatabase,
-  ano: number,
-  filtro?: SnapshotFilter | null,
-): Record<Mes, { orcamento: number; pedido: number }> {
-  const scope = escopo(db, ano, filtro, { faturamento: false })
-  const out = {} as Record<Mes, { orcamento: number; pedido: number }>
-  for (const mes of MESES) {
-    const orcamento =
-      countStatus(db, scope, mes, 'Orçamento') +
-      countStatus(db, scope, mes, 'Pedido Aprovado Sem Faturamento')
-    const pedido =
-      countStatus(db, scope, mes, 'Pedido') +
-      countStatus(db, scope, mes, 'Pedido Cancelado') +
-      countStatus(db, scope, mes, 'Pedido Faturado')
-    out[mes] = { orcamento, pedido }
+  year: number,
+  filter?: SnapshotScope | null,
+): Record<Month, { quote: number; order: number }> {
+  const sc = scope(db, year, filter, { billing: false })
+  const out = {} as Record<Month, { quote: number; order: number }>
+  for (const month of MONTHS) {
+    const quote =
+      countStatus(db, sc, month, 'Orçamento') +
+      countStatus(db, sc, month, 'Pedido Aprovado Sem Faturamento')
+    const order =
+      countStatus(db, sc, month, 'Pedido') +
+      countStatus(db, sc, month, 'Pedido Cancelado') +
+      countStatus(db, sc, month, 'Pedido Faturado')
+    out[month] = { quote, order }
   }
   return out
 }
 
-function ticketMedio(
+function averageTicket(
   db: SalesDatabase,
-  ano: number,
-  filtro?: SnapshotFilter | null,
-): TicketMedio[] {
-  const scope = escopo(db, ano, filtro)
-  const out: TicketMedio[] = []
-  for (const [produto, vendedores] of Object.entries(PRODUTOS_VENDEDORES)) {
-    const q = `SELECT COALESCE(SUM(valor_total), 0) AS valor, COUNT(*) AS volume FROM vendas
-               ${scope.where} AND vendedor IN (${vendedores.map(() => '?').join(', ')})`
-    const r = db.raw.prepare(q).get(...scope.params, ...vendedores) as {
-      valor: number
+  year: number,
+  filter?: SnapshotScope | null,
+): AverageTicket[] {
+  const sc = scope(db, year, filter)
+  const out: AverageTicket[] = []
+  for (const [product, sellers] of Object.entries(PRODUCT_SELLERS)) {
+    const q = `SELECT COALESCE(SUM(valor_total), 0) AS value, COUNT(*) AS volume FROM vendas
+               ${sc.where} AND vendedor IN (${sellers.map(() => '?').join(', ')})`
+    const r = db.raw.prepare(q).get(...sc.params, ...sellers) as {
+      value: number
       volume: number
     }
     out.push({
-      produto,
-      valor: r.valor,
+      product,
+      value: r.value,
       volume: r.volume,
-      ticket: r.volume ? r.valor / r.volume : 0,
+      ticket: r.volume ? r.value / r.volume : 0,
     })
   }
   return out
@@ -293,132 +296,134 @@ function ticketMedio(
 
 export function getSnapshot(
   db: SalesDatabase,
-  ano: number,
-  filtro: SnapshotFilter = {},
+  year: number,
+  filter: SnapshotScope = {},
 ): KpiSnapshot {
-  const faturamento = faturamentoPorMes(db, ano, filtro)
-  const totalPeriodo = MESES.reduce((acc, m) => acc + faturamento[m], 0)
-  const totalHistoricoClause = faturamentoClause()
-  const totalHistorico = (
+  const billing = billingByMonth(db, year, filter)
+  const periodTotal = MONTHS.reduce((acc, m) => acc + billing[m], 0)
+  const historyClause = billingClause()
+  const historyTotal = (
     db.raw
       .prepare(
-        `SELECT COALESCE(SUM(valor_total),0) AS v FROM vendas WHERE ${totalHistoricoClause.sql}`,
+        `SELECT COALESCE(SUM(valor_total),0) AS v FROM vendas WHERE ${historyClause.sql}`,
       )
-      .get(...totalHistoricoClause.params) as { v: number }
+      .get(...historyClause.params) as { v: number }
   ).v
 
-  const baseAno = ano - 1
-  const faturamentoBase = faturamentoPorMes(db, baseAno)
-  const faturamentoGlobal = faturamentoPorMes(db, ano)
-  const totalBase = MESES.reduce((acc, m) => acc + faturamentoBase[m], 0)
-  const totalAno = MESES.reduce((acc, m) => acc + faturamentoGlobal[m], 0)
-  const fator = db.getFator(ano)
-  const metaAnualBase = totalBase
-  const metaAnualAuto = totalBase * fator
+  const baseYear = year - 1
+  const billingBase = billingByMonth(db, baseYear)
+  const billingGlobal = billingByMonth(db, year)
+  const totalBase = MONTHS.reduce((acc, m) => acc + billingBase[m], 0)
+  const totalYear = MONTHS.reduce((acc, m) => acc + billingGlobal[m], 0)
+  const factor = db.getFactor(year)
+  const annualGoalBase = totalBase
+  const annualGoalAuto = totalBase * factor
 
-  const anualCustom = db.getMetaAnual(ano)
-  const mesesCustom = db.getMetasMesOverride(ano)
-  const shareDeBase = (mes: Mes): number =>
-    totalBase ? faturamentoBase[mes] / totalBase : 1 / MESES.length
+  const annualCustom = db.getAnnualGoal(year)
+  const monthsCustom = db.getMonthlyGoalOverrides(year)
+  const shareOfBase = (month: Month): number =>
+    totalBase ? billingBase[month] / totalBase : 1 / MONTHS.length
 
-  const metasPorMes: MetasMes[] = MESES.map(mes => {
-    const faturamentoAnoAnterior = faturamentoBase[mes]
-    const meta =
-      mesesCustom[mes] ?? (anualCustom ?? metaAnualAuto) * shareDeBase(mes)
-    const atual = faturamentoGlobal[mes]
+  const monthlyGoals: MonthlyGoal[] = MONTHS.map(month => {
+    const previousYearBilling = billingBase[month]
+    const goal =
+      monthsCustom[month] ??
+      (annualCustom ?? annualGoalAuto) * shareOfBase(month)
+    const current = billingGlobal[month]
     return {
-      mes,
-      faturamentoAnoAnterior,
-      meta,
-      acima: atual >= meta ? atual : 0,
-      abaixo: atual <= meta ? atual : 0,
-      restanteMes: meta - atual,
+      month,
+      previousYearBilling,
+      goal,
+      above: current >= goal ? current : 0,
+      below: current <= goal ? current : 0,
+      remainingInMonth: goal - current,
     }
   })
 
-  const metaAnual = metasPorMes.reduce((acc, mes) => acc + mes.meta, 0)
-  const metaPersonalizada =
-    anualCustom !== null || Object.keys(mesesCustom).length > 0
+  const annualGoal = monthlyGoals.reduce((acc, month) => acc + month.goal, 0)
+  const customGoal =
+    annualCustom !== null || Object.keys(monthsCustom).length > 0
 
-  const acumuladoPorMes = {} as Record<Mes, number>
-  const restanteAnoPorMes = {} as Record<Mes, number>
+  const cumulativeByMonth = {} as Record<Month, number>
+  const remainingYearByMonth = {} as Record<Month, number>
   let acc = 0
-  for (const mes of MESES) {
-    acc += faturamento[mes]
-    acumuladoPorMes[mes] = acc
-    restanteAnoPorMes[mes] = metaAnual - acc
+  for (const month of MONTHS) {
+    acc += billing[month]
+    cumulativeByMonth[month] = acc
+    remainingYearByMonth[month] = annualGoal - acc
   }
 
   return {
-    ano,
-    totalPeriodo,
-    totalHistorico,
-    participacaoAno: totalHistorico ? totalAno / totalHistorico : 0,
-    participacaoEscopo: totalHistorico ? totalPeriodo / totalHistorico : 0,
-    faturamentoPorMes: faturamento,
-    quantidadePorMes: quantidadePorMes(db, ano, filtro),
-    porVendedor: porVendedor(
+    year,
+    periodTotal,
+    historyTotal,
+    yearShare: historyTotal ? totalYear / historyTotal : 0,
+    scopeShare: historyTotal ? periodTotal / historyTotal : 0,
+    billingByMonth: billing,
+    quantityByMonth: quantityByMonth(db, year, filter),
+    bySeller: bySeller(
       db,
-      escopo(db, ano, { ...filtro, vendedores: null }),
-      totalAno,
+      scope(db, year, { ...filter, sellers: null }),
+      totalYear,
     ),
-    porEstado: porEstado(db, escopo(db, ano, filtro), totalAno),
-    porRegiao: porRegiao(db, escopo(db, ano, filtro), totalAno),
-    funilPorMes: funilPorMes(db, ano, filtro),
-    numeroFechamento: numeroFechamento(db, ano, filtro),
-    ticketMedio: ticketMedio(db, ano, filtro),
-    metaAnual: Number(metaAnual.toFixed(2)),
-    metaAnualBase: Number(metaAnualBase.toFixed(2)),
-    metaAnualAuto: Number(metaAnualAuto.toFixed(2)),
-    metaPersonalizada,
-    fator,
-    metasPorMes,
-    acumuladoPorMes,
-    restanteAnoPorMes,
+    byState: byState(db, scope(db, year, filter), totalYear),
+    byRegion: byRegion(db, scope(db, year, filter), totalYear),
+    funnelByMonth: funnelByMonth(db, year, filter),
+    closingCounts: closingCounts(db, year, filter),
+    averageTickets: averageTicket(db, year, filter),
+    annualGoal: Number(annualGoal.toFixed(2)),
+    annualGoalBase: Number(annualGoalBase.toFixed(2)),
+    annualGoalAuto: Number(annualGoalAuto.toFixed(2)),
+    customGoal,
+    factor,
+    monthlyGoals,
+    cumulativeByMonth,
+    remainingYearByMonth,
   }
 }
 
-export function getMetaConfig(db: SalesDatabase, ano: number): MetaConfigView {
-  const baseAno = ano - 1
-  const faturamentoBase = faturamentoPorMes(db, baseAno)
-  const totalBase = MESES.reduce((acc, mes) => acc + faturamentoBase[mes], 0)
-  const fator = db.getFator(ano)
-  const metaAnualAuto = totalBase * fator
-  const anualCustom = db.getMetaAnual(ano)
-  const mesesCustom = db.getMetasMesOverride(ano)
-  const shareDeBase = (mes: Mes): number =>
-    totalBase ? faturamentoBase[mes] / totalBase : 1 / MESES.length
+export function getGoalConfig(db: SalesDatabase, year: number): GoalConfigView {
+  const baseYear = year - 1
+  const billingBase = billingByMonth(db, baseYear)
+  const totalBase = MONTHS.reduce((acc, month) => acc + billingBase[month], 0)
+  const factor = db.getFactor(year)
+  const annualGoalAuto = totalBase * factor
+  const annualCustom = db.getAnnualGoal(year)
+  const monthsCustom = db.getMonthlyGoalOverrides(year)
+  const shareOfBase = (month: Month): number =>
+    totalBase ? billingBase[month] / totalBase : 1 / MONTHS.length
 
-  const metasEfetivas = MESES.map(
-    mes =>
-      mesesCustom[mes] ?? (anualCustom ?? metaAnualAuto) * shareDeBase(mes),
+  const effectiveGoals = MONTHS.map(
+    month =>
+      monthsCustom[month] ??
+      (annualCustom ?? annualGoalAuto) * shareOfBase(month),
   )
-  const metasAuto = Object.fromEntries(
-    MESES.map(mes => [mes, faturamentoBase[mes] * fator]),
-  ) as Record<Mes, number>
+  const autoGoals = Object.fromEntries(
+    MONTHS.map(month => [month, billingBase[month] * factor]),
+  ) as Record<Month, number>
 
   return {
-    ano,
-    fator,
-    baseAno: totalBase,
-    metaAnual: Number(
-      metasEfetivas.reduce((acc, mes) => acc + mes, 0).toFixed(2),
+    year,
+    factor,
+    baseYear: totalBase,
+    annualGoal: Number(
+      effectiveGoals.reduce((acc, goal) => acc + goal, 0).toFixed(2),
     ),
-    metaAnualAuto: Number(metaAnualAuto.toFixed(2)),
-    anualCustom,
-    mesesCustom,
-    metasAuto,
-    metasEfetivas: Object.fromEntries(
-      MESES.map((mes, index) => [mes, metasEfetivas[index]]),
-    ) as Record<Mes, number>,
+    annualGoalAuto: Number(annualGoalAuto.toFixed(2)),
+    annualCustom,
+    monthsCustom,
+    autoGoals,
+    effectiveGoals: Object.fromEntries(
+      MONTHS.map((month, index) => [month, effectiveGoals[index]]),
+    ) as Record<Month, number>,
   }
 }
 
-export function setMetaConfig(
+export function setGoalConfig(
   db: SalesDatabase,
-  ano: number,
-  input: MetasSetInput,
+  year: number,
+  input: GoalSetInput,
 ): void {
-  db.setMetaAnual(ano, input.anual)
-  db.setMetasMesOverride(ano, input.meses)
+  db.setAnnualGoal(year, input.annual)
+  db.setMonthlyGoalOverrides(year, input.months)
 }
