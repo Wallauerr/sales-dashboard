@@ -1,15 +1,15 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
   AutoStartView,
-  CodigoHistory,
-  FotoResultado,
+  CodeHistory,
+  GoalConfigView,
+  GoalSetInput,
   ImportRecord,
   ImportResult,
   KpiSnapshot,
-  MetaConfigView,
-  MetasSetInput,
-  SnapshotFilter,
-  VendedorFoto,
+  PhotoResult,
+  SellerPhoto,
+  SnapshotScope,
 } from '../shared/types.ts'
 
 export interface WindowBounds {
@@ -24,36 +24,29 @@ const api = {
     ipcRenderer.invoke('ingest:import') as Promise<ImportResult | null>,
   getImports: () =>
     ipcRenderer.invoke('ingest:imports') as Promise<ImportRecord[]>,
-  getCodigoHistory: (codigo: string) =>
+  getCodeHistory: (code: string) =>
+    ipcRenderer.invoke('ingest:code-history', code) as Promise<CodeHistory>,
+  getSnapshot: (year: number, scope?: SnapshotScope) =>
+    ipcRenderer.invoke('kpis:get', year, scope) as Promise<KpiSnapshot>,
+  getGoalConfig: (year: number) =>
+    ipcRenderer.invoke('goals:get', year) as Promise<GoalConfigView>,
+  setGoalConfig: (year: number, input: GoalSetInput) =>
+    ipcRenderer.invoke('goals:set', year, input) as Promise<GoalConfigView>,
+  getPhotos: () => ipcRenderer.invoke('photos:list') as Promise<SellerPhoto[]>,
+  listSellers: () => ipcRenderer.invoke('sellers:list') as Promise<string[]>,
+  listDisabledSellers: () =>
+    ipcRenderer.invoke('sellers:disabled') as Promise<string[]>,
+  setSellerDisabled: (seller: string, disabled: boolean) =>
     ipcRenderer.invoke(
-      'ingest:codigo-history',
-      codigo,
-    ) as Promise<CodigoHistory>,
-  getSnapshot: (ano: number, filtro?: SnapshotFilter) =>
-    ipcRenderer.invoke('kpis:get', ano, filtro) as Promise<KpiSnapshot>,
-  getMetaConfig: (ano: number) =>
-    ipcRenderer.invoke('metas:get', ano) as Promise<MetaConfigView>,
-  setMetaConfig: (ano: number, input: MetasSetInput) =>
-    ipcRenderer.invoke('metas:set', ano, input) as Promise<MetaConfigView>,
-  getFotos: () => ipcRenderer.invoke('fotos:list') as Promise<VendedorFoto[]>,
-  listVendedores: () =>
-    ipcRenderer.invoke('vendedores:list') as Promise<string[]>,
-  listVendedoresDesativados: () =>
-    ipcRenderer.invoke('vendedores:desativados') as Promise<string[]>,
-  setVendedorDesativado: (vendedor: string, desativado: boolean) =>
-    ipcRenderer.invoke(
-      'vendedor:set-desativado',
-      vendedor,
-      desativado,
+      'seller:set-disabled',
+      seller,
+      disabled,
     ) as Promise<void>,
-  listAnos: () => ipcRenderer.invoke('anos:list') as Promise<number[]>,
-  escolherFoto: (vendedor: string) =>
-    ipcRenderer.invoke(
-      'foto:escolher',
-      vendedor,
-    ) as Promise<FotoResultado | null>,
-  removerFoto: (vendedor: string) =>
-    ipcRenderer.invoke('foto:remover', vendedor) as Promise<FotoResultado>,
+  listYears: () => ipcRenderer.invoke('years:list') as Promise<number[]>,
+  pickPhoto: (seller: string) =>
+    ipcRenderer.invoke('photo:pick', seller) as Promise<PhotoResult | null>,
+  removePhoto: (seller: string) =>
+    ipcRenderer.invoke('photo:remove', seller) as Promise<PhotoResult>,
   getAutoStart: () =>
     ipcRenderer.invoke('app:autostart-get') as Promise<AutoStartView>,
   setAutoStart: (enabled: boolean) =>
