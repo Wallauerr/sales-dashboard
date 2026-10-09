@@ -49,15 +49,12 @@
 
 ### Fase 5 — Polish/infra
 
-15. Migrar `smoke.ts` para vitest (14) + testes da regra de faturamento.
-16. Ambientes `dev`, `prod` e `test` (base para e2e), usando Faker pt-BR para gerar os dados fictícios; avaliar usar o Faker também nos dados mock do app.
-17. Campos de meta formatados em BRL, com zod (00).
-18. Meta em % configurável (ano e meses), com seletor de unidade: hoje o `fator` já existe no banco (`fator:<ano>`, default `1.15`) mas `setFator` (`src/main/db/database.ts:376`) nunca é chamado, então o 115% está travado sem nenhum campo na UI. Expor o % do ano e dos 12 meses (base do mês em {ano-1} × %) com **seletor único por ano** entre `%` e valor fixo em R$ — nada de misturar unidade: o ano é todo % ou todo R$. O vazio continua sendo automático, sem chave extra para isso. % uniforme no ano equivale a distribuir pela participação de cada mês no ano anterior, então ano e mês em % não se contradizem e a meta anual continua sendo a soma dos 12 meses (`src/main/kpis/index.ts:314`). Mesmo trabalho do item 17: os inputs de meta mudam de outra vez.
-19. Fundo no gráfico de acumulado anual × meta (8).
-20. Releases versionadas no GitHub / auto-update (13).
-21. Cards responsivos na vertical: quando o usuário redimensiona a altura de um card (horizontal já acompanha via ResponsiveContainer), o conteúdo interno tem altura fixa (ex.: gráficos `h-[150px]` em `horizontal-bars.tsx`/`region-donut.tsx`, listas) e sobra vão embaixo. Fazer gráficos/listas acompanharem a altura do card (ex.: `height: 100%` + medir a área disponível, `KpiCard`/ticket idem). A persistência de layout ao arrastar/redimensionar já existe (`onLayoutChange` → `saveDashboardLayout` em `dashboard-grid.tsx`).
-22. Hint dinâmico no card **Meta anual** (`src/renderer/src/components/kpi/build-kpis.ts`): o hint é fixo `base {ano-1} × {fator}%` e assume meta sempre automática — quando o comercial setar a meta manualmente na Configurações (valor fixo agora ou via % no item 18), fica errado. Deve variar pela origem real: automática (`base {ano-1} × {fator}%`), manual em R$ (`base {ano-1} · meta manual R$ X`) e manual em % (item 18). Para diferenciar, o snapshot já tem `metaPersonalizada`/`metaAnualAuto`/`anualCustom` (com os nomes em inglês após a Fase 4).
-
-### Quick win
-
-23. Cursor pointer no modal de ajustes: botão X do `ui/dialog.tsx` (nunca foi coberto pelos commits de cursor). Ver também o overlay.
+15. Cursor pointer no modal de ajustes: botão X do `ui/dialog.tsx` (nunca foi coberto pelos commits de cursor). Ver também o overlay.
+16. Campos de meta formatados em BRL, com zod (00).
+17. Fundo no gráfico de acumulado anual × meta (8). **Fica com o usuário — não implementar / não pular para fazer.**
+18. Cards responsivos na vertical: quando o usuário redimensiona a altura de um card (horizontal já acompanha via ResponsiveContainer), o conteúdo interno tem altura fixa (ex.: gráficos `h-[150px]` em `horizontal-bars.tsx`/`region-donut.tsx`, listas) e sobra vão embaixo. Fazer gráficos/listas acompanharem a altura do card (ex.: `height: 100%` + medir a área disponível, `KpiCard`/ticket idem). A persistência de layout ao arrastar/redimensionar já existe (`onLayoutChange` → `saveDashboardLayout` em `dashboard-grid.tsx`).
+19. Migrar `smoke.ts` para vitest (14) + testes da regra de faturamento.
+20. Hint dinâmico no card **Meta anual** (`src/renderer/src/components/kpi/build-kpis.ts`): o hint é fixo `base {ano-1} × {fator}%` e assume meta sempre automática — quando o comercial setar a meta manualmente na Configurações (valor fixo agora ou via % no item 22), fica errado. Deve variar pela origem real: automática (`base {ano-1} × {fator}%`), manual em R$ (`base {ano-1} · meta manual R$ X`) e manual em % (item 22). Para diferenciar, o snapshot já tem`metaPersonalizada`/`metaAnualAuto`/`anualCustom` (com os nomes em inglês após a Fase 4).
+21. Ambientes `dev`, `prod` e `test` (base para e2e), usando Faker pt-BR para gerar os dados fictícios; avaliar usar o Faker também nos dados mock do app.
+22. Meta em % configurável (ano e meses), com seletor de unidade: hoje o `fator` já existe no banco (`fator:<ano>`, default `1.15`) mas `setFactor` (`src/main/db/database.ts:379`) nunca é chamado, então o 115% está travado sem nenhum campo na UI. Expor o % do ano e dos 12 meses (base do mês em {ano-1} × %) com **seletor único por ano** entre `%` e valor fixo em R$ — nada de misturar unidade: o ano é todo % ou todo R$. O vazio continua sendo automático, sem chave extra para isso. % uniforme no ano equivale a distribuir pela participação de cada mês no ano anterior, então ano e mês em % não se contradizem e a meta anual continua sendo a soma dos 12 meses (`src/main/kpis/index.ts:343`). Mesmo trabalho do item 16: os inputs de meta mudam de outra vez.
+23. Releases versionadas no GitHub / auto-update (13).
