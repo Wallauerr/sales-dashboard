@@ -2,35 +2,35 @@ import type { Sale } from '../../shared/types.ts'
 
 export function rowToSale(r: Record<string, unknown>): Sale {
   return {
-    codigo: String(r.codigo ?? ''),
-    data: r.data ? String(r.data) : null,
-    dataAprovOrcamento: r.data_aprov_orcamento
+    code: String(r.codigo ?? ''),
+    date: r.data ? String(r.data) : null,
+    quoteApprovedDate: r.data_aprov_orcamento
       ? String(r.data_aprov_orcamento)
       : null,
-    dataAprovPedido: r.data_aprov_pedido ? String(r.data_aprov_pedido) : null,
-    dataAprovFaturamento: r.data_aprov_faturamento
+    orderApprovedDate: r.data_aprov_pedido ? String(r.data_aprov_pedido) : null,
+    billingApprovedDate: r.data_aprov_faturamento
       ? String(r.data_aprov_faturamento)
       : null,
-    dataEmissaoFiscal: r.data_emissao_fiscal
+    fiscalIssueDate: r.data_emissao_fiscal
       ? String(r.data_emissao_fiscal)
       : null,
-    empresa: String(r.empresa ?? ''),
-    statusSistema: String(r.status_sistema ?? ''),
-    vendedor: String(r.vendedor ?? ''),
-    categoria: String(r.categoria ?? ''),
+    company: String(r.empresa ?? ''),
+    systemStatus: String(r.status_sistema ?? ''),
+    seller: String(r.vendedor ?? ''),
+    category: String(r.categoria ?? ''),
     status: String(r.status ?? ''),
-    origem: String(r.origem ?? ''),
-    cliente: String(r.cliente ?? ''),
-    cidade: String(r.cidade ?? ''),
-    estado: String(r.estado ?? ''),
-    regiao: String(r.regiao ?? ''),
-    transportadora: String(r.transportadora ?? ''),
-    frete: Number(r.frete) || 0,
-    desconto: Number(r.desconto) || 0,
-    comissao: Number(r.comissao) || 0,
-    valorTotal: Number(r.valor_total) || 0,
-    nfe: String(r.nfe ?? ''),
-    mes: r.mes ? (String(r.mes) as Sale['mes']) : null,
-    ano: r.ano ? Number(r.ano) : null,
+    origin: String(r.origem ?? ''),
+    customer: String(r.cliente ?? ''),
+    city: String(r.cidade ?? ''),
+    state: String(r.estado ?? ''),
+    region: String(r.regiao ?? ''),
+    carrier: String(r.transportadora ?? ''),
+    freight: Number(r.frete) || 0,
+    discount: Number(r.desconto) || 0,
+    commission: Number(r.comissao) || 0,
+    totalValue: Number(r.valor_total) || 0,
+    invoice: String(r.nfe ?? ''),
+    month: r.mes ? (String(r.mes) as Sale['month']) : null,
+    year: r.ano ? Number(r.ano) : null,
   }
 }
