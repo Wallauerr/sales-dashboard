@@ -1,12 +1,12 @@
 import { readFileSync } from 'node:fs'
 import * as XLSX from 'xlsx'
 import { importResultSchema, saleSchema } from '../../shared/schemas.ts'
-import type { ImportResult, Mes, Sale } from '../../shared/types.ts'
-import { MESES } from '../../shared/types.ts'
+import type { ImportResult, Month, Sale } from '../../shared/types.ts'
+import { MONTHS } from '../../shared/types.ts'
 import type { SalesDatabase } from '../db/database.ts'
 import {
-  canonicalEstado,
   canonicalRegion,
+  canonicalState,
   monthKey,
   parseDate,
   referenceDate,
@@ -111,62 +111,67 @@ function readWorkbook(filePath: string): RawBaseRow[] {
 }
 
 function normalizeRow(raw: RawBaseRow): Sale {
-  const data = parseDate(raw.Data)
-  const dataAprovOrcamento = parseDate(raw['Data Aprov Orçamento'] ?? '')
-  const dataAprovPedido = parseDate(raw['Data Aprov Pedido'])
-  const dataAprovFaturamento = parseDate(raw['Data Aprov Faturamento'])
-  const dataEmissaoFiscal = parseDate(raw['Data Emissão Fiscal'])
-  const estado = canonicalEstado(String(raw.Estado ?? ''))
-  const regiao = canonicalRegion(estado, String(raw.Região ?? ''))
+  const date = parseDate(raw.Data)
+  const quoteApproved = parseDate(raw['Data Aprov Orçamento'] ?? '')
+  const orderApproved = parseDate(raw['Data Aprov Pedido'])
+  const billingApproved = parseDate(raw['Data Aprov Faturamento'])
+  const fiscalIssue = parseDate(raw['Data Emissão Fiscal'])
+  const state = canonicalState(String(raw.Estado ?? ''))
+  const region = canonicalRegion(state, String(raw.Região ?? ''))
 
-  const mesCache = String(raw.Mês ?? '').trim() as Mes
-  const anoCache = raw.Ano as number
-  const cacheValido =
-    (MESES as readonly string[]).includes(mesCache) &&
-    Number.isInteger(anoCache) &&
-    anoCache >= 2000 &&
-    anoCache <= 2099
-  const dEng = referenceDate(statusRaw(String(raw['Status Sistema'] ?? '')), {
-    orcamento: dataAprovOrcamento,
-    pedido: dataAprovPedido,
-    faturamento: dataAprovFaturamento,
-    emissaoFiscal: dataEmissaoFiscal,
-    base: data,
-  })
-  const mes: Mes | null = cacheValido ? mesCache : dEng ? monthKey(dEng) : null
-  const ano: number | null = cacheValido
-    ? anoCache
-    : dEng
-      ? dEng.getFullYear()
+  const monthCache = String(raw.Mês ?? '').trim() as Month
+  const yearCache = raw.Ano as number
+  const cacheValid =
+    (MONTHS as readonly string[]).includes(monthCache) &&
+    Number.isInteger(yearCache) &&
+    yearCache >= 2000 &&
+    yearCache <= 2099
+  const refDate = referenceDate(
+    statusRaw(String(raw['Status Sistema'] ?? '')),
+    {
+      quote: quoteApproved,
+      order: orderApproved,
+      billing: billingApproved,
+      fiscalIssue,
+      base: date,
+    },
+  )
+  const month: Month | null = cacheValid
+    ? monthCache
+    : refDate
+      ? monthKey(refDate)
+      : null
+  const year: number | null = cacheValid
+    ? yearCache
+    : refDate
+      ? refDate.getFullYear()
       : null
 
   return saleSchema.parse({
-    codigo: String(raw.Código).trim(),
-    data: data ? toISO(data) : null,
-    dataAprovOrcamento: dataAprovOrcamento ? toISO(dataAprovOrcamento) : null,
-    dataAprovPedido: dataAprovPedido ? toISO(dataAprovPedido) : null,
-    dataAprovFaturamento: dataAprovFaturamento
-      ? toISO(dataAprovFaturamento)
-      : null,
-    dataEmissaoFiscal: dataEmissaoFiscal ? toISO(dataEmissaoFiscal) : null,
-    empresa: uppercase(String(raw.Empresa ?? '')),
-    statusSistema: statusRaw(String(raw['Status Sistema'] ?? '')),
-    vendedor: titleCase(String(raw.Vendedor ?? '')),
-    categoria: String(raw.Categoria ?? '').trim(),
+    code: String(raw.Código).trim(),
+    date: date ? toISO(date) : null,
+    quoteApprovedDate: quoteApproved ? toISO(quoteApproved) : null,
+    orderApprovedDate: orderApproved ? toISO(orderApproved) : null,
+    billingApprovedDate: billingApproved ? toISO(billingApproved) : null,
+    fiscalIssueDate: fiscalIssue ? toISO(fiscalIssue) : null,
+    company: uppercase(String(raw.Empresa ?? '')),
+    systemStatus: statusRaw(String(raw['Status Sistema'] ?? '')),
+    seller: titleCase(String(raw.Vendedor ?? '')),
+    category: String(raw.Categoria ?? '').trim(),
     status: String(raw.Status ?? '').trim(),
-    origem: String(raw.Origem ?? '').trim(),
-    cliente: String(raw.Cliente ?? '').trim(),
-    cidade: String(raw.Cidade ?? '').trim(),
-    estado,
-    regiao,
-    transportadora: String(raw.Transportadora ?? '').trim(),
-    frete: Number(raw['Frete (R$)']) || 0,
-    desconto: Number(raw['Desconto (R$)']) || 0,
-    comissao: Number(raw['Comissão (R$)']) || 0,
-    valorTotal: Number(raw['Valor Total(R$)']) || 0,
-    nfe: String(raw['NF-e/NFS-e'] ?? '').trim(),
-    mes,
-    ano,
+    origin: String(raw.Origem ?? '').trim(),
+    customer: String(raw.Cliente ?? '').trim(),
+    city: String(raw.Cidade ?? '').trim(),
+    state,
+    region,
+    carrier: String(raw.Transportadora ?? '').trim(),
+    freight: Number(raw['Frete (R$)']) || 0,
+    discount: Number(raw['Desconto (R$)']) || 0,
+    commission: Number(raw['Comissão (R$)']) || 0,
+    totalValue: Number(raw['Valor Total(R$)']) || 0,
+    invoice: String(raw['NF-e/NFS-e'] ?? '').trim(),
+    month,
+    year,
   })
 }
 
@@ -183,13 +188,13 @@ export async function importWorkbook(
     discarded: 0,
   }
   const items: {
-    codigo: string
+    code: string
     op: 'inserted' | 'updated'
-    statusSistema: string
-    valorTotal: number
-    data: string | null
-    mes: string | null
-    ano: number | null
+    systemStatus: string
+    totalValue: number
+    date: string | null
+    month: string | null
+    year: number | null
   }[] = []
 
   db.raw.exec('BEGIN')
@@ -210,13 +215,13 @@ export async function importWorkbook(
       }
       if (op !== 'unchanged') {
         items.push({
-          codigo: nr.codigo,
+          code: nr.code,
           op,
-          statusSistema: nr.statusSistema,
-          valorTotal: nr.valorTotal,
-          data: nr.data,
-          mes: nr.mes,
-          ano: nr.ano,
+          systemStatus: nr.systemStatus,
+          totalValue: nr.totalValue,
+          date: nr.date,
+          month: nr.month,
+          year: nr.year,
         })
       }
     }

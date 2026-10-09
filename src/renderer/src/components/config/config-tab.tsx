@@ -10,13 +10,13 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { brl } from '@/lib/format'
-import { MES_LABEL } from '@/lib/labels'
+import { MONTH_LABEL } from '@/lib/labels'
 import type {
-  Mes,
-  MetaConfigView,
-  MetasSetInput,
+  GoalConfigView,
+  GoalSetInput,
+  Month,
 } from '../../../../shared/types'
-import { MESES } from '../../../../shared/types'
+import { MONTHS } from '../../../../shared/types'
 
 function parseDraft(value: string): number | null {
   if (value.trim() === '') return null
@@ -25,27 +25,30 @@ function parseDraft(value: string): number | null {
 }
 
 export function ConfigTab({
-  ano,
+  year,
   onSaved,
 }: {
-  ano: number
+  year: number
   onSaved: () => void
 }) {
-  const [view, setView] = useState<MetaConfigView | null>(null)
-  const [anualDraft, setAnualDraft] = useState('')
-  const [mesesDraft, setMesesDraft] = useState<Record<Mes, string>>(
-    () => Object.fromEntries(MESES.map(m => [m, ''])) as Record<Mes, string>,
+  const [view, setView] = useState<GoalConfigView | null>(null)
+  const [annualDraft, setAnnualDraft] = useState('')
+  const [monthsDraft, setMonthsDraft] = useState<Record<Month, string>>(
+    () => Object.fromEntries(MONTHS.map(m => [m, ''])) as Record<Month, string>,
   )
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
 
-  const syncDrafts = useCallback((v: MetaConfigView) => {
-    setAnualDraft(v.anualCustom === null ? '' : String(v.anualCustom))
-    setMesesDraft(
+  const syncDrafts = useCallback((v: GoalConfigView) => {
+    setAnnualDraft(v.annualCustom === null ? '' : String(v.annualCustom))
+    setMonthsDraft(
       Object.fromEntries(
-        MESES.map(m => [m, v.mesesCustom[m] ? String(v.mesesCustom[m]) : '']),
-      ) as Record<Mes, string>,
+        MONTHS.map(m => [
+          m,
+          v.monthsCustom[m] ? String(v.monthsCustom[m]) : '',
+        ]),
+      ) as Record<Month, string>,
     )
   }, [])
 
@@ -55,7 +58,7 @@ export function ConfigTab({
     if (!window.api) return
     let cancelled = false
     void window.api
-      .getMetaConfig(ano)
+      .getGoalConfig(year)
       .then(v => {
         if (cancelled) return
         setView(v)
@@ -67,35 +70,35 @@ export function ConfigTab({
     return () => {
       cancelled = true
     }
-  }, [ano, syncDrafts])
+  }, [year, syncDrafts])
 
   const invalid = useMemo(() => {
-    const anual = parseDraft(anualDraft)
-    if (anual !== null && Number.isNaN(anual)) return true
-    return MESES.some(mes => {
-      const n = parseDraft(mesesDraft[mes])
+    const annual = parseDraft(annualDraft)
+    if (annual !== null && Number.isNaN(annual)) return true
+    return MONTHS.some(month => {
+      const n = parseDraft(monthsDraft[month])
       return typeof n === 'number' && Number.isNaN(n)
     })
-  }, [anualDraft, mesesDraft])
+  }, [annualDraft, monthsDraft])
 
-  const input: MetasSetInput = useMemo(() => {
-    const anual = parseDraft(anualDraft)
-    const meses = {} as Partial<Record<Mes, number>>
-    for (const mes of MESES) {
-      const n = parseDraft(mesesDraft[mes])
-      if (n !== null && !Number.isNaN(n)) meses[mes] = n
+  const input: GoalSetInput = useMemo(() => {
+    const annual = parseDraft(annualDraft)
+    const months = {} as Partial<Record<Month, number>>
+    for (const month of MONTHS) {
+      const n = parseDraft(monthsDraft[month])
+      if (n !== null && !Number.isNaN(n)) months[month] = n
     }
     return {
-      anual: anual === null || Number.isNaN(anual) ? null : anual,
-      meses,
+      annual: annual === null || Number.isNaN(annual) ? null : annual,
+      months,
     }
-  }, [anualDraft, mesesDraft])
+  }, [annualDraft, monthsDraft])
 
   const dirty = useMemo(() => {
     if (!view) return false
     return (
-      input.anual !== view.anualCustom ||
-      overridesDiffer(input.meses, view.mesesCustom)
+      input.annual !== view.annualCustom ||
+      overridesDiffer(input.months, view.monthsCustom)
     )
   }, [input, view])
 
@@ -105,7 +108,7 @@ export function ConfigTab({
     setErr(null)
     setSavedMsg(null)
     try {
-      const v = await window.api.setMetaConfig(ano, input)
+      const v = await window.api.setGoalConfig(year, input)
       setView(v)
       syncDrafts(v)
       setSavedMsg('Metas salvas — já refletem no dashboard.')
@@ -123,7 +126,10 @@ export function ConfigTab({
     setErr(null)
     setSavedMsg(null)
     try {
-      const v = await window.api.setMetaConfig(ano, { anual: null, meses: {} })
+      const v = await window.api.setGoalConfig(year, {
+        annual: null,
+        months: {},
+      })
       setView(v)
       syncDrafts(v)
       setSavedMsg('Metas restauradas para o cálculo automático.')
@@ -135,8 +141,8 @@ export function ConfigTab({
     }
   }
 
-  const resetMes = (mes: Mes): void => {
-    setMesesDraft(prev => ({ ...prev, [mes]: '' }))
+  const resetMonth = (month: Month): void => {
+    setMonthsDraft(prev => ({ ...prev, [month]: '' }))
   }
 
   return (
@@ -146,7 +152,7 @@ export function ConfigTab({
           <CardTitle>Metas comerciais</CardTitle>
           <CardDescription>
             Por padrão a meta é calculada automaticamente: faturamento de{' '}
-            {ano - 1} × {view ? Math.round(view.fator * 100) : '—'}
+            {year - 1} × {view ? Math.round(view.factor * 100) : '—'}
             %. Aqui você pode personalizar a meta anual e as metas de cada mês —
             os campos vazios seguem o cálculo automático.
           </CardDescription>
@@ -155,10 +161,10 @@ export function ConfigTab({
           <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
             <div>
               <dt className="text-xs text-muted-foreground">
-                Base ({ano - 1})
+                Base ({year - 1})
               </dt>
               <dd className="font-semibold tabular-nums">
-                {view ? brl(view.baseAno) : '—'}
+                {view ? brl(view.baseYear) : '—'}
               </dd>
             </div>
             <div>
@@ -166,7 +172,7 @@ export function ConfigTab({
                 Meta anual automática
               </dt>
               <dd className="font-semibold tabular-nums">
-                {view ? brl(view.metaAnualAuto) : '—'}
+                {view ? brl(view.annualGoalAuto) : '—'}
               </dd>
             </div>
             <div>
@@ -174,7 +180,7 @@ export function ConfigTab({
                 Meta anual em vigor
               </dt>
               <dd className="font-semibold tabular-nums">
-                {view ? brl(view.metaAnual) : '—'}
+                {view ? brl(view.annualGoal) : '—'}
               </dd>
             </div>
           </dl>
@@ -190,7 +196,7 @@ export function ConfigTab({
       <Card>
         <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
           <div>
-            <CardTitle>Meta anual {ano}</CardTitle>
+            <CardTitle>Meta anual {year}</CardTitle>
             <CardDescription>
               Deixe em branco para usar o cálculo automático.
             </CardDescription>
@@ -198,8 +204,8 @@ export function ConfigTab({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setAnualDraft('')}
-            disabled={anualDraft === ''}>
+            onClick={() => setAnnualDraft('')}
+            disabled={annualDraft === ''}>
             <RotateCcwIcon className="size-4" />
             Usar automática
           </Button>
@@ -211,14 +217,14 @@ export function ConfigTab({
               min={0}
               step="0.01"
               inputMode="decimal"
-              value={anualDraft}
-              placeholder={view ? String(Math.round(view.metaAnualAuto)) : '0'}
-              onChange={e => setAnualDraft(e.target.value)}
+              value={annualDraft}
+              placeholder={view ? String(Math.round(view.annualGoalAuto)) : '0'}
+              onChange={e => setAnnualDraft(e.target.value)}
               className="w-56"
             />
             <span className="text-xs text-muted-foreground">
-              automática: {view ? brl(view.metaAnualAuto) : '—'} · em vigor:{' '}
-              {view ? brl(view.metaAnual) : '—'}
+              automática: {view ? brl(view.annualGoalAuto) : '—'} · em vigor:{' '}
+              {view ? brl(view.annualGoal) : '—'}
             </span>
           </div>
         </CardContent>
@@ -226,7 +232,7 @@ export function ConfigTab({
 
       <Card>
         <CardHeader>
-          <CardTitle>Metas por mês ({ano})</CardTitle>
+          <CardTitle>Metas por mês ({year})</CardTitle>
           <CardDescription>
             Mês vazio continua com a meta automática (ou a distribuição da meta
             anual personalizada).
@@ -234,37 +240,40 @@ export function ConfigTab({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {MESES.map(mes => {
-              const overridden = view ? mes in view.mesesCustom : false
-              const efetiva = view?.metasEfetivas[mes]
+            {MONTHS.map(month => {
+              const overridden = view ? month in view.monthsCustom : false
+              const effective = view?.effectiveGoals[month]
               return (
-                <div key={mes} className="flex items-center gap-2">
+                <div key={month} className="flex items-center gap-2">
                   <span className="w-12 shrink-0 text-sm font-medium">
-                    {MES_LABEL[mes]}
+                    {MONTH_LABEL[month]}
                   </span>
                   <Input
                     type="number"
                     min={0}
                     step="0.01"
                     inputMode="decimal"
-                    value={mesesDraft[mes]}
+                    value={monthsDraft[month]}
                     placeholder="automática"
                     onChange={e =>
-                      setMesesDraft(prev => ({
+                      setMonthsDraft(prev => ({
                         ...prev,
-                        [mes]: e.target.value,
+                        [month]: e.target.value,
                       }))
                     }
                     className="h-9 w-32"
                   />
                   <span
                     className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground"
-                    title={efetiva !== undefined ? brl(efetiva) : undefined}>
+                    title={
+                      effective !== undefined ? brl(effective) : undefined
+                    }>
                     {overridden ? (
                       <span className="font-medium text-chart-3">definida</span>
                     ) : (
                       <>
-                        automática: {efetiva !== undefined ? brl(efetiva) : '—'}
+                        automática:{' '}
+                        {effective !== undefined ? brl(effective) : '—'}
                       </>
                     )}
                   </span>
@@ -272,9 +281,9 @@ export function ConfigTab({
                     variant="ghost"
                     size="icon"
                     className="size-8 shrink-0"
-                    aria-label={`Voltar ${MES_LABEL[mes]} à meta automática`}
-                    onClick={() => resetMes(mes)}
-                    disabled={mesesDraft[mes] === ''}
+                    aria-label={`Voltar ${MONTH_LABEL[month]} à meta automática`}
+                    onClick={() => resetMonth(month)}
+                    disabled={monthsDraft[month] === ''}
                     title="Voltar à meta automática">
                     <RotateCcwIcon className="size-3.5" />
                   </Button>
@@ -311,12 +320,12 @@ export function ConfigTab({
 }
 
 function overridesDiffer(
-  a: Partial<Record<Mes, number>>,
-  b: Partial<Record<Mes, number>>,
+  a: Partial<Record<Month, number>>,
+  b: Partial<Record<Month, number>>,
 ): boolean {
-  for (const mes of MESES) {
-    const va = a[mes]
-    const vb = b[mes]
+  for (const month of MONTHS) {
+    const va = a[month]
+    const vb = b[month]
     const presentA = va !== undefined
     const presentB = vb !== undefined
     if (presentA !== presentB) return true

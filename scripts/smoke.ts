@@ -8,18 +8,18 @@ import * as XLSX from 'xlsx'
 import { SalesDatabase } from '../src/main/db/database.ts'
 import { importWorkbook } from '../src/main/ingest/index.ts'
 import {
-  getMetaConfig,
+  getGoalConfig,
   getSnapshot,
-  setMetaConfig,
+  setGoalConfig,
 } from '../src/main/kpis/index.ts'
-import { FOTO_MAX_BYTES, lerFotoEscolhida } from '../src/main/photos/pick.ts'
+import { PHOTO_MAX_BYTES, readChosenPhoto } from '../src/main/photos/pick.ts'
 import {
-  boundsDaTelaDoCursor,
-  boundsVisiveis,
-  telaDoPonto,
-  telaDosBounds,
+  cursorScreenBounds,
+  screenOfBounds,
+  screenOfPoint,
+  visibleBounds,
 } from '../src/main/window-maximize.ts'
-import { ROTULO_SEM_VENDEDOR } from '../src/shared/types.ts'
+import { NO_SELLER_LABEL } from '../src/shared/types.ts'
 
 const HEADERS = [
   'Código',
@@ -223,105 +223,105 @@ async function main(): Promise<void> {
 
   const result = await importWorkbook(db, filePath)
   check('import inserted', result.inserted, ROWS.length)
-  check('anos distintos', db.listAnos(), [2025, 2026])
+  check('anos distintos', db.listYears(), [2025, 2026])
 
   const s = await getSnapshot(db, 2026)
-  check('totalPeriodo 2026', s.totalPeriodo, 10000)
-  check('totalHistorico', s.totalHistorico, 12000)
-  check('metaAnual 2026', s.metaAnual, 2300)
-  check('quantidade jan', s.quantidadePorMes.jan, 3)
-  check('quantidade fev', s.quantidadePorMes.fev, 1)
-  check('faturamento jan', s.faturamentoPorMes.jan, 6000)
-  check('faturamento fev', s.faturamentoPorMes.fev, 4000)
+  check('periodTotal 2026', s.periodTotal, 10000)
+  check('historyTotal', s.historyTotal, 12000)
+  check('annualGoal 2026', s.annualGoal, 2300)
+  check('quantity jan', s.quantityByMonth.jan, 3)
+  check('quantity fev', s.quantityByMonth.fev, 1)
+  check('billing jan', s.billingByMonth.jan, 6000)
+  check('billing fev', s.billingByMonth.fev, 4000)
   check(
-    'funil jan',
+    'funnel jan',
     {
-      orcamento: s.funilPorMes[0].orcamento,
-      faturado: s.funilPorMes[0].pedidoFaturado,
+      quote: s.funnelByMonth[0].quote,
+      invoiced: s.funnelByMonth[0].invoiced,
     },
-    { orcamento: 1, faturado: 3 },
+    { quote: 1, invoiced: 3 },
   )
-  check('fechamento jan', s.numeroFechamento.jan, { orcamento: 1, pedido: 3 })
+  check('closing jan', s.closingCounts.jan, { quote: 1, order: 3 })
   check(
     'ticket Equipamentos',
-    s.ticketMedio.find(t => t.produto === 'Equipamentos')?.ticket,
+    s.averageTickets.find(t => t.product === 'Equipamentos')?.ticket,
     1000,
   )
   check(
     'ticket Follow-Up',
-    s.ticketMedio.find(t => t.produto === 'Follow-Up')?.ticket,
+    s.averageTickets.find(t => t.product === 'Follow-Up')?.ticket,
     3000,
   )
 
-  const sorted = [...s.porVendedor].sort((a, b) => b.valor - a.valor)
-  check('vendedores top', sorted[0], {
-    vendedor: 'Ursula',
-    valor: 4000,
+  const sorted = [...s.bySeller].sort((a, b) => b.value - a.value)
+  check('sellers top', sorted[0], {
+    seller: 'Ursula',
+    value: 4000,
     share: 0.4,
   })
 
   console.log('\n— Metas personalizadas (configuração) —')
-  db.setMetaAnual(2026, 4600)
+  db.setAnnualGoal(2026, 4600)
   const sAnual = await getSnapshot(db, 2026)
   check(
     'meta anual personalizada reflete no snapshot',
     {
-      metaAnual: sAnual.metaAnual,
-      metaAnualAuto: sAnual.metaAnualAuto,
-      metaPersonalizada: sAnual.metaPersonalizada,
+      annualGoal: sAnual.annualGoal,
+      annualGoalAuto: sAnual.annualGoalAuto,
+      customGoal: sAnual.customGoal,
     },
-    { metaAnual: 4600, metaAnualAuto: 2300, metaPersonalizada: true },
+    { annualGoal: 4600, annualGoalAuto: 2300, customGoal: true },
   )
-  const cfg = getMetaConfig(db, 2026)
+  const cfg = getGoalConfig(db, 2026)
   check(
     'config view com meta anual custom',
     {
-      anual: cfg.anualCustom,
-      metaAnual: cfg.metaAnual,
-      metaAnualAuto: cfg.metaAnualAuto,
-      baseAno: cfg.baseAno,
-      fator: cfg.fator,
+      annual: cfg.annualCustom,
+      annualGoal: cfg.annualGoal,
+      annualGoalAuto: cfg.annualGoalAuto,
+      baseYear: cfg.baseYear,
+      factor: cfg.factor,
     },
     {
-      anual: 4600,
-      metaAnual: 4600,
-      metaAnualAuto: 2300,
-      baseAno: 2000,
-      fator: 1.15,
+      annual: 4600,
+      annualGoal: 4600,
+      annualGoalAuto: 2300,
+      baseYear: 2000,
+      factor: 1.15,
     },
   )
   check(
     'meta anual distribui proporcional ao ano anterior',
     {
-      jan: cfg.metasEfetivas.jan,
-      fev: cfg.metasEfetivas.fev,
-      autoJan: cfg.metasAuto.jan,
+      jan: cfg.effectiveGoals.jan,
+      fev: cfg.effectiveGoals.fev,
+      autoJan: cfg.autoGoals.jan,
     },
     { jan: 2300, fev: 2300, autoJan: 1150 },
   )
 
-  setMetaConfig(db, 2026, { anual: null, meses: { jan: 3000 } })
+  setGoalConfig(db, 2026, { annual: null, months: { jan: 3000 } })
   const sMes = await getSnapshot(db, 2026)
   check(
     'meta mensal override soma com automática dos demais',
     {
-      metaAnual: sMes.metaAnual,
-      metaJan: sMes.metasPorMes[0].meta,
-      metaFev: sMes.metasPorMes[1].meta,
+      annualGoal: sMes.annualGoal,
+      jan: sMes.monthlyGoals[0].goal,
+      fev: sMes.monthlyGoals[1].goal,
     },
-    { metaAnual: 4150, metaJan: 3000, metaFev: 1150 },
+    { annualGoal: 4150, jan: 3000, fev: 1150 },
   )
 
-  setMetaConfig(db, 2026, { anual: null, meses: {} })
+  setGoalConfig(db, 2026, { annual: null, months: {} })
   const sRestaurada = await getSnapshot(db, 2026)
   check(
     'restaurar automático zera personalização',
     {
-      metaAnual: sRestaurada.metaAnual,
-      metaPersonalizada: sRestaurada.metaPersonalizada,
-      metaJan: sRestaurada.metasPorMes[0].meta,
+      annualGoal: sRestaurada.annualGoal,
+      customGoal: sRestaurada.customGoal,
+      jan: sRestaurada.monthlyGoals[0].goal,
     },
-    { metaAnual: 2300, metaPersonalizada: false, metaJan: 1150 },
+    { annualGoal: 2300, customGoal: false, jan: 1150 },
   )
   check(
     'limpa chaves de meta',
@@ -453,24 +453,20 @@ async function main(): Promise<void> {
   const s2 = await getSnapshot(db2, 2026)
   check(
     'faturamento maio zerado (900 saiu do orçamento)',
-    s2.faturamentoPorMes.mai,
+    s2.billingByMonth.mai,
     0,
   )
+  check('faturamento julho inclui venda aprovada', s2.billingByMonth.jul, 5000)
   check(
-    'faturamento julho inclui venda aprovada',
-    s2.faturamentoPorMes.jul,
-    5000,
-  )
-  check(
-    'funil julho',
+    'funnel julho',
     {
-      orcamento: s2.funilPorMes[6].orcamento,
-      faturado: s2.funilPorMes[6].pedidoFaturado,
+      quote: s2.funnelByMonth[6].quote,
+      invoiced: s2.funnelByMonth[6].invoiced,
     },
-    { orcamento: 1, faturado: 1 },
+    { quote: 1, invoiced: 1 },
   )
-  check('quantidade julho', s2.quantidadePorMes.jul, 1)
-  check('total do período 2026', s2.totalPeriodo, 7000)
+  check('quantity julho', s2.quantityByMonth.jul, 1)
+  check('periodTotal 2026', s2.periodTotal, 7000)
 
   console.log('\n— Histórico de imports e evolução por codigo —')
   const imports = db2.listImports()
@@ -495,118 +491,116 @@ async function main(): Promise<void> {
     { totalRows: 2, inserted: 1, updated: 1 },
   )
 
-  const h900 = db2.getCodigoHistory('900')
+  const h900 = db2.getCodeHistory('900')
   check(
     'codigo 900: estado atual',
-    { venda: h900.venda?.statusSistema, valor: h900.venda?.valorTotal },
-    { venda: 'Pedido Faturado', valor: 5000 },
+    { sale: h900.sale?.systemStatus, value: h900.sale?.totalValue },
+    { sale: 'Pedido Faturado', value: 5000 },
   )
   check(
     'codigo 900: evolução nos imports',
-    h900.events.map(e => `${e.op}:${e.statusSistema}`),
+    h900.events.map(e => `${e.op}:${e.systemStatus}`),
     ['inserted:Orçamento', 'updated:Pedido Faturado'],
   )
   check(
     'codigo 900: primeiro evento guarda valor/mês',
     {
-      valor: h900.events[0]?.valorTotal,
-      mes: h900.events[0]?.mes,
-      ano: h900.events[0]?.ano,
+      value: h900.events[0]?.totalValue,
+      month: h900.events[0]?.month,
+      year: h900.events[0]?.year,
     },
-    { valor: 5000, mes: 'mai', ano: 2026 },
+    { value: 5000, month: 'mai', year: 2026 },
   )
   check(
     'codigo 901 reexportado sem mudança gera 1 só evento',
-    db2.getCodigoHistory('901').events.length,
+    db2.getCodeHistory('901').events.length,
     1,
   )
-  const h999 = db2.getCodigoHistory('999')
+  const h999 = db2.getCodeHistory('999')
   check(
     'codigo inexistente',
-    { venda: h999.venda, eventos: h999.events.length },
-    { venda: null, eventos: 0 },
+    { sale: h999.sale, events: h999.events.length },
+    { sale: null, events: 0 },
   )
 
   console.log('\n— Filtros de escopo (meses e vendedores) —')
-  const sUrsula = await getSnapshot(db, 2026, { vendedores: ['Ursula'] })
-  check('filtro vendedor faturamento', sUrsula.totalPeriodo, 4000)
+  const sUrsula = await getSnapshot(db, 2026, { sellers: ['Ursula'] })
+  check('filtro vendedor faturamento', sUrsula.periodTotal, 4000)
   check(
     'filtro vendedor mantém lista completa',
-    sUrsula.porVendedor.some(v => v.vendedor === 'Ursula'),
+    sUrsula.bySeller.some(v => v.seller === 'Ursula'),
     true,
   )
-  const sFev = await getSnapshot(db, 2026, { meses: ['fev'] })
-  check('filtro mês faturamento', sFev.totalPeriodo, 4000)
+  const sFev = await getSnapshot(db, 2026, { months: ['fev'] })
+  check('filtro mês faturamento', sFev.periodTotal, 4000)
   check(
     'filtro mês zera outros meses',
-    Object.values(sFev.faturamentoPorMes).filter(v => v > 0).length,
+    Object.values(sFev.billingByMonth).filter(v => v > 0).length,
     1,
   )
   const sUrsulaFev = await getSnapshot(db, 2026, {
-    meses: ['fev'],
-    vendedores: ['Ursula'],
+    months: ['fev'],
+    sellers: ['Ursula'],
   })
-  check('filtro mês+vendedor', sUrsulaFev.totalPeriodo, 4000)
-  const sJanFev = await getSnapshot(db, 2026, { meses: ['jan', 'fev'] })
-  check('filtro multi-mês soma', sJanFev.totalPeriodo, 10000)
+  check('filtro mês+vendedor', sUrsulaFev.periodTotal, 4000)
+  const sJanFev = await getSnapshot(db, 2026, { months: ['jan', 'fev'] })
+  check('filtro multi-mês soma', sJanFev.periodTotal, 10000)
   check(
     'filtro multi-mês esconde fora do escopo',
-    Object.values(sJanFev.faturamentoPorMes).filter(v => v > 0).length,
+    Object.values(sJanFev.billingByMonth).filter(v => v > 0).length,
     2,
   )
   const sDuas = await getSnapshot(db, 2026, {
-    vendedores: ['Ursula', 'Rosemeri'],
+    sellers: ['Ursula', 'Rosemeri'],
   })
-  check('filtro multi-vendedor soma', sDuas.totalPeriodo, 6000)
+  check('filtro multi-vendedor soma', sDuas.periodTotal, 6000)
   const sDuasMeses = await getSnapshot(db, 2026, {
-    meses: ['jan', 'fev'],
-    vendedores: ['Ursula', 'Stephani Strack da Silva'],
+    months: ['jan', 'fev'],
+    sellers: ['Ursula', 'Stephani Strack da Silva'],
   })
-  check('filtro multi-mês+vendedor', sDuasMeses.totalPeriodo, 7000)
+  check('filtro multi-mês+vendedor', sDuasMeses.periodTotal, 7000)
 
   console.log('\n— Vendedores desativados —')
-  check('lista de desativados começa vazia', db.listVendedoresDesativados(), [])
-  db.setVendedorDesativado('Bruno Keller', true)
-  db.setVendedorDesativado('Bruno Keller', true)
-  check('desativar é idempotente', db.listVendedoresDesativados(), [
-    'Bruno Keller',
-  ])
+  check('lista de desativados começa vazia', db.listDisabledSellers(), [])
+  db.setSellerDisabled('Bruno Keller', true)
+  db.setSellerDisabled('Bruno Keller', true)
+  check('desativar é idempotente', db.listDisabledSellers(), ['Bruno Keller'])
   check(
-    'listVendedores esconde o desativado',
-    db.listVendedores().includes('Bruno Keller'),
+    'listSellers esconde o desativado',
+    db.listSellers().includes('Bruno Keller'),
     false,
   )
   check(
-    'listVendedores mantém os demais',
-    db.listVendedores().includes('Ursula'),
+    'listSellers mantém os demais',
+    db.listSellers().includes('Ursula'),
     true,
   )
   const sSemBruno = await getSnapshot(db, 2026)
-  check('totais seguem contando o desativado', sSemBruno.totalPeriodo, 10000)
+  check('totais seguem contando o desativado', sSemBruno.periodTotal, 10000)
   check(
     'ranking esconde o desativado',
-    sSemBruno.porVendedor.some(v => v.vendedor === 'Bruno Keller'),
+    sSemBruno.bySeller.some(v => v.seller === 'Bruno Keller'),
     false,
   )
   check(
     'desativado engorda o VENDAS',
-    sSemBruno.porVendedor.find(v => v.vendedor === ROTULO_SEM_VENDEDOR)?.valor,
+    sSemBruno.bySeller.find(v => v.seller === NO_SELLER_LABEL)?.value,
     1000,
   )
   const sVendas = await getSnapshot(db, 2026, {
-    vendedores: [ROTULO_SEM_VENDEDOR],
+    sellers: [NO_SELLER_LABEL],
   })
-  check('filtro VENDAS pega o desativado', sVendas.totalPeriodo, 1000)
+  check('filtro VENDAS pega o desativado', sVendas.periodTotal, 1000)
   check(
     'filtro VENDAS mantém o ranking completo',
-    sVendas.porVendedor.some(v => v.vendedor === 'Ursula'),
+    sVendas.bySeller.some(v => v.seller === 'Ursula'),
     true,
   )
-  db.setVendedorDesativado('Bruno Keller', false)
+  db.setSellerDisabled('Bruno Keller', false)
   check(
     'reativar devolve o vendedor ao ranking',
-    (await getSnapshot(db, 2026)).porVendedor.some(
-      v => v.vendedor === 'Bruno Keller',
+    (await getSnapshot(db, 2026)).bySeller.some(
+      v => v.seller === 'Bruno Keller',
     ),
     true,
   )
@@ -660,15 +654,11 @@ async function main(): Promise<void> {
   const sRule = await getSnapshot(db3, 2026)
   check(
     'regra: faturamento soma S/F sem remessa/amostra',
-    sRule.faturamentoPorMes.jan,
+    sRule.billingByMonth.jan,
     4800,
   )
-  check('regra: totalPeriodo consistente', sRule.totalPeriodo, 4800)
-  check(
-    'regra: quantidade conta só as incluídas',
-    sRule.quantidadePorMes.jan,
-    5,
-  )
+  check('regra: periodTotal consistente', sRule.periodTotal, 4800)
+  check('regra: quantidade conta só as incluídas', sRule.quantityByMonth.jan, 5)
   check(
     'regra: status minúsculo normalizado no ingest',
     (
@@ -681,13 +671,19 @@ async function main(): Promise<void> {
   check(
     'regra: funil separa pedido de faturado',
     {
-      orcamento: sRule.funilPorMes[0].orcamento,
-      pedido: sRule.funilPorMes[0].pedido,
-      aprovadoSF: sRule.funilPorMes[0].pedidoAprovadoSemFaturamento,
-      faturado: sRule.funilPorMes[0].pedidoFaturado,
-      cancelado: sRule.funilPorMes[0].pedidoCancelado,
+      quote: sRule.funnelByMonth[0].quote,
+      order: sRule.funnelByMonth[0].order,
+      approvedWithoutInvoicing: sRule.funnelByMonth[0].approvedWithoutInvoicing,
+      invoiced: sRule.funnelByMonth[0].invoiced,
+      cancelled: sRule.funnelByMonth[0].cancelled,
     },
-    { orcamento: 1, pedido: 2, aprovadoSF: 5, faturado: 1, cancelado: 1 },
+    {
+      quote: 1,
+      order: 2,
+      approvedWithoutInvoicing: 5,
+      invoiced: 1,
+      cancelled: 1,
+    },
   )
 
   console.log('\n— Rótulos de dados ausentes (UF/região/vendedor) —')
@@ -729,140 +725,140 @@ async function main(): Promise<void> {
   const sLabel = await getSnapshot(db4, 2026)
   check(
     'rótulo estado ausente',
-    sLabel.porEstado.find(e => e.estado === 'Não informado'),
-    { estado: 'Não informado', valor: 1200, share: 0.6 },
+    sLabel.byState.find(e => e.state === 'Não informado'),
+    { state: 'Não informado', value: 1200, share: 0.6 },
   )
   check(
     'rótulo região ausente',
-    sLabel.porRegiao.find(r => r.regiao === 'Não informado'),
-    { regiao: 'Não informado', valor: 1200, share: 0.6, x: 0, y: 0 },
+    sLabel.byRegion.find(r => r.region === 'Não informado'),
+    { region: 'Não informado', value: 1200, share: 0.6, x: 0, y: 0 },
   )
   check(
     'rótulo vendedor ausente',
-    sLabel.porVendedor.find(v => v.vendedor === 'VENDAS'),
-    { vendedor: 'VENDAS', valor: 1200, share: 0.6 },
+    sLabel.bySeller.find(v => v.seller === 'VENDAS'),
+    { seller: 'VENDAS', value: 1200, share: 0.6 },
   )
 
   console.log('\n— Foto escolhida em Configurações —')
-  db.setVendedorFoto('Rosemeri', 'image/jpeg', Buffer.from([1, 2, 3, 4]))
+  db.setSellerPhoto('Rosemeri', 'image/jpeg', Buffer.from([1, 2, 3, 4]))
   check(
     'foto gravada',
-    db.listVendedorFotos().map(f => f.vendedor),
+    db.listSellerPhotos().map(f => f.seller),
     ['Rosemeri'],
   )
-  check('mime gravado', db.getVendedorFoto('Rosemeri')?.mime, 'image/jpeg')
+  check('mime gravado', db.getSellerPhoto('Rosemeri')?.mime, 'image/jpeg')
   check(
     'bytes no banco',
-    (db.getVendedorFoto('Rosemeri')?.img.length ?? 0) > 0,
+    (db.getSellerPhoto('Rosemeri')?.img.length ?? 0) > 0,
     true,
   )
-  db.setVendedorFoto('Rosemeri', 'image/png', Buffer.from([9, 9]))
+  db.setSellerPhoto('Rosemeri', 'image/png', Buffer.from([9, 9]))
   check(
     'trocar foto sobrescreve',
-    db.getVendedorFoto('Rosemeri')?.mime,
+    db.getSellerPhoto('Rosemeri')?.mime,
     'image/png',
   )
-  check('trocar foto nao duplica', db.listVendedorFotos().length, 1)
+  check('trocar foto nao duplica', db.listSellerPhotos().length, 1)
 
-  db.removeVendedorFoto('Rosemeri')
+  db.removeSellerPhoto('Rosemeri')
   check(
     'remover foto volta ao avatar de iniciais',
-    db.getVendedorFoto('Rosemeri'),
+    db.getSellerPhoto('Rosemeri'),
     null,
   )
 
   console.log('\n— Lista de vendedores para Configurações —')
-  const nomes = db.listVendedores()
+  const nomes = db.listSellers()
   check('lista sem o pseudo-vendedor VENDAS', nomes.includes('VENDAS'), false)
   check('lista traz quem tem venda', nomes.includes('Rosemeri'), true)
 
   console.log('\n— Validação da foto escolhida —')
   const naoImagem = join(tmpdir(), `smoke-nao-imagem-${Date.now()}.txt`)
   writeFileSync(naoImagem, 'isto nao e uma imagem')
-  await assert.rejects(() => lerFotoEscolhida(naoImagem), /não é uma imagem/)
+  await assert.rejects(() => readChosenPhoto(naoImagem), /não é uma imagem/)
   const grande = join(tmpdir(), `smoke-grande-${Date.now()}.png`)
-  writeFileSync(grande, Buffer.alloc(FOTO_MAX_BYTES + 1))
-  await assert.rejects(() => lerFotoEscolhida(grande), /limite é/)
+  writeFileSync(grande, Buffer.alloc(PHOTO_MAX_BYTES + 1))
+  await assert.rejects(() => readChosenPhoto(grande), /limite é/)
   const jpg = join(tmpdir(), `smoke-foto-${Date.now()}.jpg`)
   writeFileSync(jpg, Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]))
   check(
     'jpg reconhecido pela assinatura',
-    (await lerFotoEscolhida(jpg)).mime,
+    (await readChosenPhoto(jpg)).mime,
     'image/jpeg',
   )
 
   console.log('\n— Maximizar/restaurar em multi-monitor —')
-  const telas = [
+  const screens = [
     { id: 1, workArea: { x: 0, y: 0, width: 1280, height: 800 } },
     { id: 2, workArea: { x: 1280, y: 0, width: 2560, height: 1440 } },
   ]
-  const janelaNaEsquerda = { x: 40, y: 60, width: 1280, height: 840 }
+  const windowOnLeft = { x: 40, y: 60, width: 1280, height: 840 }
 
   check(
     'janela pega a tela pela maior área em comum',
-    telaDosBounds(janelaNaEsquerda, telas)?.id,
+    screenOfBounds(windowOnLeft, screens)?.id,
     1,
   )
   check(
     'janela quase toda na direita fica na direita',
-    telaDosBounds({ x: 1240, y: 100, width: 1280, height: 840 }, telas)?.id,
+    screenOfBounds({ x: 1240, y: 100, width: 1280, height: 840 }, screens)?.id,
     2,
   )
   check(
     'janela quase toda na esquerda fica na esquerda',
-    telaDosBounds({ x: 30, y: 100, width: 1280, height: 840 }, telas)?.id,
+    screenOfBounds({ x: 30, y: 100, width: 1280, height: 840 }, screens)?.id,
     1,
   )
-  check('cursor na esquerda', telaDoPonto({ x: 300, y: 400 }, telas)?.id, 1)
-  check('cursor na direita', telaDoPonto({ x: 3000, y: 700 }, telas)?.id, 2)
+  check('cursor na esquerda', screenOfPoint({ x: 300, y: 400 }, screens)?.id, 1)
+  check('cursor na direita', screenOfPoint({ x: 3000, y: 700 }, screens)?.id, 2)
   check(
     'cursor no canto inferior direito da tela esquerda',
-    telaDoPonto({ x: 1279, y: 799 }, telas)?.id,
+    screenOfPoint({ x: 1279, y: 799 }, screens)?.id,
     1,
   )
 
   check(
     'mesma tela: não mexe em nada',
-    boundsDaTelaDoCursor(
+    cursorScreenBounds(
       { x: 300, y: 400 },
-      telaDosBounds(janelaNaEsquerda, telas),
-      telas,
+      screenOfBounds(windowOnLeft, screens),
+      screens,
     ),
     null,
   )
   check(
     'cursor na outra tela: maximiza na outra',
-    boundsDaTelaDoCursor(
+    cursorScreenBounds(
       { x: 3000, y: 700 },
-      telaDosBounds(janelaNaEsquerda, telas),
-      telas,
+      screenOfBounds(windowOnLeft, screens),
+      screens,
     ),
-    telas[1].workArea,
+    screens[1].workArea,
   )
   check(
     'sem tela da janela, ainda mira o cursor',
-    boundsDaTelaDoCursor({ x: 3000, y: 700 }, null, telas),
-    telas[1].workArea,
+    cursorScreenBounds({ x: 3000, y: 700 }, null, screens),
+    screens[1].workArea,
   )
   check(
     'tela nenhuma não move a janela',
-    boundsDaTelaDoCursor({ x: 1, y: 1 }, null, []),
+    cursorScreenBounds({ x: 1, y: 1 }, null, []),
     null,
   )
 
   check(
     'restaura se o último tamanho ainda encosta em tela',
-    boundsVisiveis(janelaNaEsquerda, telas),
+    visibleBounds(windowOnLeft, screens),
     true,
   )
   check(
     'monitor desligado: não restaura para fora de tela',
-    boundsVisiveis({ x: -3000, y: 0, width: 1280, height: 840 }, telas),
+    visibleBounds({ x: -3000, y: 0, width: 1280, height: 840 }, screens),
     false,
   )
   check(
     'sem tela nenhuma, o último tamanho não vale',
-    boundsVisiveis(janelaNaEsquerda, []),
+    visibleBounds(windowOnLeft, []),
     false,
   )
 

@@ -13,11 +13,11 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { brl0, brlHumanDate, int } from '@/lib/format'
-import { fileName, MES_LABEL, statusLabel } from '@/lib/labels'
+import { fileName, MONTH_LABEL, statusLabel } from '@/lib/labels'
 import { cn } from '@/lib/utils'
-import type { CodigoHistory, ImportRecord, Mes } from '../../../../shared/types'
+import type { CodeHistory, ImportRecord, Month } from '../../../../shared/types'
 
-const MES_NUM: Record<Mes, string> = {
+const MONTH_NUM: Record<Month, string> = {
   jan: '01',
   fev: '02',
   mar: '03',
@@ -48,12 +48,12 @@ function StatusBadge({ status }: { status: string }) {
 
 export function HistoryTab({
   reloadKey,
-  ano,
-  meses,
+  year,
+  months,
 }: {
   reloadKey: number
-  ano: number
-  meses: Mes[]
+  year: number
+  months: Month[]
 }) {
   const [imports, setImports] = useState<ImportRecord[]>([])
   const [loadingImports, setLoadingImports] = useState(true)
@@ -61,17 +61,17 @@ export function HistoryTab({
 
   const [codigo, setCodigo] = useState('')
   const [searching, setSearching] = useState(false)
-  const [result, setResult] = useState<CodigoHistory | null>(null)
+  const [result, setResult] = useState<CodeHistory | null>(null)
   const [searched, setSearched] = useState<string | null>(null)
 
   const filteredImports = useMemo(() => {
-    const year = `${ano}-`
+    const yearPrefix = `${year}-`
     return imports.filter(i => {
-      if (!i.importedAt.startsWith(year)) return false
-      if (meses.length === 0) return true
-      return meses.some(m => i.importedAt.slice(5, 7) === MES_NUM[m])
+      if (!i.importedAt.startsWith(yearPrefix)) return false
+      if (months.length === 0) return true
+      return months.some(m => i.importedAt.slice(5, 7) === MONTH_NUM[m])
     })
-  }, [imports, ano, meses])
+  }, [imports, year, months])
 
   const loadImports = useCallback(async () => {
     if (!window.api) return
@@ -96,7 +96,7 @@ export function HistoryTab({
     if (!c) return
     setSearching(true)
     try {
-      const h = await window.api.getCodigoHistory(c)
+      const h = await window.api.getCodeHistory(c)
       setResult(h)
       setSearched(c)
     } catch (e) {
@@ -119,9 +119,9 @@ export function HistoryTab({
           <CardTitle>Importações realizadas</CardTitle>
           <span className="text-xs text-muted-foreground">
             só de{' '}
-            {meses.length === 0
-              ? ano
-              : meses.map(m => `${MES_LABEL[m]}/${ano}`).join(' · ')}
+            {months.length === 0
+              ? year
+              : months.map(m => `${MONTH_LABEL[m]}/${year}`).join(' · ')}
           </span>
         </CardHeader>
         <CardContent>
@@ -234,17 +234,17 @@ export function HistoryTab({
                   {searched}
                 </span>
               </p>
-              {result.venda ? (
+              {result.sale ? (
                 <div className="flex flex-col gap-4 rounded-md border p-4">
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="font-heading text-lg font-semibold tabular-nums">
-                      {result.venda.codigo}
+                      {result.sale.code}
                     </span>
-                    <StatusBadge status={result.venda.statusSistema} />
-                    {result.venda.mes && result.venda.ano ? (
+                    <StatusBadge status={result.sale.systemStatus} />
+                    {result.sale.month && result.sale.year ? (
                       <span className="text-xs text-muted-foreground">
-                        conta em {MES_LABEL[result.venda.mes]}/
-                        {result.venda.ano}
+                        conta em {MONTH_LABEL[result.sale.month]}/
+                        {result.sale.year}
                       </span>
                     ) : null}
                   </div>
@@ -253,26 +253,26 @@ export function HistoryTab({
                       <dt className="text-xs text-muted-foreground">Cliente</dt>
                       <dd
                         className="max-w-64 truncate font-medium"
-                        title={result.venda.cliente}>
-                        {result.venda.cliente}
+                        title={result.sale.customer}>
+                        {result.sale.customer}
                       </dd>
                     </div>
                     <div>
                       <dt className="text-xs text-muted-foreground">
                         Vendedor
                       </dt>
-                      <dd className="font-medium">{result.venda.vendedor}</dd>
+                      <dd className="font-medium">{result.sale.seller}</dd>
                     </div>
                     <div>
                       <dt className="text-xs text-muted-foreground">Valor</dt>
                       <dd className="font-semibold tabular-nums">
-                        {brl0(result.venda.valorTotal)}
+                        {brl0(result.sale.totalValue)}
                       </dd>
                     </div>
                     <div>
                       <dt className="text-xs text-muted-foreground">Data</dt>
                       <dd className="tabular-nums">
-                        {brlHumanDate(result.venda.data ?? '')}
+                        {brlHumanDate(result.sale.date ?? '')}
                       </dd>
                     </div>
                   </dl>
@@ -302,13 +302,13 @@ export function HistoryTab({
                               className="font-normal">
                               {ev.op === 'inserted' ? 'Novo' : 'Atualizado'}
                             </Badge>
-                            <StatusBadge status={ev.statusSistema} />
+                            <StatusBadge status={ev.systemStatus} />
                             <span className="tabular-nums">
-                              {brl0(ev.valorTotal)}
+                              {brl0(ev.totalValue)}
                             </span>
-                            {ev.mes && ev.ano ? (
+                            {ev.month && ev.year ? (
                               <span className="text-xs text-muted-foreground">
-                                {MES_LABEL[ev.mes]}/{ev.ano}
+                                {MONTH_LABEL[ev.month]}/{ev.year}
                               </span>
                             ) : null}
                           </li>

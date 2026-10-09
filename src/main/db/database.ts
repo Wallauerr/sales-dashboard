@@ -1,13 +1,13 @@
 import type { DatabaseSync } from 'node:sqlite'
 import { saleSchema } from '../../shared/schemas.ts'
 import type {
-  CodigoHistory,
+  CodeHistory,
   ImportCodeEvent,
   ImportRecord,
-  Mes,
+  Month,
   Sale,
 } from '../../shared/types.ts'
-import { MESES, ROTULO_SEM_VENDEDOR } from '../../shared/types.ts'
+import { MONTHS, NO_SELLER_LABEL } from '../../shared/types.ts'
 import { rowToSale } from './rows.ts'
 
 const SCHEMA = `
@@ -134,30 +134,30 @@ export class SalesDatabase {
   }
 
   insertSale(row: {
-    codigo: string
-    data: string | null
-    dataAprovOrcamento: string | null
-    dataAprovPedido: string | null
-    dataAprovFaturamento: string | null
-    dataEmissaoFiscal: string | null
-    empresa: string
-    statusSistema: string
-    vendedor: string
-    categoria: string
+    code: string
+    date: string | null
+    quoteApprovedDate: string | null
+    orderApprovedDate: string | null
+    billingApprovedDate: string | null
+    fiscalIssueDate: string | null
+    company: string
+    systemStatus: string
+    seller: string
+    category: string
     status: string
-    origem: string
-    cliente: string
-    cidade: string
-    estado: string
-    regiao: string
-    transportadora: string
-    frete: number
-    desconto: number
-    comissao: number
-    valorTotal: number
-    nfe: string
-    mes: string | null
-    ano: number | null
+    origin: string
+    customer: string
+    city: string
+    state: string
+    region: string
+    carrier: string
+    freight: number
+    discount: number
+    commission: number
+    totalValue: number
+    invoice: string
+    month: string | null
+    year: number | null
   }): void {
     this.db
       .prepare(
@@ -169,30 +169,30 @@ export class SalesDatabase {
          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
-        row.codigo,
-        row.data,
-        row.dataAprovOrcamento,
-        row.dataAprovPedido,
-        row.dataAprovFaturamento,
-        row.dataEmissaoFiscal,
-        row.empresa,
-        row.statusSistema,
-        row.vendedor,
-        row.categoria,
+        row.code,
+        row.date,
+        row.quoteApprovedDate,
+        row.orderApprovedDate,
+        row.billingApprovedDate,
+        row.fiscalIssueDate,
+        row.company,
+        row.systemStatus,
+        row.seller,
+        row.category,
         row.status,
-        row.origem,
-        row.cliente,
-        row.cidade,
-        row.estado,
-        row.regiao,
-        row.transportadora,
-        row.frete,
-        row.desconto,
-        row.comissao,
-        row.valorTotal,
-        row.nfe,
-        row.mes,
-        row.ano,
+        row.origin,
+        row.customer,
+        row.city,
+        row.state,
+        row.region,
+        row.carrier,
+        row.freight,
+        row.discount,
+        row.commission,
+        row.totalValue,
+        row.invoice,
+        row.month,
+        row.year,
       )
   }
 
@@ -201,35 +201,35 @@ export class SalesDatabase {
   ): 'inserted' | 'updated' | 'unchanged' {
     const existing = this.db
       .prepare('SELECT * FROM vendas WHERE codigo = ?')
-      .get(row.codigo) as Record<string, unknown> | undefined
+      .get(row.code) as Record<string, unknown> | undefined
     if (!existing) {
       this.insertSale(row)
       return 'inserted'
     }
     const fields: [string, unknown][] = [
-      ['data', row.data],
-      ['data_aprov_orcamento', row.dataAprovOrcamento],
-      ['data_aprov_pedido', row.dataAprovPedido],
-      ['data_aprov_faturamento', row.dataAprovFaturamento],
-      ['data_emissao_fiscal', row.dataEmissaoFiscal],
-      ['empresa', row.empresa],
-      ['status_sistema', row.statusSistema],
-      ['vendedor', row.vendedor],
-      ['categoria', row.categoria],
+      ['data', row.date],
+      ['data_aprov_orcamento', row.quoteApprovedDate],
+      ['data_aprov_pedido', row.orderApprovedDate],
+      ['data_aprov_faturamento', row.billingApprovedDate],
+      ['data_emissao_fiscal', row.fiscalIssueDate],
+      ['empresa', row.company],
+      ['status_sistema', row.systemStatus],
+      ['vendedor', row.seller],
+      ['categoria', row.category],
       ['status', row.status],
-      ['origem', row.origem],
-      ['cliente', row.cliente],
-      ['cidade', row.cidade],
-      ['estado', row.estado],
-      ['regiao', row.regiao],
-      ['transportadora', row.transportadora],
-      ['frete', row.frete],
-      ['desconto', row.desconto],
-      ['comissao', row.comissao],
-      ['valor_total', row.valorTotal],
-      ['nfe', row.nfe],
-      ['mes', row.mes],
-      ['ano', row.ano],
+      ['origem', row.origin],
+      ['cliente', row.customer],
+      ['cidade', row.city],
+      ['estado', row.state],
+      ['regiao', row.region],
+      ['transportadora', row.carrier],
+      ['frete', row.freight],
+      ['desconto', row.discount],
+      ['comissao', row.commission],
+      ['valor_total', row.totalValue],
+      ['nfe', row.invoice],
+      ['mes', row.month],
+      ['ano', row.year],
     ]
     const unchanged = fields.every(([key, value]) => existing[key] === value)
     if (unchanged) return 'unchanged'
@@ -244,30 +244,30 @@ export class SalesDatabase {
          WHERE codigo = ?`,
       )
       .run(
-        row.data,
-        row.dataAprovOrcamento,
-        row.dataAprovPedido,
-        row.dataAprovFaturamento,
-        row.dataEmissaoFiscal,
-        row.empresa,
-        row.statusSistema,
-        row.vendedor,
-        row.categoria,
+        row.date,
+        row.quoteApprovedDate,
+        row.orderApprovedDate,
+        row.billingApprovedDate,
+        row.fiscalIssueDate,
+        row.company,
+        row.systemStatus,
+        row.seller,
+        row.category,
         row.status,
-        row.origem,
-        row.cliente,
-        row.cidade,
-        row.estado,
-        row.regiao,
-        row.transportadora,
-        row.frete,
-        row.desconto,
-        row.comissao,
-        row.valorTotal,
-        row.nfe,
-        row.mes,
-        row.ano,
-        row.codigo,
+        row.origin,
+        row.customer,
+        row.city,
+        row.state,
+        row.region,
+        row.carrier,
+        row.freight,
+        row.discount,
+        row.commission,
+        row.totalValue,
+        row.invoice,
+        row.month,
+        row.year,
+        row.code,
       )
     return 'updated'
   }
@@ -296,13 +296,13 @@ export class SalesDatabase {
 
   insertImportItem(item: {
     importId: number
-    codigo: string
+    code: string
     op: 'inserted' | 'updated'
-    statusSistema: string
-    valorTotal: number
-    data: string | null
-    mes: string | null
-    ano: number | null
+    systemStatus: string
+    totalValue: number
+    date: string | null
+    month: string | null
+    year: number | null
   }): void {
     this.db
       .prepare(
@@ -310,13 +310,13 @@ export class SalesDatabase {
       )
       .run(
         item.importId,
-        item.codigo,
+        item.code,
         item.op,
-        item.statusSistema,
-        item.valorTotal,
-        item.data,
-        item.mes,
-        item.ano,
+        item.systemStatus,
+        item.totalValue,
+        item.date,
+        item.month,
+        item.year,
       )
   }
 
@@ -337,47 +337,47 @@ export class SalesDatabase {
     }))
   }
 
-  findVendaByCodigo(codigo: string): Sale | null {
+  findSaleByCode(code: string): Sale | null {
     const r = this.db
       .prepare('SELECT * FROM vendas WHERE codigo = ?')
-      .get(codigo) as Record<string, unknown> | undefined
+      .get(code) as Record<string, unknown> | undefined
     if (!r) return null
     return saleSchema.parse(rowToSale(r))
   }
 
-  codigoHistoryEvents(codigo: string): ImportCodeEvent[] {
+  codeHistoryEvents(code: string): ImportCodeEvent[] {
     const rows = this.db
       .prepare(
         `SELECT ii.op, ii.status_sistema, ii.valor_total, ii.data, ii.mes, ii.ano, il.imported_at
          FROM import_items ii JOIN import_log il ON il.id = ii.import_id
          WHERE ii.codigo = ? ORDER BY il.id ASC, ii.id ASC`,
       )
-      .all(codigo) as unknown as Record<string, unknown>[]
+      .all(code) as unknown as Record<string, unknown>[]
     return rows.map(r => ({
       importedAt: String(r.imported_at),
       op: String(r.op) as ImportCodeEvent['op'],
-      statusSistema: String(r.status_sistema ?? ''),
-      valorTotal: Number(r.valor_total) || 0,
-      data: r.data ? String(r.data) : null,
-      mes: r.mes ? (String(r.mes) as ImportCodeEvent['mes']) : null,
-      ano: r.ano ? Number(r.ano) : null,
+      systemStatus: String(r.status_sistema ?? ''),
+      totalValue: Number(r.valor_total) || 0,
+      date: r.data ? String(r.data) : null,
+      month: r.mes ? (String(r.mes) as ImportCodeEvent['month']) : null,
+      year: r.ano ? Number(r.ano) : null,
     }))
   }
 
-  getCodigoHistory(codigo: string): CodigoHistory {
+  getCodeHistory(code: string): CodeHistory {
     return {
-      codigo,
-      venda: this.findVendaByCodigo(codigo),
-      events: this.codigoHistoryEvents(codigo),
+      code,
+      sale: this.findSaleByCode(code),
+      events: this.codeHistoryEvents(code),
     }
   }
 
-  getFator(ano: number): number {
-    return Number(this.getMeta(`fator:${ano}`) ?? 1.15)
+  getFactor(year: number): number {
+    return Number(this.getMeta(`fator:${year}`) ?? 1.15)
   }
 
-  setFator(ano: number, fator: number): void {
-    this.setMeta(`fator:${ano}`, String(fator))
+  setFactor(year: number, factor: number): void {
+    this.setMeta(`fator:${year}`, String(factor))
   }
 
   getMeta(key: string): string | null {
@@ -399,31 +399,31 @@ export class SalesDatabase {
     this.db.prepare('DELETE FROM meta_config WHERE key = ?').run(key)
   }
 
-  getMetaAnual(ano: number): number | null {
-    return this.getMetaConfigNumber(`meta_anual:${ano}`)
+  getAnnualGoal(year: number): number | null {
+    return this.getMetaNumber(`meta_anual:${year}`)
   }
 
-  setMetaAnual(ano: number, valor: number | null): void {
-    if (valor === null) {
-      this.clearMeta(`meta_anual:${ano}`)
+  setAnnualGoal(year: number, value: number | null): void {
+    if (value === null) {
+      this.clearMeta(`meta_anual:${year}`)
     } else {
-      this.setMeta(`meta_anual:${ano}`, String(valor))
+      this.setMeta(`meta_anual:${year}`, String(value))
     }
   }
 
-  getMetasMesOverride(ano: number): Partial<Record<Mes, number>> {
-    const raw = this.getMeta(`metas_mes:${ano}`)
+  getMonthlyGoalOverrides(year: number): Partial<Record<Month, number>> {
+    const raw = this.getMeta(`metas_mes:${year}`)
     if (!raw) return {}
     try {
       const parsed = JSON.parse(raw) as Record<string, unknown>
-      const out: Partial<Record<Mes, number>> = {}
+      const out: Partial<Record<Month, number>> = {}
       for (const [key, value] of Object.entries(parsed)) {
         if (
-          MESES.includes(key as Mes) &&
+          MONTHS.includes(key as Month) &&
           typeof value === 'number' &&
           Number.isFinite(value)
         ) {
-          out[key as Mes] = value
+          out[key as Month] = value
         }
       }
       return out
@@ -432,60 +432,66 @@ export class SalesDatabase {
     }
   }
 
-  setMetasMesOverride(ano: number, meses: Partial<Record<Mes, number>>): void {
-    const overrides = MESES.reduce<Partial<Record<Mes, number>>>((acc, mes) => {
-      const value = meses[mes]
-      if (typeof value === 'number' && Number.isFinite(value)) acc[mes] = value
-      return acc
-    }, {})
+  setMonthlyGoalOverrides(
+    year: number,
+    months: Partial<Record<Month, number>>,
+  ): void {
+    const overrides = MONTHS.reduce<Partial<Record<Month, number>>>(
+      (acc, month) => {
+        const value = months[month]
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          acc[month] = value
+        }
+        return acc
+      },
+      {},
+    )
     if (Object.keys(overrides).length === 0) {
-      this.clearMeta(`metas_mes:${ano}`)
+      this.clearMeta(`metas_mes:${year}`)
     } else {
-      this.setMeta(`metas_mes:${ano}`, JSON.stringify(overrides))
+      this.setMeta(`metas_mes:${year}`, JSON.stringify(overrides))
     }
   }
 
-  private getMetaConfigNumber(key: string): number | null {
+  private getMetaNumber(key: string): number | null {
     const raw = this.getMeta(key)
     if (raw === null) return null
     const parsed = Number(raw)
     return Number.isFinite(parsed) ? parsed : null
   }
 
-  setVendedorFoto(vendedor: string, mime: string, img: Uint8Array): void {
+  setSellerPhoto(seller: string, mime: string, img: Uint8Array): void {
     this.db
       .prepare(
         `INSERT INTO vendedor_fotos (vendedor, mime, img) VALUES (?, ?, ?)
          ON CONFLICT(vendedor) DO UPDATE SET
            mime = excluded.mime, img = excluded.img`,
       )
-      .run(vendedor, mime, img)
+      .run(seller, mime, img)
   }
 
-  removeVendedorFoto(vendedor: string): void {
-    this.db
-      .prepare('DELETE FROM vendedor_fotos WHERE vendedor = ?')
-      .run(vendedor)
+  removeSellerPhoto(seller: string): void {
+    this.db.prepare('DELETE FROM vendedor_fotos WHERE vendedor = ?').run(seller)
   }
 
-  getVendedorFoto(vendedor: string): {
+  getSellerPhoto(seller: string): {
     mime: string
     img: Uint8Array
   } | null {
     const row = this.db
       .prepare('SELECT mime, img FROM vendedor_fotos WHERE vendedor = ?')
-      .get(vendedor) as unknown as { mime: string; img: Uint8Array } | undefined
+      .get(seller) as unknown as { mime: string; img: Uint8Array } | undefined
     return row ? { mime: row.mime, img: row.img } : null
   }
 
-  listVendedorFotos(): { vendedor: string }[] {
+  listSellerPhotos(): { seller: string }[] {
     const rows = this.db
       .prepare('SELECT vendedor FROM vendedor_fotos')
       .all() as unknown as { vendedor: string }[]
-    return rows.map(r => ({ vendedor: r.vendedor }))
+    return rows.map(r => ({ seller: r.vendedor }))
   }
 
-  listVendedores(): string[] {
+  listSellers(): string[] {
     const rows = this.db
       .prepare(
         `SELECT vendedor FROM vendas WHERE vendedor <> ''
@@ -496,31 +502,31 @@ export class SalesDatabase {
          ORDER BY vendedor COLLATE NOCASE`,
       )
       .all() as unknown as { vendedor: string }[]
-    return rows.map(r => r.vendedor).filter(v => v !== ROTULO_SEM_VENDEDOR)
+    return rows.map(r => r.vendedor).filter(v => v !== NO_SELLER_LABEL)
   }
 
-  listVendedoresDesativados(): string[] {
+  listDisabledSellers(): string[] {
     const rows = this.db
       .prepare('SELECT vendedor FROM vendedor_desativado')
       .all() as unknown as { vendedor: string }[]
     return rows.map(r => r.vendedor)
   }
 
-  setVendedorDesativado(vendedor: string, desativado: boolean): void {
-    if (desativado) {
+  setSellerDisabled(seller: string, disabled: boolean): void {
+    if (disabled) {
       this.db
         .prepare(
           'INSERT OR IGNORE INTO vendedor_desativado (vendedor) VALUES (?)',
         )
-        .run(vendedor)
+        .run(seller)
     } else {
       this.db
         .prepare('DELETE FROM vendedor_desativado WHERE vendedor = ?')
-        .run(vendedor)
+        .run(seller)
     }
   }
 
-  listAnos(): number[] {
+  listYears(): number[] {
     const rows = this.db
       .prepare(
         'SELECT DISTINCT ano FROM vendas WHERE ano IS NOT NULL ORDER BY ano',

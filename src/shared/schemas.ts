@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const MESES = [
+export const MONTHS = [
   'jan',
   'fev',
   'mar',
@@ -15,34 +15,34 @@ export const MESES = [
   'dez',
 ] as const
 
-export const mesSchema = z.enum(MESES)
-export type Mes = z.infer<typeof mesSchema>
+export const monthSchema = z.enum(MONTHS)
+export type Month = z.infer<typeof monthSchema>
 
 export const saleSchema = z.object({
-  codigo: z.string(),
-  data: z.string().nullable(),
-  dataAprovOrcamento: z.string().nullable(),
-  dataAprovPedido: z.string().nullable(),
-  dataAprovFaturamento: z.string().nullable(),
-  dataEmissaoFiscal: z.string().nullable(),
-  empresa: z.string(),
-  statusSistema: z.string(),
-  vendedor: z.string(),
-  categoria: z.string(),
+  code: z.string(),
+  date: z.string().nullable(),
+  quoteApprovedDate: z.string().nullable(),
+  orderApprovedDate: z.string().nullable(),
+  billingApprovedDate: z.string().nullable(),
+  fiscalIssueDate: z.string().nullable(),
+  company: z.string(),
+  systemStatus: z.string(),
+  seller: z.string(),
+  category: z.string(),
   status: z.string(),
-  origem: z.string(),
-  cliente: z.string(),
-  cidade: z.string(),
-  estado: z.string(),
-  regiao: z.string(),
-  transportadora: z.string(),
-  frete: z.number(),
-  desconto: z.number(),
-  comissao: z.number(),
-  valorTotal: z.number(),
-  nfe: z.string(),
-  mes: mesSchema.nullable(),
-  ano: z.number().nullable(),
+  origin: z.string(),
+  customer: z.string(),
+  city: z.string(),
+  state: z.string(),
+  region: z.string(),
+  carrier: z.string(),
+  freight: z.number(),
+  discount: z.number(),
+  commission: z.number(),
+  totalValue: z.number(),
+  invoice: z.string(),
+  month: monthSchema.nullable(),
+  year: z.number().nullable(),
 })
 export type Sale = z.infer<typeof saleSchema>
 
@@ -69,32 +69,32 @@ export type ImportRecord = z.infer<typeof importRecordSchema>
 export const importCodeEventSchema = z.object({
   importedAt: z.string(),
   op: z.enum(['inserted', 'updated']),
-  statusSistema: z.string(),
-  valorTotal: z.number(),
-  data: z.string().nullable(),
-  mes: mesSchema.nullable(),
-  ano: z.number().nullable(),
+  systemStatus: z.string(),
+  totalValue: z.number(),
+  date: z.string().nullable(),
+  month: monthSchema.nullable(),
+  year: z.number().nullable(),
 })
 export type ImportCodeEvent = z.infer<typeof importCodeEventSchema>
 
-export const codigoHistorySchema = z.object({
-  codigo: z.string(),
-  venda: saleSchema.nullable(),
+export const codeHistorySchema = z.object({
+  code: z.string(),
+  sale: saleSchema.nullable(),
   events: z.array(importCodeEventSchema),
 })
-export type CodigoHistory = z.infer<typeof codigoHistorySchema>
+export type CodeHistory = z.infer<typeof codeHistorySchema>
 
-export const metasSetInputSchema = z.object({
-  anual: z.number().nonnegative().nullable().default(null),
-  meses: z.object(
+export const goalSetInputSchema = z.object({
+  annual: z.number().nonnegative().nullable().default(null),
+  months: z.object(
     Object.fromEntries(
-      MESES.map(mes => [mes, z.number().nonnegative().optional()]),
+      MONTHS.map(month => [month, z.number().nonnegative().optional()]),
     ),
   ),
 })
-export type MetasSetInput = z.infer<typeof metasSetInputSchema>
+export type GoalSetInput = z.infer<typeof goalSetInputSchema>
 
-export const vendedorSchema = z
+export const sellerNameSchema = z
   .string()
   .trim()
   .min(1)

@@ -1,6 +1,6 @@
-import type { Mes } from '../../../shared/types'
+import type { Month } from '../../../shared/types'
 
-export const MES_LABEL: Record<Mes, string> = {
+export const MONTH_LABEL: Record<Month, string> = {
   jan: 'Jan',
   fev: 'Fev',
   mar: 'Mar',

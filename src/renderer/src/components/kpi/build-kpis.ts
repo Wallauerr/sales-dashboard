@@ -1,182 +1,182 @@
 import { brl0, brlCompact, int, pct } from '@/lib/format'
-import { MES_LABEL } from '@/lib/labels'
-import type { KpiSnapshot, Mes } from '../../../../shared/types'
-import { MESES } from '../../../../shared/types'
+import { MONTH_LABEL } from '@/lib/labels'
+import type { KpiSnapshot, Month } from '../../../../shared/types'
+import { MONTHS } from '../../../../shared/types'
 
 export type KpiDef = { title: string; value: string; hint?: string }
 
-function variacao(atual: number, anterior: number): string | null {
-  if (anterior <= 0) return null
-  const v = (atual - anterior) / anterior
+function variation(current: number, previous: number): string | null {
+  if (previous <= 0) return null
+  const v = (current - previous) / previous
   return `${v >= 0 ? '+' : '-'}${pct(Math.abs(v))}`
 }
 
-export function periodoLabel(meses: Mes[]): string {
-  if (meses.length === 1) return MES_LABEL[meses[0]]
-  if (meses.length <= 3) return meses.map(m => MES_LABEL[m]).join('·')
-  return `${meses.length} meses`
+export function periodLabel(months: Month[]): string {
+  if (months.length === 1) return MONTH_LABEL[months[0]]
+  if (months.length <= 3) return months.map(m => MONTH_LABEL[m]).join('·')
+  return `${months.length} meses`
 }
 
-function vendNome(vendedores: string[]): string {
-  if (vendedores.length === 1) return vendedores[0]
-  return `${vendedores.length} vendedores`
+function sellersLabel(sellers: string[]): string {
+  if (sellers.length === 1) return sellers[0]
+  return `${sellers.length} vendedores`
 }
 
 export function buildKpis({
-  ano,
-  meses,
-  vendedores,
+  year,
+  months,
+  sellers,
   snap,
 }: {
-  ano: number
-  meses: Mes[]
-  vendedores: string[]
+  year: number
+  months: Month[]
+  sellers: string[]
   snap: KpiSnapshot | null
-}): { kpis: KpiDef[]; kgrid: string } {
-  const mesAtivo = meses.length > 0
-  const vendedorFiltro = vendedores.length > 0
-  const kgrid = vendedorFiltro
+}): { kpis: KpiDef[]; gridClass: string } {
+  const monthActive = months.length > 0
+  const sellerActive = sellers.length > 0
+  const gridClass = sellerActive
     ? 'lg:grid-cols-3'
-    : mesAtivo
+    : monthActive
       ? 'lg:grid-cols-6'
       : 'lg:grid-cols-7'
 
   const kpis: KpiDef[] = []
-  if (!snap) return { kpis, kgrid }
+  if (!snap) return { kpis, gridClass }
 
-  const mesLabel = periodoLabel(meses)
-  const vendLabel = vendNome(vendedores)
-  const mesIndexes = meses.map(m => MESES.indexOf(m))
-  const metaPeriodo = mesAtivo
-    ? mesIndexes.reduce((acc, i) => acc + snap.metasPorMes[i].meta, 0)
+  const monthLabel = periodLabel(months)
+  const sellerLabel = sellersLabel(sellers)
+  const monthIndexes = months.map(m => MONTHS.indexOf(m))
+  const periodGoal = monthActive
+    ? monthIndexes.reduce((acc, i) => acc + snap.monthlyGoals[i].goal, 0)
     : 0
-  const metaPct =
-    !vendedorFiltro && !mesAtivo && snap.metaAnual > 0
-      ? snap.totalPeriodo / snap.metaAnual
+  const goalPct =
+    !sellerActive && !monthActive && snap.annualGoal > 0
+      ? snap.periodTotal / snap.annualGoal
       : 0
-  const metaPeriodoPct =
-    mesAtivo && !vendedorFiltro && metaPeriodo > 0
-      ? snap.totalPeriodo / metaPeriodo
+  const periodGoalPct =
+    monthActive && !sellerActive && periodGoal > 0
+      ? snap.periodTotal / periodGoal
       : 0
-  const restanteAno = snap.restanteAnoPorMes.dez
-  const restanteMes =
-    mesAtivo && !vendedorFiltro
-      ? Math.max(metaPeriodo - snap.totalPeriodo, 0)
+  const remainingYear = snap.remainingYearByMonth.dez
+  const remainingMonth =
+    monthActive && !sellerActive
+      ? Math.max(periodGoal - snap.periodTotal, 0)
       : 0
 
-  const totalQtd = mesAtivo
-    ? mesIndexes.reduce((acc, i) => acc + snap.quantidadePorMes[MESES[i]], 0)
-    : MESES.reduce((acc, m) => acc + snap.quantidadePorMes[m], 0)
+  const totalQuantity = monthActive
+    ? monthIndexes.reduce((acc, i) => acc + snap.quantityByMonth[MONTHS[i]], 0)
+    : MONTHS.reduce((acc, m) => acc + snap.quantityByMonth[m], 0)
 
-  const mesesComDados = (() => {
-    for (let i = MESES.length - 1; i >= 0; i--) {
-      if (snap.faturamentoPorMes[MESES[i]] > 0) return i + 1
+  const monthsWithData = (() => {
+    for (let i = MONTHS.length - 1; i >= 0; i--) {
+      if (snap.billingByMonth[MONTHS[i]] > 0) return i + 1
     }
     return 0
   })()
 
   const runRate =
-    !mesAtivo && !vendedorFiltro && snap.totalPeriodo > 0 && mesesComDados > 0
+    !monthActive && !sellerActive && snap.periodTotal > 0 && monthsWithData > 0
       ? {
-          projection: (snap.totalPeriodo / mesesComDados) * 12,
-          elapsed: mesesComDados,
+          projection: (snap.periodTotal / monthsWithData) * 12,
+          elapsed: monthsWithData,
         }
       : null
 
-  const quantHint = vendedorFiltro
-    ? mesAtivo
-      ? `vendas de ${vendLabel} em ${mesLabel}`
-      : `vendas de ${vendLabel}`
-    : mesAtivo
-      ? `vendas em ${mesLabel}`
+  const quantityHint = sellerActive
+    ? monthActive
+      ? `vendas de ${sellerLabel} em ${monthLabel}`
+      : `vendas de ${sellerLabel}`
+    : monthActive
+      ? `vendas em ${monthLabel}`
       : 'vendas no ano'
 
-  const prevAno = ano - 1
-  const prevPeriodo =
-    mesAtivo && !vendedorFiltro
-      ? mesIndexes.reduce(
-          (acc, i) => acc + snap.metasPorMes[i].faturamentoAnoAnterior,
+  const prevYear = year - 1
+  const prevPeriod =
+    monthActive && !sellerActive
+      ? monthIndexes.reduce(
+          (acc, i) => acc + snap.monthlyGoals[i].previousYearBilling,
           0,
         )
-      : MESES.slice(0, mesesComDados).reduce(
-          (acc, _m, i) => acc + snap.metasPorMes[i].faturamentoAnoAnterior,
+      : MONTHS.slice(0, monthsWithData).reduce(
+          (acc, _m, i) => acc + snap.monthlyGoals[i].previousYearBilling,
           0,
         )
-  const shareVendedores =
-    vendedorFiltro && snap.porVendedor.length > 0
-      ? snap.porVendedor
-          .filter(v => vendedores.includes(v.vendedor))
+  const sellersShare =
+    sellerActive && snap.bySeller.length > 0
+      ? snap.bySeller
+          .filter(v => sellers.includes(v.seller))
           .reduce((acc, v) => acc + v.share, 0)
       : undefined
-  const faturamentoHint = (() => {
-    if (vendedorFiltro) {
-      return shareVendedores === undefined
+  const billingHint = (() => {
+    if (sellerActive) {
+      return sellersShare === undefined
         ? undefined
-        : `part. ${pct(shareVendedores)} do ${mesAtivo ? mesLabel : ano}`
+        : `part. ${pct(sellersShare)} do ${monthActive ? monthLabel : year}`
     }
-    if (mesAtivo) {
-      const delta = variacao(snap.totalPeriodo, prevPeriodo)
-      return `${mesLabel} ${prevAno}: ${brlCompact(prevPeriodo)}${delta ? ` · ${delta}` : ''}`
+    if (monthActive) {
+      const delta = variation(snap.periodTotal, prevPeriod)
+      return `${monthLabel} ${prevYear}: ${brlCompact(prevPeriod)}${delta ? ` · ${delta}` : ''}`
     }
-    const periodo =
-      mesesComDados > 0 && mesesComDados < 12
-        ? ` (${MES_LABEL[MESES[0]]}–${MES_LABEL[MESES[mesesComDados - 1]]})`
+    const period =
+      monthsWithData > 0 && monthsWithData < 12
+        ? ` (${MONTH_LABEL[MONTHS[0]]}–${MONTH_LABEL[MONTHS[monthsWithData - 1]]})`
         : ''
-    const delta = variacao(snap.totalPeriodo, prevPeriodo)
-    return `vs ${prevAno}${periodo}: ${brlCompact(prevPeriodo)}${delta ? ` · ${delta}` : ''}`
+    const delta = variation(snap.periodTotal, prevPeriod)
+    return `vs ${prevYear}${period}: ${brlCompact(prevPeriod)}${delta ? ` · ${delta}` : ''}`
   })()
 
   kpis.push({
-    title: vendedorFiltro
-      ? `Faturamento ${vendLabel}${mesAtivo ? ` · ${mesLabel}` : ''}`
-      : mesAtivo
-        ? `Faturamento ${mesLabel} ${ano}`
-        : `Faturamento ${ano}`,
-    value: brl0(snap.totalPeriodo),
-    hint: faturamentoHint,
+    title: sellerActive
+      ? `Faturamento ${sellerLabel}${monthActive ? ` · ${monthLabel}` : ''}`
+      : monthActive
+        ? `Faturamento ${monthLabel} ${year}`
+        : `Faturamento ${year}`,
+    value: brl0(snap.periodTotal),
+    hint: billingHint,
   })
-  if (!vendedorFiltro) {
+  if (!sellerActive) {
     kpis.push(
-      mesAtivo
+      monthActive
         ? {
-            title: `Meta ${mesLabel}`,
-            value: brl0(metaPeriodo),
+            title: `Meta ${monthLabel}`,
+            value: brl0(periodGoal),
             hint: 'meta do período (empresa)',
           }
         : {
             title: 'Meta anual',
-            value: brl0(snap.metaAnual),
-            hint: `base ${ano - 1} × ${(snap.fator * 100).toFixed(0)}%`,
+            value: brl0(snap.annualGoal),
+            hint: `base ${year - 1} × ${(snap.factor * 100).toFixed(0)}%`,
           },
       {
         title: '% da meta',
-        value: pct(mesAtivo ? metaPeriodoPct : metaPct),
-        hint: mesAtivo ? 'realizado do período ÷ meta' : 'realizado ÷ meta',
+        value: pct(monthActive ? periodGoalPct : goalPct),
+        hint: monthActive ? 'realizado do período ÷ meta' : 'realizado ÷ meta',
       },
       {
-        title: mesAtivo ? 'Restante p/ meta do período' : 'Restante p/ meta',
-        value: mesAtivo
-          ? restanteMes > 0
-            ? brl0(restanteMes)
+        title: monthActive ? 'Restante p/ meta do período' : 'Restante p/ meta',
+        value: monthActive
+          ? remainingMonth > 0
+            ? brl0(remainingMonth)
             : '—'
-          : restanteAno > 0
-            ? brl0(restanteAno)
+          : remainingYear > 0
+            ? brl0(remainingYear)
             : '—',
-        hint: mesAtivo
-          ? restanteMes > 0
+        hint: monthActive
+          ? remainingMonth > 0
             ? 'no período'
             : 'meta atingida'
-          : restanteAno > 0
+          : remainingYear > 0
             ? 'no acumulado de dez'
             : 'meta atingida',
       },
     )
-    if (!mesAtivo) {
+    if (!monthActive) {
       kpis.push({
         title: 'Projeção (run-rate)',
         value: runRate ? brl0(runRate.projection) : '—',
         hint: runRate
-          ? `${brl0(snap.totalPeriodo / runRate.elapsed)}/mês med em ${runRate.elapsed === 12 ? 'ano fechado' : `${runRate.elapsed} meses`}`
+          ? `${brl0(snap.periodTotal / runRate.elapsed)}/mês med em ${runRate.elapsed === 12 ? 'ano fechado' : `${runRate.elapsed} meses`}`
           : 'sem dados',
       })
     }
@@ -184,15 +184,15 @@ export function buildKpis({
   kpis.push(
     {
       title: 'Quantidade',
-      value: int(totalQtd),
-      hint: quantHint,
+      value: int(totalQuantity),
+      hint: quantityHint,
     },
     {
       title: 'Participação',
-      value: pct(snap.participacaoEscopo),
-      hint: `de ${brlCompact(snap.totalHistorico)}`,
+      value: pct(snap.scopeShare),
+      hint: `de ${brlCompact(snap.historyTotal)}`,
     },
   )
 
-  return { kpis, kgrid }
+  return { kpis, gridClass }
 }

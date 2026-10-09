@@ -31,11 +31,11 @@ export function AccumulatedLine({
   valueFormat = brl0,
   className,
 }: AccumulatedLineProps) {
-  const data = labels.map((label, i) => ({ label, acumulado: values[i] ?? 0 }))
+  const data = labels.map((label, i) => ({ label, cumulative: values[i] ?? 0 }))
 
   const config = {
-    acumulado: { label: 'Acumulado', color: 'var(--chart-2)' },
-    meta: { label: 'Meta', color: 'var(--chart-3)' },
+    cumulative: { label: 'Acumulado', color: 'var(--chart-2)' },
+    goal: { label: 'Meta', color: 'var(--chart-3)' },
   } satisfies ChartConfig
 
   return (
@@ -71,8 +71,8 @@ export function AccumulatedLine({
         />
         <Line
           type="monotone"
-          dataKey="acumulado"
-          stroke="var(--color-acumulado)"
+          dataKey="cumulative"
+          stroke="var(--color-cumulative)"
           strokeWidth={2}
           dot={{ r: 2 }}
           activeDot={{ r: 4 }}
@@ -80,13 +80,13 @@ export function AccumulatedLine({
         {target !== undefined ? (
           <ReferenceLine
             y={target}
-            stroke="var(--color-meta)"
+            stroke="var(--color-goal)"
             strokeDasharray="6 4"
             label={{
               value: `Meta ${valueFormat(target)}`,
               position: 'top',
               fontSize: 11,
-              fill: 'var(--color-meta)',
+              fill: 'var(--color-goal)',
             }}
           />
         ) : null}

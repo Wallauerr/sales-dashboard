@@ -1,14 +1,14 @@
 import type {
   AutoStartView,
-  CodigoHistory,
-  FotoResultado,
+  CodeHistory,
+  GoalConfigView,
+  GoalSetInput,
   ImportRecord,
   ImportResult,
   KpiSnapshot,
-  MetaConfigView,
-  MetasSetInput,
-  SnapshotFilter,
-  VendedorFoto,
+  PhotoResult,
+  SellerPhoto,
+  SnapshotScope,
 } from '../shared/types'
 
 interface WindowBounds {
@@ -21,20 +21,17 @@ interface WindowBounds {
 interface Api {
   importWorkbook: () => Promise<ImportResult | null>
   getImports: () => Promise<ImportRecord[]>
-  getCodigoHistory: (codigo: string) => Promise<CodigoHistory>
-  getSnapshot: (ano: number, filtro?: SnapshotFilter) => Promise<KpiSnapshot>
-  getMetaConfig: (ano: number) => Promise<MetaConfigView>
-  setMetaConfig: (ano: number, input: MetasSetInput) => Promise<MetaConfigView>
-  getFotos: () => Promise<VendedorFoto[]>
-  listVendedores: () => Promise<string[]>
-  listVendedoresDesativados: () => Promise<string[]>
-  setVendedorDesativado: (
-    vendedor: string,
-    desativado: boolean,
-  ) => Promise<void>
-  listAnos: () => Promise<number[]>
-  escolherFoto: (vendedor: string) => Promise<FotoResultado | null>
-  removerFoto: (vendedor: string) => Promise<FotoResultado>
+  getCodeHistory: (code: string) => Promise<CodeHistory>
+  getSnapshot: (year: number, scope?: SnapshotScope) => Promise<KpiSnapshot>
+  getGoalConfig: (year: number) => Promise<GoalConfigView>
+  setGoalConfig: (year: number, input: GoalSetInput) => Promise<GoalConfigView>
+  getPhotos: () => Promise<SellerPhoto[]>
+  listSellers: () => Promise<string[]>
+  listDisabledSellers: () => Promise<string[]>
+  setSellerDisabled: (seller: string, disabled: boolean) => Promise<void>
+  listYears: () => Promise<number[]>
+  pickPhoto: (seller: string) => Promise<PhotoResult | null>
+  removePhoto: (seller: string) => Promise<PhotoResult>
   getAutoStart: () => Promise<AutoStartView>
   setAutoStart: (enabled: boolean) => Promise<AutoStartView>
   minimize: () => Promise<void>

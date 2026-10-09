@@ -9,23 +9,23 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { brl0, pct } from '@/lib/format'
-import { fotoUrl } from '@/lib/foto-url'
+import { photoUrl } from '@/lib/photo-url'
 import { cn } from '@/lib/utils'
 
-interface Seller {
-  vendedor: string
-  valor: number
+interface SellerDatum {
+  seller: string
+  value: number
   share: number
 }
 
 interface Props {
-  ano: number
-  vendedores: Seller[]
-  fotos: Set<string>
+  year: number
+  sellers: SellerDatum[]
+  photos: Set<string>
   selected: string[]
-  onSelect: (vendedor: string) => void
+  onSelect: (seller: string) => void
   onClear: () => void
-  desativados: number
+  disabled: number
 }
 
 function initials(name: string): string {
@@ -38,13 +38,13 @@ function initials(name: string): string {
 }
 
 export function SellerCards({
-  ano,
-  vendedores,
-  fotos,
+  year,
+  sellers,
+  photos,
   selected,
   onSelect,
   onClear,
-  desativados,
+  disabled,
 }: Props) {
   const [open, setOpen] = useState(false)
 
@@ -62,7 +62,7 @@ export function SellerCards({
           </span>
           {selected.length === 0 ? (
             <span className="text-muted-foreground tabular-nums">
-              {vendedores.length}
+              {sellers.length}
             </span>
           ) : null}
         </Button>
@@ -70,7 +70,7 @@ export function SellerCards({
       <PopoverContent align="end" className="w-80 p-1.5">
         <div className="flex items-center justify-between px-2 py-1">
           <span className="text-xs font-medium text-muted-foreground">
-            Vendedores · {ano}
+            Vendedores · {year}
           </span>
           {selected.length > 0 ? (
             <Button
@@ -83,29 +83,29 @@ export function SellerCards({
           ) : null}
         </div>
         <div className="flex max-h-80 flex-col gap-0.5 overflow-y-auto">
-          {vendedores.map(v => {
-            const active = selected.includes(v.vendedor)
-            const temFoto = fotos.has(v.vendedor)
+          {sellers.map(v => {
+            const active = selected.includes(v.seller)
+            const hasPhoto = photos.has(v.seller)
             return (
               <button
-                key={v.vendedor}
+                key={v.seller}
                 type="button"
-                onClick={() => onSelect(v.vendedor)}
+                onClick={() => onSelect(v.seller)}
                 className={cn(
                   'flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent focus-visible:bg-accent',
                   active && 'bg-accent',
                 )}>
                 <Avatar className="size-7 border">
-                  {temFoto ? (
-                    <AvatarImage src={fotoUrl(v.vendedor)} alt="" />
+                  {hasPhoto ? (
+                    <AvatarImage src={photoUrl(v.seller)} alt="" />
                   ) : null}
                   <AvatarFallback className="bg-primary/10 text-[10px] font-bold tracking-wide text-primary">
-                    {initials(v.vendedor)}
+                    {initials(v.seller)}
                   </AvatarFallback>
                 </Avatar>
-                <span className="min-w-0 flex-1 truncate">{v.vendedor}</span>
+                <span className="min-w-0 flex-1 truncate">{v.seller}</span>
                 <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                  {brl0(v.valor)} · {pct(v.share)}
+                  {brl0(v.value)} · {pct(v.share)}
                 </span>
                 <CheckIcon
                   className={cn(
@@ -117,12 +117,10 @@ export function SellerCards({
             )
           })}
         </div>
-        {desativados > 0 ? (
+        {disabled > 0 ? (
           <p className="px-2 py-1.5 text-[11px] text-muted-foreground">
-            {desativados}{' '}
-            {desativados === 1
-              ? 'vendedor desativado'
-              : 'vendedores desativados'}{' '}
+            {disabled}{' '}
+            {disabled === 1 ? 'vendedor desativado' : 'vendedores desativados'}{' '}
             — gerencie em Configurações → Geral.
           </p>
         ) : null}

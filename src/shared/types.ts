@@ -1,55 +1,55 @@
 import {
-  type CodigoHistory,
+  type CodeHistory,
+  type GoalSetInput,
   type ImportCodeEvent,
   type ImportRecord,
   type ImportResult,
-  MESES as MESES_LIST,
-  type Mes,
-  type MetasSetInput,
+  MONTHS as MONTHS_LIST,
+  type Month,
   type Sale,
 } from './schemas.ts'
 
 export type {
-  CodigoHistory,
+  CodeHistory,
+  GoalSetInput,
   ImportCodeEvent,
   ImportRecord,
   ImportResult,
-  Mes,
-  MetasSetInput,
+  Month,
   Sale,
 }
 
-export const MESES = MESES_LIST
+export const MONTHS = MONTHS_LIST
 
-export const STATUS_FATURAMENTO = ['Pedido', 'Pedido Faturado']
+export const BILLING_STATUSES = ['Pedido', 'Pedido Faturado']
 
-export const STATUS_APROVADO_SEM_FATURAMENTO = 'Pedido Aprovado Sem Faturamento'
+export const APPROVED_WITHOUT_BILLING_STATUS = 'Pedido Aprovado Sem Faturamento'
 
-export const CATEGORIAS_FORA_FATURAMENTO = ['Remessa%', 'Amostra%']
+export const NON_BILLING_CATEGORIES = ['Remessa%', 'Amostra%']
 
-export const ROTULO_SEM_ESTADO = 'Não informado'
-export const ROTULO_SEM_VENDEDOR = 'VENDAS'
+export const NO_STATE_LABEL = 'Não informado'
+export const NO_SELLER_LABEL = 'VENDAS'
 
-export const STATUS_SISTEMA = [
+export const SYSTEM_STATUSES = [
   'Orçamento',
   'Pedido',
-  STATUS_APROVADO_SEM_FATURAMENTO,
+  APPROVED_WITHOUT_BILLING_STATUS,
   'Pedido Cancelado',
   'Pedido Faturado',
   'Pedido Nao Faturado',
 ]
 
-export interface SnapshotFilter {
-  meses?: Mes[] | null
-  vendedores?: string[] | null
+export interface SnapshotScope {
+  months?: Month[] | null
+  sellers?: string[] | null
 }
 
-export interface VendedorFoto {
-  vendedor: string
+export interface SellerPhoto {
+  seller: string
 }
 
-export interface FotoResultado {
-  vendedor: string
+export interface PhotoResult {
+  seller: string
 }
 
 export interface AutoStartView {
@@ -58,70 +58,70 @@ export interface AutoStartView {
 }
 
 export interface FunnelMonth {
-  mes: Mes
-  orcamento: number
-  pedido: number
-  pedidoAprovadoSemFaturamento: number
-  pedidoCancelado: number
-  pedidoFaturado: number
-  pedidoNaoFaturado: number
+  month: Month
+  quote: number
+  order: number
+  approvedWithoutInvoicing: number
+  cancelled: number
+  invoiced: number
+  notInvoiced: number
   total: number
 }
 
-export interface MetasMes {
-  mes: Mes
-  faturamentoAnoAnterior: number
-  meta: number
-  acima: number
-  abaixo: number
-  restanteMes: number
+export interface MonthlyGoal {
+  month: Month
+  previousYearBilling: number
+  goal: number
+  above: number
+  below: number
+  remainingInMonth: number
 }
 
-export interface MetaConfigView {
-  ano: number
-  fator: number
-  baseAno: number
-  metaAnual: number
-  metaAnualAuto: number
-  anualCustom: number | null
-  mesesCustom: Partial<Record<Mes, number>>
-  metasAuto: Record<Mes, number>
-  metasEfetivas: Record<Mes, number>
+export interface GoalConfigView {
+  year: number
+  factor: number
+  baseYear: number
+  annualGoal: number
+  annualGoalAuto: number
+  annualCustom: number | null
+  monthsCustom: Partial<Record<Month, number>>
+  autoGoals: Record<Month, number>
+  effectiveGoals: Record<Month, number>
 }
 
-export interface TicketMedio {
-  produto: string
-  valor: number
+export interface AverageTicket {
+  product: string
+  value: number
   volume: number
   ticket: number
 }
 
 export interface KpiSnapshot {
-  ano: number
-  totalPeriodo: number
-  totalHistorico: number
-  participacaoAno: number
-  participacaoEscopo: number
-  faturamentoPorMes: Record<Mes, number>
-  quantidadePorMes: Record<Mes, number>
-  porVendedor: { vendedor: string; valor: number; share: number }[]
-  porEstado: { estado: string; valor: number; share: number }[]
-  porRegiao: {
-    regiao: string
-    valor: number
+  year: number
+  periodTotal: number
+  historyTotal: number
+  yearShare: number
+  scopeShare: number
+  billingByMonth: Record<Month, number>
+  quantityByMonth: Record<Month, number>
+  bySeller: { seller: string; value: number; share: number }[]
+  byState: { state: string; value: number; share: number }[]
+  byRegion: {
+    region: string
+    value: number
     share: number
     x: number
     y: number
   }[]
-  funilPorMes: FunnelMonth[]
-  numeroFechamento: Record<Mes, { orcamento: number; pedido: number }>
-  ticketMedio: TicketMedio[]
-  metaAnual: number
-  metaAnualBase: number
-  metaAnualAuto: number
-  metaPersonalizada: boolean
-  fator: number
-  metasPorMes: MetasMes[]
-  acumuladoPorMes: Record<Mes, number>
-  restanteAnoPorMes: Record<Mes, number>
+  funnelByMonth: FunnelMonth[]
+  closingCounts: Record<Month, { quote: number; order: number }>
+  averageTickets: AverageTicket[]
+  annualGoal: number
+  annualGoalBase: number
+  annualGoalAuto: number
+  customGoal: boolean
+  factor: number
+  monthlyGoals: MonthlyGoal[]
+  cumulativeByMonth: Record<Month, number>
+  remainingYearByMonth: Record<Month, number>
 }

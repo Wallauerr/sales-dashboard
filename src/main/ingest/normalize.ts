@@ -1,4 +1,4 @@
-import { type Mes, STATUS_SISTEMA } from '../../shared/types.ts'
+import { type Month, SYSTEM_STATUSES } from '../../shared/types.ts'
 
 export function parseDate(value: unknown): Date | null {
   if (value === null || value === undefined || value === '') return null
@@ -18,7 +18,7 @@ export function parseDate(value: unknown): Date | null {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
-const MES_KEYS: Mes[] = [
+const MONTH_KEYS: Month[] = [
   'jan',
   'fev',
   'mar',
@@ -33,8 +33,8 @@ const MES_KEYS: Mes[] = [
   'dez',
 ]
 
-export function monthKey(d: Date): Mes {
-  return MES_KEYS[d.getMonth()]
+export function monthKey(d: Date): Month {
+  return MONTH_KEYS[d.getMonth()]
 }
 
 export function toISO(d: Date): string {
@@ -80,18 +80,18 @@ export function uppercase(text: string): string {
   return text.trim().toUpperCase()
 }
 
-function semAcento(text: string): string {
+function stripAccents(text: string): string {
   return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
-const STATUS_CANONICO = new Map(
-  STATUS_SISTEMA.map(status => [semAcento(status).toLowerCase(), status]),
+const CANONICAL_STATUS = new Map(
+  SYSTEM_STATUSES.map(status => [stripAccents(status).toLowerCase(), status]),
 )
 
 export function statusRaw(status: string): string {
   const s = String(status).trim()
   if (!s) return s
-  return STATUS_CANONICO.get(semAcento(s).toLowerCase()) ?? s
+  return CANONICAL_STATUS.get(stripAccents(s).toLowerCase()) ?? s
 }
 
 /**
@@ -101,10 +101,10 @@ export function statusRaw(status: string): string {
 export function referenceDate(
   status: string,
   dates: {
-    orcamento: Date | null
-    pedido: Date | null
-    faturamento: Date | null
-    emissaoFiscal: Date | null
+    quote: Date | null
+    order: Date | null
+    billing: Date | null
+    fiscalIssue: Date | null
     base: Date | null
   },
 ): Date | null {
@@ -112,31 +112,26 @@ export function referenceDate(
   let candidates: (Date | null)[]
   switch (s) {
     case 'Orçamento':
-      candidates = [dates.orcamento, dates.base]
+      candidates = [dates.quote, dates.base]
       break
     case 'Pedido':
     case 'Pedido Aprovado Sem Faturamento':
-      candidates = [dates.pedido, dates.orcamento, dates.base]
+      candidates = [dates.order, dates.quote, dates.base]
       break
     case 'Pedido Faturado':
-      candidates = [
-        dates.faturamento,
-        dates.emissaoFiscal,
-        dates.pedido,
-        dates.base,
-      ]
+      candidates = [dates.billing, dates.fiscalIssue, dates.order, dates.base]
       break
     case 'Pedido Cancelado':
     case 'Pedido Nao Faturado':
-      candidates = [dates.base, dates.orcamento]
+      candidates = [dates.base, dates.quote]
       break
     default:
-      candidates = [dates.orcamento, dates.base]
+      candidates = [dates.quote, dates.base]
   }
   return candidates.find(d => d !== null) ?? null
 }
 
-const ESTADO_REGIAO: Record<string, string> = {
+const STATE_REGION: Record<string, string> = {
   AC: 'Norte',
   AP: 'Norte',
   AM: 'Norte',
@@ -167,7 +162,7 @@ const ESTADO_REGIAO: Record<string, string> = {
   Exterior: 'Exterior',
 }
 
-const NORMALIZED_REGIAO: Record<string, string> = {
+const NORMALIZED_REGION: Record<string, string> = {
   sul: 'Sul',
   sudeste: 'Sudeste',
   nordeste: 'Nordeste',
@@ -176,15 +171,15 @@ const NORMALIZED_REGIAO: Record<string, string> = {
   exterior: 'Exterior',
 }
 
-export function canonicalRegion(estado: string, regiao: string): string {
-  const r = String(regiao).trim().toLowerCase().replace(/\s+/g, ' ')
-  if (r && NORMALIZED_REGIAO[r]) return NORMALIZED_REGIAO[r]
-  const uf = estado.trim().toUpperCase().replace(/\s+/g, '')
-  if (ESTADO_REGIAO[uf]) return ESTADO_REGIAO[uf]
-  return String(regiao).trim()
+export function canonicalRegion(state: string, region: string): string {
+  const r = String(region).trim().toLowerCase().replace(/\s+/g, ' ')
+  if (r && NORMALIZED_REGION[r]) return NORMALIZED_REGION[r]
+  const uf = state.trim().toUpperCase().replace(/\s+/g, '')
+  if (STATE_REGION[uf]) return STATE_REGION[uf]
+  return String(region).trim()
 }
 
-export function canonicalEstado(estado: string): string {
-  const e = String(estado).trim().toUpperCase().replace(/\s+/g, '')
+export function canonicalState(state: string): string {
+  const e = String(state).trim().toUpperCase().replace(/\s+/g, '')
   return e === '' ? '' : e
 }

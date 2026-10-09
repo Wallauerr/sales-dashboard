@@ -13,41 +13,41 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MES_LABEL } from '@/lib/labels'
+import { MONTH_LABEL } from '@/lib/labels'
 import { cn } from '@/lib/utils'
-import type { Mes } from '../../../shared/types'
-import { MESES } from '../../../shared/types'
+import type { Month } from '../../../shared/types'
+import { MONTHS } from '../../../shared/types'
 import { ThemeToggle } from './theme-toggle'
 
 export function DashboardHeader({
-  ano,
-  onAno,
-  meses,
-  onMes,
-  onClearMeses,
+  year,
+  onYear,
+  months,
+  onMonth,
+  onClearMonths,
   view,
   importing,
   onImport,
-  onOpenMetas,
-  anos,
+  onOpenMeta,
+  years,
 }: {
-  ano: number
-  onAno: (v: number) => void
-  meses: Mes[]
-  onMes: (m: Mes) => void
-  onClearMeses: () => void
-  view: 'dashboard' | 'historico'
+  year: number
+  onYear: (v: number) => void
+  months: Month[]
+  onMonth: (m: Month) => void
+  onClearMonths: () => void
+  view: 'dashboard' | 'history'
   importing: boolean
   onImport: () => void
-  onOpenMetas: () => void
-  anos: number[]
+  onOpenMeta: () => void
+  years: number[]
 }) {
-  const selTxt =
-    meses.length === 0
+  const selectedText =
+    months.length === 0
       ? 'Todos os meses'
-      : meses.length === 1
-        ? MES_LABEL[meses[0]]
-        : `${meses.length} meses`
+      : months.length === 1
+        ? MONTH_LABEL[months[0]]
+        : `${months.length} meses`
   return (
     <header className="flex flex-wrap items-center justify-between gap-4">
       <div>
@@ -63,18 +63,18 @@ export function DashboardHeader({
       </div>
       <div className="no-print flex flex-wrap items-center gap-2">
         <div className="flex rounded-lg border bg-muted p-0.5">
-          {anos.map(a => (
+          {years.map(y => (
             <button
-              key={a}
+              key={y}
               type="button"
-              onClick={() => onAno(a)}
+              onClick={() => onYear(y)}
               className={cn(
                 'rounded-md cursor-pointer px-3 py-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                a === ano
+                y === year
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground',
               )}>
-              {a}
+              {y}
             </button>
           ))}
         </div>
@@ -83,31 +83,31 @@ export function DashboardHeader({
             <Button
               variant="outline"
               className="h-9 w-36 justify-between gap-2 px-3 text-sm font-normal">
-              {selTxt}
+              {selectedText}
               <ChevronDownIcon className="size-4 opacity-50" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
             <DropdownMenuItem
-              onSelect={onClearMeses}
+              onSelect={onClearMonths}
               className="justify-between">
               Todos os meses
-              {meses.length === 0 ? (
+              {months.length === 0 ? (
                 <span className="size-4 text-primary">
                   <CheckIcon className="size-4" />
                 </span>
               ) : null}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            {MESES.map(m => (
+            {MONTHS.map(m => (
               <DropdownMenuCheckboxItem
                 key={m}
-                checked={meses.includes(m)}
+                checked={months.includes(m)}
                 onSelect={e => {
                   e.preventDefault()
-                  onMes(m)
+                  onMonth(m)
                 }}>
-                {MES_LABEL[m]}
+                {MONTH_LABEL[m]}
               </DropdownMenuCheckboxItem>
             ))}
           </DropdownMenuContent>
@@ -120,7 +120,7 @@ export function DashboardHeader({
           variant="outline"
           size="icon"
           aria-label="Abrir configurações"
-          onClick={onOpenMetas}>
+          onClick={onOpenMeta}>
           <SettingsIcon className="size-4" />
         </Button>
         <ThemeToggle />

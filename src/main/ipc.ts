@@ -1,7 +1,7 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron'
 import { z } from 'zod'
-import { metasSetInputSchema, vendedorSchema } from '../shared/schemas.ts'
-import type { SnapshotFilter } from '../shared/types.ts'
+import { goalSetInputSchema, sellerNameSchema } from '../shared/schemas.ts'
+import type { SnapshotScope } from '../shared/types.ts'
 import {
   AUTOSTART_SUPPORTED,
   isAutoStartEnabled,
@@ -9,8 +9,8 @@ import {
 } from './autostart.ts'
 import type { SalesDatabase } from './db/database.ts'
 import { importWorkbook } from './ingest/index.ts'
-import { getMetaConfig, getSnapshot, setMetaConfig } from './kpis/index.ts'
-import { lerFotoEscolhida } from './photos/pick.ts'
+import { getGoalConfig, getSnapshot, setGoalConfig } from './kpis/index.ts'
+import { readChosenPhoto } from './photos/pick.ts'
 
 export function registerIpc(db: SalesDatabase): void {
   ipcMain.handle('ingest:import', async () => {
@@ -23,41 +23,38 @@ export function registerIpc(db: SalesDatabase): void {
     return db.listImports()
   })
 
-  ipcMain.handle('ingest:codigo-history', (_event, codigo: string) => {
-    return db.getCodigoHistory(String(codigo ?? '').trim())
+  ipcMain.handle('ingest:code-history', (_event, code: string) => {
+    return db.getCodeHistory(String(code ?? '').trim())
   })
 
   ipcMain.handle(
     'kpis:get',
-    (_event, ano: number, filtro: SnapshotFilter = {}) => {
-      return getSnapshot(db, ano, filtro)
+    (_event, year: number, scope: SnapshotScope = {}) => {
+      return getSnapshot(db, year, scope)
     },
   )
 
-  ipcMain.handle('fotos:list', () => db.listVendedorFotos())
+  ipcMain.handle('photos:list', () => db.listSellerPhotos())
 
-  ipcMain.handle('vendedores:list', () => db.listVendedores())
+  ipcMain.handle('sellers:list', () => db.listSellers())
 
-  ipcMain.handle('vendedores:desativados', () => db.listVendedoresDesativados())
+  ipcMain.handle('sellers:disabled', () => db.listDisabledSellers())
 
   ipcMain.handle(
-    'vendedor:set-desativado',
-    (_event, vendedor: unknown, desativado: unknown) => {
-      db.setVendedorDesativado(
-        vendedorSchema.parse(vendedor),
-        Boolean(desativado),
-      )
+    'seller:set-disabled',
+    (_event, seller: unknown, disabled: unknown) => {
+      db.setSellerDisabled(sellerNameSchema.parse(seller), Boolean(disabled))
     },
   )
 
-  ipcMain.handle('anos:list', () => db.listAnos())
+  ipcMain.handle('years:list', () => db.listYears())
 
-  ipcMain.handle('foto:escolher', async (_event, vendedor: unknown) => {
-    const nome = vendedorSchema.parse(vendedor)
+  ipcMain.handle('photo:pick', async (_event, seller: unknown) => {
+    const name = sellerNameSchema.parse(seller)
     const owner = BrowserWindow.getFocusedWindow()
     const { canceled, filePaths } = owner
       ? await dialog.showOpenDialog(owner, {
-          title: `Foto de ${nome}`,
+          title: `Foto de ${name}`,
           properties: ['openFile'],
           filters: [
             {
@@ -66,27 +63,27 @@ export function registerIpc(db: SalesDatabase): void {
             },
           ],
         })
-      : await showImageDialog(nome)
+      : await showImageDialog(name)
     if (canceled || filePaths.length === 0) return null
 
-    const foto = await lerFotoEscolhida(filePaths[0])
-    db.setVendedorFoto(nome, foto.mime, foto.img)
-    return { vendedor: nome }
+    const photo = await readChosenPhoto(filePaths[0])
+    db.setSellerPhoto(name, photo.mime, photo.img)
+    return { seller: name }
   })
 
-  ipcMain.handle('foto:remover', (_event, vendedor: unknown) => {
-    const nome = vendedorSchema.parse(vendedor)
-    db.removeVendedorFoto(nome)
-    return { vendedor: nome }
+  ipcMain.handle('photo:remove', (_event, seller: unknown) => {
+    const name = sellerNameSchema.parse(seller)
+    db.removeSellerPhoto(name)
+    return { seller: name }
   })
 
-  ipcMain.handle('metas:get', (_event, ano: number) => {
-    return getMetaConfig(db, Number(ano))
+  ipcMain.handle('goals:get', (_event, year: number) => {
+    return getGoalConfig(db, Number(year))
   })
 
-  ipcMain.handle('metas:set', (_event, ano: number, input: unknown) => {
-    setMetaConfig(db, Number(ano), metasSetInputSchema.parse(input))
-    return getMetaConfig(db, Number(ano))
+  ipcMain.handle('goals:set', (_event, year: number, input: unknown) => {
+    setGoalConfig(db, Number(year), goalSetInputSchema.parse(input))
+    return getGoalConfig(db, Number(year))
   })
 
   ipcMain.handle('app:autostart-get', () => {
@@ -106,10 +103,10 @@ export function registerIpc(db: SalesDatabase): void {
 }
 
 function showImageDialog(
-  nome: string,
+  seller: string,
 ): Promise<{ canceled: boolean; filePaths: string[] }> {
   return dialog.showOpenDialog({
-    title: `Foto de ${nome}`,
+    title: `Foto de ${seller}`,
     properties: ['openFile'],
     filters: [
       { name: 'Imagens', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] },
