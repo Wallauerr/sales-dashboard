@@ -56,7 +56,8 @@
 19. Fundo no gráfico de acumulado anual × meta (8).
 20. Releases versionadas no GitHub / auto-update (13).
 21. Cards responsivos na vertical: quando o usuário redimensiona a altura de um card (horizontal já acompanha via ResponsiveContainer), o conteúdo interno tem altura fixa (ex.: gráficos `h-[150px]` em `horizontal-bars.tsx`/`region-donut.tsx`, listas) e sobra vão embaixo. Fazer gráficos/listas acompanharem a altura do card (ex.: `height: 100%` + medir a área disponível, `KpiCard`/ticket idem). A persistência de layout ao arrastar/redimensionar já existe (`onLayoutChange` → `saveDashboardLayout` em `dashboard-grid.tsx`).
+22. Hint dinâmico no card **Meta anual** (`src/renderer/src/components/kpi/build-kpis.ts`): o hint é fixo `base {ano-1} × {fator}%` e assume meta sempre automática — quando o comercial setar a meta manualmente na Configurações (valor fixo agora ou via % no item 18), fica errado. Deve variar pela origem real: automática (`base {ano-1} × {fator}%`), manual em R$ (`base {ano-1} · meta manual R$ X`) e manual em % (item 18). Para diferenciar, o snapshot já tem `metaPersonalizada`/`metaAnualAuto`/`anualCustom` (com os nomes em inglês após a Fase 4).
 
 ### Quick win
 
-22. Cursor pointer no modal de ajustes: botão X do `ui/dialog.tsx` (nunca foi coberto pelos commits de cursor). Ver também o overlay.
+23. Cursor pointer no modal de ajustes: botão X do `ui/dialog.tsx` (nunca foi coberto pelos commits de cursor). Ver também o overlay.
