@@ -41,5 +41,18 @@ describe('banco de dados', () => {
     expect(db.getFactor(2026)).toBe(1.15)
     db.setFactor(2026, 1.5)
     expect(db.getFactor(2026)).toBe(1.5)
+    db.clearFactor(2026)
+    expect(db.getFactor(2026)).toBe(1.15)
+  })
+
+  it('unidade da meta persiste e limpa', () => {
+    const db = SalesDatabase.open(new DatabaseSync(':memory:'))
+    expect(db.getGoalUnit(2026)).toBeNull()
+    db.setGoalUnit(2026, 'pct')
+    expect(db.getGoalUnit(2026)).toBe('pct')
+    db.setGoalUnit(2026, 'brl')
+    expect(db.getGoalUnit(2026)).toBe('brl')
+    db.setGoalUnit(2026, null)
+    expect(db.getGoalUnit(2026)).toBeNull()
   })
 })
