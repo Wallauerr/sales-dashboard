@@ -48,14 +48,14 @@ export function AccumulatedLine({
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
             <stop
-              offset="5%"
+              offset="0%"
               stopColor="var(--color-cumulative)"
-              stopOpacity={0.26}
+              stopOpacity={0.3}
             />
             <stop
-              offset="95%"
+              offset="100%"
               stopColor="var(--color-cumulative)"
-              stopOpacity={0}
+              stopOpacity={0.05}
             />
           </linearGradient>
         </defs>
