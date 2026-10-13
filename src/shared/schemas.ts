@@ -92,7 +92,18 @@ const moneyValue = z
     'Use até duas casas decimais.',
   )
 
+const percentValue = z
+  .number()
+  .nonnegative()
+  .max(1000)
+  .refine(
+    v => Math.abs(v - Math.round(v * 10) / 10) < 1e-6,
+    'Use até uma casa decimal.',
+  )
+
 export const goalSetInputSchema = z.object({
+  unit: z.enum(['pct', 'brl']),
+  percent: percentValue.nullable().default(null),
   annual: moneyValue.nullable().default(null),
   months: z.object(
     Object.fromEntries(MONTHS.map(month => [month, moneyValue.optional()])),

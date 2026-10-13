@@ -77,9 +77,13 @@ export interface MonthlyGoal {
   remainingInMonth: number
 }
 
+export type GoalUnit = 'pct' | 'brl'
+
 export interface GoalConfigView {
   year: number
+  unit: GoalUnit
   factor: number
+  percent: number | null
   baseYear: number
   annualGoal: number
   annualGoalAuto: number
@@ -119,6 +123,7 @@ export interface KpiSnapshot {
   annualGoal: number
   annualGoalBase: number
   annualGoalAuto: number
+  goalUnit: GoalUnit | null
   customGoal: boolean
   factor: number
   monthlyGoals: MonthlyGoal[]

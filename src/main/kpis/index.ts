@@ -3,6 +3,7 @@ import type {
   FunnelMonth,
   GoalConfigView,
   GoalSetInput,
+  GoalUnit,
   KpiSnapshot,
   Month,
   MonthlyGoal,
@@ -321,6 +322,7 @@ export function getSnapshot(
 
   const annualCustom = db.getAnnualGoal(year)
   const monthsCustom = db.getMonthlyGoalOverrides(year)
+  const goalUnit = goalUnitOf(db, year, annualCustom, monthsCustom)
   const shareOfBase = (month: Month): number =>
     totalBase ? billingBase[month] / totalBase : 1 / MONTHS.length
 
@@ -341,8 +343,7 @@ export function getSnapshot(
   })
 
   const annualGoal = monthlyGoals.reduce((acc, month) => acc + month.goal, 0)
-  const customGoal =
-    annualCustom !== null || Object.keys(monthsCustom).length > 0
+  const customGoal = goalUnit !== null
 
   const cumulativeByMonth = {} as Record<Month, number>
   const remainingYearByMonth = {} as Record<Month, number>
@@ -374,12 +375,26 @@ export function getSnapshot(
     annualGoal: Number(annualGoal.toFixed(2)),
     annualGoalBase: Number(annualGoalBase.toFixed(2)),
     annualGoalAuto: Number(annualGoalAuto.toFixed(2)),
+    goalUnit,
     customGoal,
     factor,
     monthlyGoals,
     cumulativeByMonth,
     remainingYearByMonth,
   }
+}
+
+function goalUnitOf(
+  db: SalesDatabase,
+  year: number,
+  annualCustom: number | null,
+  monthsCustom: Partial<Record<Month, number>>,
+): GoalUnit | null {
+  const stored = db.getGoalUnit(year)
+  if (stored) return stored
+  if (annualCustom !== null || Object.keys(monthsCustom).length > 0)
+    return 'brl'
+  return null
 }
 
 export function getGoalConfig(db: SalesDatabase, year: number): GoalConfigView {
@@ -390,6 +405,17 @@ export function getGoalConfig(db: SalesDatabase, year: number): GoalConfigView {
   const annualGoalAuto = totalBase * factor
   const annualCustom = db.getAnnualGoal(year)
   const monthsCustom = db.getMonthlyGoalOverrides(year)
+  const storedUnit = db.getGoalUnit(year)
+  const unit: GoalUnit =
+    storedUnit ??
+    (annualCustom !== null || Object.keys(monthsCustom).length > 0
+      ? 'brl'
+      : 'pct')
+  const rawFactor = db.getMeta(`fator:${year}`)
+  const percent =
+    storedUnit === 'pct' && rawFactor !== null
+      ? Math.round(Number(rawFactor) * 1000) / 10
+      : null
   const shareOfBase = (month: Month): number =>
     totalBase ? billingBase[month] / totalBase : 1 / MONTHS.length
 
@@ -404,7 +430,9 @@ export function getGoalConfig(db: SalesDatabase, year: number): GoalConfigView {
 
   return {
     year,
+    unit,
     factor,
+    percent,
     baseYear: totalBase,
     annualGoal: Number(
       effectiveGoals.reduce((acc, goal) => acc + goal, 0).toFixed(2),
@@ -424,6 +452,22 @@ export function setGoalConfig(
   year: number,
   input: GoalSetInput,
 ): void {
+  if (input.unit === 'pct') {
+    if (input.percent === null) {
+      db.setGoalUnit(year, null)
+      db.clearFactor(year)
+    } else {
+      db.setGoalUnit(year, 'pct')
+      db.setFactor(year, input.percent / 100)
+    }
+    db.setAnnualGoal(year, null)
+    db.setMonthlyGoalOverrides(year, {})
+    return
+  }
+  const hasValues =
+    input.annual !== null || Object.keys(input.months).length > 0
+  db.setGoalUnit(year, hasValues ? 'brl' : null)
   db.setAnnualGoal(year, input.annual)
   db.setMonthlyGoalOverrides(year, input.months)
+  db.clearFactor(year)
 }
