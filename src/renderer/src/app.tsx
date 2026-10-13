@@ -538,10 +538,14 @@ export function App() {
                             label: `Base meta ${year}`,
                             value: brl0(snap.annualGoalBase),
                           },
-                          {
-                            label: 'Fator de meta',
-                            value: `×${(snap.factor * 100).toFixed(0)}%`,
-                          },
+                          ...(snap.goalUnit === 'brl'
+                            ? []
+                            : [
+                                {
+                                  label: 'Fator de meta',
+                                  value: `×${(snap.factor * 100).toFixed(0)}%`,
+                                },
+                              ]),
                         ].map(row => (
                           <div
                             key={row.label}
