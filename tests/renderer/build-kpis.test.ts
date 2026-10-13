@@ -12,7 +12,7 @@ import { writeWorkbook } from '../fixtures/workbook'
 
 async function goalSnapshot() {
   const db = SalesDatabase.open(new DatabaseSync(':memory:'))
-  return importWorkbook(
+  await importWorkbook(
     db,
     writeWorkbook([
       makeSaleRow({
@@ -56,7 +56,8 @@ async function goalSnapshot() {
         status: 'Orçamento',
       }),
     ]),
-  ).then(() => db)
+  )
+  return db
 }
 
 describe('periodLabel', () => {
