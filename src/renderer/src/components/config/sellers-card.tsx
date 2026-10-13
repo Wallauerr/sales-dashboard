@@ -68,7 +68,7 @@ export function SellersCard({
             : `${withPhoto} de ${active.length} com foto. Escolha um arquivo do computador; quem sai da empresa pode ser desativado e as vendas dele passam a contar como VENDAS.`}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-4">
         <section className="flex flex-col gap-0.5">
           <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Ativos · {active.length}
