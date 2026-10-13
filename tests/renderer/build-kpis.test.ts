@@ -102,6 +102,18 @@ describe('buildKpis', () => {
     expect(kpis[5].hint).toBe('vendas no ano')
   })
 
+  it('hint da meta anual acompanha a origem manual', async () => {
+    const db = await goalSnapshot()
+    db.setAnnualGoal(2026, 4600)
+    const snap = getSnapshot(db, 2026)
+    const { kpis } = buildKpis({ year: 2026, months: [], sellers: [], snap })
+
+    expect(snap.customGoal).toBe(true)
+    expect(kpis[1].title).toBe('Meta anual')
+    expect(kpis[1].value).toBe('R$\u00A04.600')
+    expect(kpis[1].hint).toBe('base 2025 · meta manual R$\u00A04.600')
+  })
+
   it('meses selecionados trocam meta e hint', async () => {
     const db = await goalSnapshot()
     const snap = getSnapshot(db, 2026)
