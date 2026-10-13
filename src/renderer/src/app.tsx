@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { ActiveFilters } from '@/components/active-filters'
 import { ChartCard } from '@/components/chart-card'
 import { AccumulatedLine } from '@/components/charts/accumulated-line'
@@ -62,7 +63,6 @@ export function App() {
   const [disabled, setDisabled] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
-  const [importMsg, setImportMsg] = useState<string | null>(null)
   const [reload, setReload] = useState(1)
 
   const api = window.api
@@ -117,6 +117,11 @@ export function App() {
       setSelectedSellers(prev => prev.filter(x => x !== seller))
     }
     setReload(k => k + 1)
+    toast.success(disable ? `${seller} desativado` : `${seller} reativado`, {
+      description: disable
+        ? 'As vendas desse vendedor passam a contar como VENDAS.'
+        : 'O vendedor volta a aparecer no filtro.',
+    })
   }
 
   const pickPhoto = async (seller: string): Promise<void> => {
@@ -124,6 +129,7 @@ export function App() {
     const r = await api.pickPhoto(seller)
     if (!r) return
     setPhotos(f => new Set(f).add(r.seller))
+    toast.success(`Foto de ${seller} atualizada`)
   }
 
   const removePhoto = async (seller: string): Promise<void> => {
@@ -134,6 +140,7 @@ export function App() {
       next.delete(seller)
       return next
     })
+    toast.success(`Foto de ${seller} removida`)
   }
 
   const toggleMonth = (m: Month): void => {
@@ -158,17 +165,26 @@ export function App() {
   const handleImport = async (): Promise<void> => {
     if (!api) return
     setImporting(true)
+    const id = toast.loading('Importando dados do SIGE…')
     try {
       const r = await api.importWorkbook()
       if (r) {
-        setImportMsg(
-          `${fileName(r.filePath)} — ${int(r.inserted)} novos, ${int(r.updated)} atualizados` +
-            (r.discarded ? `, ${int(r.discarded)} descartados` : ''),
-        )
+        const parts = `${int(r.inserted)} novos, ${int(r.updated)} atualizados`
+        toast.success('Dados importados', {
+          id,
+          description: `${fileName(r.filePath)} — ${parts}${
+            r.discarded ? `, ${int(r.discarded)} descartados` : ''
+          }`,
+        })
         setReload(k => k + 1)
+      } else {
+        toast.dismiss(id)
       }
     } catch (e) {
-      setImportMsg(e instanceof Error ? `Erro: ${e.message}` : String(e))
+      toast.error('Falha ao importar os dados do SIGE', {
+        id,
+        description: e instanceof Error ? e.message : String(e),
+      })
     } finally {
       setImporting(false)
     }
@@ -279,7 +295,12 @@ export function App() {
                         type="button"
                         variant="outline"
                         className="w-full"
-                        onClick={() => setLayoutResetKey(k => k + 1)}>
+                        onClick={() => {
+                          setLayoutResetKey(k => k + 1)
+                          toast.success('Layout restaurado', {
+                            description: 'Os cartões voltaram ao padrão.',
+                          })
+                        }}>
                         Restaurar padrão
                       </Button>
                     </CardContent>
@@ -289,11 +310,6 @@ export function App() {
             </DialogContent>
           </Dialog>
 
-          {importMsg ? (
-            <p className="text-xs text-muted-foreground no-print">
-              {importMsg}
-            </p>
-          ) : null}
           {error ? (
             <p className="text-xs text-destructive no-print">Erro: {error}</p>
           ) : null}

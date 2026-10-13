@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -12,8 +13,6 @@ import type { AutoStartView } from '../../../../shared/types'
 export function AutoStartCard() {
   const [view, setView] = useState<AutoStartView | null>(null)
   const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState<string | null>(null)
-  const [msg, setMsg] = useState<string | null>(null)
 
   useEffect(() => {
     if (!window.api) return
@@ -24,7 +23,10 @@ export function AutoStartCard() {
         if (!cancelled) setView(v)
       })
       .catch(e => {
-        if (!cancelled) setErr(e instanceof Error ? e.message : String(e))
+        if (!cancelled)
+          toast.error('Não foi possível ler a configuração de autostart', {
+            description: e instanceof Error ? e.message : String(e),
+          })
       })
     return () => {
       cancelled = true
@@ -36,18 +38,18 @@ export function AutoStartCard() {
   const toggle = async (): Promise<void> => {
     if (!window.api) return
     setBusy(true)
-    setErr(null)
-    setMsg(null)
     try {
       const v = await window.api.setAutoStart(!view?.enabled)
       setView(v)
-      setMsg(
+      toast.success(
         v.enabled
-          ? 'O dashboard vai abrir junto com o Windows.'
-          : 'O dashboard não vai mais abrir junto com o Windows.',
+          ? 'Vai abrir junto com o Windows'
+          : 'Não abre mais junto com o Windows',
       )
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e))
+      toast.error('Não foi possível alterar o autostart', {
+        description: e instanceof Error ? e.message : String(e),
+      })
     } finally {
       setBusy(false)
     }
@@ -61,7 +63,7 @@ export function AutoStartCard() {
           Deixa o dashboard aberto automaticamente quando a TV é ligada.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col items-start gap-2">
+      <CardContent>
         <Button
           type="button"
           className="w-full"
@@ -70,13 +72,6 @@ export function AutoStartCard() {
           onClick={() => void toggle()}>
           {busy ? 'Salvando…' : view?.enabled ? 'Desativar' : 'Ativar'}
         </Button>
-        {err ? <p className="text-xs text-destructive">Erro: {err}</p> : null}
-        {msg && !err ? <p className="text-xs text-primary">{msg}</p> : null}
-        {err || msg ? (
-          <p className="text-xs text-muted-foreground">
-            O autostart é registrado pelo Windows na pasta “Inicializar”.
-          </p>
-        ) : null}
       </CardContent>
     </Card>
   )

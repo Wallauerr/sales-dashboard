@@ -1,5 +1,6 @@
 import { RotateCcwIcon, SaveIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -9,6 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import {
   brl,
   brl0,
@@ -70,7 +72,6 @@ export function ConfigTab({
   )
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-  const [savedMsg, setSavedMsg] = useState<string | null>(null)
 
   const syncDrafts = useCallback((v: GoalConfigView) => {
     setUnit(v.unit)
@@ -90,7 +91,6 @@ export function ConfigTab({
 
   useEffect(() => {
     setErr(null)
-    setSavedMsg(null)
     if (!window.api) return
     let cancelled = false
     void window.api
@@ -176,16 +176,18 @@ export function ConfigTab({
   const save = async (): Promise<void> => {
     if (!window.api || invalid) return
     setSaving(true)
-    setErr(null)
-    setSavedMsg(null)
     try {
       const v = await window.api.setGoalConfig(year, input)
       setView(v)
       syncDrafts(v)
-      setSavedMsg('Metas salvas. Já refletem no dashboard.')
+      toast.success('Metas salvas', {
+        description: 'As metas já refletem no dashboard.',
+      })
       onSaved()
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e))
+      toast.error('Não foi possível salvar as metas', {
+        description: e instanceof Error ? e.message : String(e),
+      })
     } finally {
       setSaving(false)
     }
@@ -194,8 +196,6 @@ export function ConfigTab({
   const restoreAll = async (): Promise<void> => {
     if (!window.api) return
     setSaving(true)
-    setErr(null)
-    setSavedMsg(null)
     try {
       const v = await window.api.setGoalConfig(year, {
         unit: 'pct',
@@ -205,10 +205,14 @@ export function ConfigTab({
       })
       setView(v)
       syncDrafts(v)
-      setSavedMsg('Metas restauradas para o cálculo automático.')
+      toast.success('Metas restauradas', {
+        description: 'Voltou para o cálculo automático.',
+      })
       onSaved()
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e))
+      toast.error('Não foi possível restaurar as metas', {
+        description: e instanceof Error ? e.message : String(e),
+      })
     } finally {
       setSaving(false)
     }
@@ -262,6 +266,9 @@ export function ConfigTab({
               </dd>
             </div>
           </dl>
+          {err ? (
+            <p className="mt-3 text-xs text-destructive">Erro: {err}</p>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -430,8 +437,6 @@ export function ConfigTab({
           {saving ? 'Salvando…' : 'Salvar metas'}
         </Button>
       </div>
-      {err ? <p className="text-xs text-destructive">Erro: {err}</p> : null}
-      {savedMsg ? <p className="text-xs text-primary">{savedMsg}</p> : null}
       {invalid ? (
         <p className="text-xs text-destructive">
           Há valores inválidos (use números maiores ou iguais a zero).
@@ -448,29 +453,26 @@ function UnitSwitch({
   value: GoalUnit
   onChange: (u: GoalUnit) => void
 }) {
-  const options: { value: GoalUnit; label: string }[] = [
-    { value: 'pct', label: '% da base' },
-    { value: 'brl', label: 'R$ fixo' },
-  ]
   return (
-    <fieldset className="flex gap-1 rounded-lg border p-0.5">
-      <legend className="sr-only">Unidade da meta</legend>
-      {options.map(o => (
-        <button
-          key={o.value}
-          type="button"
-          onClick={() => onChange(o.value)}
-          aria-pressed={value === o.value}
-          className={cn(
-            'rounded-md px-3 py-1 text-xs font-medium transition-colors',
-            value === o.value
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:bg-muted',
-          )}>
-          {o.label}
-        </button>
-      ))}
-    </fieldset>
+    <div className="flex items-center gap-2 text-xs">
+      <span
+        className={cn(
+          value === 'pct' ? 'font-semibold' : 'text-muted-foreground',
+        )}>
+        %
+      </span>
+      <Switch
+        checked={value === 'brl'}
+        onCheckedChange={checked => onChange(checked ? 'brl' : 'pct')}
+        aria-label="Meta em reais (R$)"
+      />
+      <span
+        className={cn(
+          value === 'brl' ? 'font-semibold' : 'text-muted-foreground',
+        )}>
+        R$
+      </span>
+    </div>
   )
 }
 
