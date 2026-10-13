@@ -380,6 +380,23 @@ export class SalesDatabase {
     this.setMeta(`fator:${year}`, String(factor))
   }
 
+  clearFactor(year: number): void {
+    this.clearMeta(`fator:${year}`)
+  }
+
+  getGoalUnit(year: number): 'pct' | 'brl' | null {
+    const raw = this.getMeta(`unidade_meta:${year}`)
+    return raw === 'pct' || raw === 'brl' ? raw : null
+  }
+
+  setGoalUnit(year: number, unit: 'pct' | 'brl' | null): void {
+    if (unit === null) {
+      this.clearMeta(`unidade_meta:${year}`)
+    } else {
+      this.setMeta(`unidade_meta:${year}`, unit)
+    }
+  }
+
   getMeta(key: string): string | null {
     const row = this.db
       .prepare('SELECT value FROM meta_config WHERE key = ?')
