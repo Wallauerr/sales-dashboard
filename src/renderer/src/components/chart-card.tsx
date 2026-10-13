@@ -19,11 +19,15 @@ export function ChartCard({
   ...cardProps
 }: ChartCardProps) {
   return (
-    <Card className={cn('gap-2 py-3', className)} {...cardProps}>
-      <CardHeader className={cn('px-4', headerClassName)}>
+    <Card className={cn('h-full gap-2 py-3', className)} {...cardProps}>
+      <CardHeader className={cn('shrink-0 px-4', headerClassName)}>
         <CardTitle className="text-sm leading-tight">{title}</CardTitle>
       </CardHeader>
-      <CardContent className={cn('px-4', contentClassName)}>
+      <CardContent
+        className={cn(
+          'flex min-h-0 flex-1 flex-col overflow-y-auto px-4',
+          contentClassName,
+        )}>
         {children}
       </CardContent>
     </Card>

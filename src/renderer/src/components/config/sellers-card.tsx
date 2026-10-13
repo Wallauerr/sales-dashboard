@@ -1,5 +1,6 @@
 import { PowerIcon, RotateCcwIcon, Trash2Icon } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -38,7 +39,6 @@ export function SellersCard({
   onToggle,
 }: Props) {
   const [busy, setBusy] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
 
   const withPhoto = active.filter(v => photos.has(v)).length
 
@@ -47,11 +47,12 @@ export function SellersCard({
     action: () => Promise<void>,
   ): Promise<void> => {
     setBusy(key)
-    setError(null)
     try {
       await action()
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      toast.error('Não foi possível concluir a ação', {
+        description: e instanceof Error ? e.message : String(e),
+      })
     } finally {
       setBusy(null)
     }
@@ -68,10 +69,6 @@ export function SellersCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {error ? (
-          <p className="mb-2 text-xs text-destructive">Erro: {error}</p>
-        ) : null}
-
         <section className="flex flex-col gap-0.5">
           <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Ativos · {active.length}

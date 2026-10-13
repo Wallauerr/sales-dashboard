@@ -84,12 +84,29 @@ export const codeHistorySchema = z.object({
 })
 export type CodeHistory = z.infer<typeof codeHistorySchema>
 
+const moneyValue = z
+  .number()
+  .nonnegative()
+  .refine(
+    v => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6,
+    'Use até duas casas decimais.',
+  )
+
+const percentValue = z
+  .number()
+  .nonnegative()
+  .max(1000)
+  .refine(
+    v => Math.abs(v - Math.round(v * 10) / 10) < 1e-6,
+    'Use até uma casa decimal.',
+  )
+
 export const goalSetInputSchema = z.object({
-  annual: z.number().nonnegative().nullable().default(null),
+  unit: z.enum(['pct', 'brl']),
+  percent: percentValue.nullable().default(null),
+  annual: moneyValue.nullable().default(null),
   months: z.object(
-    Object.fromEntries(
-      MONTHS.map(month => [month, z.number().nonnegative().optional()]),
-    ),
+    Object.fromEntries(MONTHS.map(month => [month, moneyValue.optional()])),
   ),
 })
 export type GoalSetInput = z.infer<typeof goalSetInputSchema>

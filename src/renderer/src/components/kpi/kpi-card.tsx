@@ -11,7 +11,7 @@ function KpiCardValue({ value, hint }: { value: string; hint?: string }) {
     const parent = el?.parentElement
     if (!el || !parent) return
 
-    const fit = () => {
+    const resize = () => {
       el.style.fontSize = ''
       const base = parseFloat(getComputedStyle(el).fontSize) || 16
       const natural = el.scrollWidth
@@ -21,8 +21,8 @@ function KpiCardValue({ value, hint }: { value: string; hint?: string }) {
       }
     }
 
-    fit()
-    const ro = new ResizeObserver(fit)
+    resize()
+    const ro = new ResizeObserver(resize)
     ro.observe(parent)
     return () => ro.disconnect()
   })
