@@ -146,9 +146,10 @@ export function buildKpis({
         : {
             title: 'Meta anual',
             value: brl0(snap.annualGoal),
-            hint: snap.customGoal
-              ? `base ${year - 1} · meta manual ${brl0(snap.annualGoal)}`
-              : `base ${year - 1} × ${(snap.factor * 100).toFixed(0)}%`,
+            hint:
+              snap.goalUnit === 'brl'
+                ? `base ${year - 1} · meta manual ${brl0(snap.annualGoal)}`
+                : `base ${year - 1} × ${(snap.factor * 100).toFixed(0)}%`,
           },
       {
         title: '% da meta',

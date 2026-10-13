@@ -15,11 +15,17 @@ import {
   brlDraftSchema,
   brlInputValue,
   maskBrlText,
+  maskPctText,
+  pct,
+  pctDraftSchema,
+  pctInputValue,
 } from '@/lib/format'
 import { MONTH_LABEL } from '@/lib/labels'
+import { cn } from '@/lib/utils'
 import type {
   GoalConfigView,
   GoalSetInput,
+  GoalUnit,
   Month,
 } from '../../../../shared/types'
 import { MONTHS } from '../../../../shared/types'
@@ -27,6 +33,25 @@ import { MONTHS } from '../../../../shared/types'
 function parseDraft(value: string): number | null {
   const parsed = brlDraftSchema.safeParse(value)
   return parsed.success ? parsed.data : NaN
+}
+
+function parsePctDraft(value: string): number | null {
+  const parsed = pctDraftSchema.safeParse(value)
+  return parsed.success ? parsed.data : NaN
+}
+
+interface GoalShape {
+  unit: GoalUnit
+  percent: number | null
+  annual: number | null
+  months: Partial<Record<Month, number>>
+}
+
+function shapesDiffer(a: GoalShape, b: GoalShape): boolean {
+  if (a.unit !== b.unit) return true
+  if (a.percent !== b.percent) return true
+  if (a.annual !== b.annual) return true
+  return overridesDiffer(a.months, b.months)
 }
 
 export function ConfigTab({
@@ -37,15 +62,19 @@ export function ConfigTab({
   onSaved: () => void
 }) {
   const [view, setView] = useState<GoalConfigView | null>(null)
+  const [unit, setUnit] = useState<GoalUnit>('pct')
+  const [percentDraft, setPercentDraft] = useState('')
   const [annualDraft, setAnnualDraft] = useState('')
   const [monthsDraft, setMonthsDraft] = useState<Record<Month, string>>(
     () => Object.fromEntries(MONTHS.map(m => [m, ''])) as Record<Month, string>,
   )
   const [saving, setSaving] = useState(false)
-  const [savedMsg, setSavedMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  const [savedMsg, setSavedMsg] = useState<string | null>(null)
 
   const syncDrafts = useCallback((v: GoalConfigView) => {
+    setUnit(v.unit)
+    setPercentDraft(v.percent === null ? '' : pctInputValue(v.percent))
     setAnnualDraft(v.annualCustom === null ? '' : brlInputValue(v.annualCustom))
     setMonthsDraft(
       Object.fromEntries(
@@ -80,15 +109,28 @@ export function ConfigTab({
   }, [year, syncDrafts])
 
   const invalid = useMemo(() => {
+    if (unit === 'pct') {
+      const p = parsePctDraft(percentDraft)
+      return typeof p === 'number' && Number.isNaN(p)
+    }
     const annual = parseDraft(annualDraft)
     if (annual !== null && Number.isNaN(annual)) return true
     return MONTHS.some(month => {
       const n = parseDraft(monthsDraft[month])
       return typeof n === 'number' && Number.isNaN(n)
     })
-  }, [annualDraft, monthsDraft])
+  }, [unit, percentDraft, annualDraft, monthsDraft])
 
-  const input: GoalSetInput = useMemo(() => {
+  const shape: GoalShape = useMemo(() => {
+    if (unit === 'pct') {
+      const p = parsePctDraft(percentDraft)
+      return {
+        unit: 'pct' as const,
+        percent: p === null || Number.isNaN(p) ? null : p,
+        annual: null,
+        months: {},
+      }
+    }
     const annual = parseDraft(annualDraft)
     const months = {} as Partial<Record<Month, number>>
     for (const month of MONTHS) {
@@ -96,18 +138,40 @@ export function ConfigTab({
       if (n !== null && !Number.isNaN(n)) months[month] = n
     }
     return {
+      unit: 'brl' as const,
+      percent: null,
       annual: annual === null || Number.isNaN(annual) ? null : annual,
       months,
     }
-  }, [annualDraft, monthsDraft])
+  }, [unit, percentDraft, annualDraft, monthsDraft])
 
-  const dirty = useMemo(() => {
-    if (!view) return false
-    return (
-      input.annual !== view.annualCustom ||
-      overridesDiffer(input.months, view.monthsCustom)
-    )
-  }, [input, view])
+  const viewShape = useMemo<GoalShape | null>(
+    () =>
+      view
+        ? {
+            unit: view.unit,
+            percent: view.percent,
+            annual: view.annualCustom,
+            months: view.monthsCustom,
+          }
+        : null,
+    [view],
+  )
+
+  const dirty = useMemo(
+    () => viewShape !== null && shapesDiffer(shape, viewShape),
+    [shape, viewShape],
+  )
+
+  const input: GoalSetInput = useMemo(
+    () => ({
+      unit: shape.unit,
+      percent: shape.percent,
+      annual: shape.annual,
+      months: shape.months,
+    }),
+    [shape],
+  )
 
   const save = async (): Promise<void> => {
     if (!window.api || invalid) return
@@ -118,7 +182,7 @@ export function ConfigTab({
       const v = await window.api.setGoalConfig(year, input)
       setView(v)
       syncDrafts(v)
-      setSavedMsg('Metas salvas — já refletem no dashboard.')
+      setSavedMsg('Metas salvas. Já refletem no dashboard.')
       onSaved()
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e))
@@ -134,6 +198,8 @@ export function ConfigTab({
     setSavedMsg(null)
     try {
       const v = await window.api.setGoalConfig(year, {
+        unit: 'pct',
+        percent: null,
         annual: null,
         months: {},
       })
@@ -152,16 +218,21 @@ export function ConfigTab({
     setMonthsDraft(prev => ({ ...prev, [month]: '' }))
   }
 
+  const effectivePercent = (() => {
+    const p = parsePctDraft(percentDraft)
+    return p !== null && !Number.isNaN(p) ? p : null
+  })()
+
   return (
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
           <CardTitle>Metas comerciais</CardTitle>
           <CardDescription>
-            Por padrão a meta é calculada automaticamente: faturamento de{' '}
-            {year - 1} × {view ? Math.round(view.factor * 100) : '—'}
-            %. Aqui você pode personalizar a meta anual e as metas de cada mês —
-            os campos vazios seguem o cálculo automático.
+            Escolha a unidade da meta de {year}: um percentual único sobre a
+            base de {year - 1} ou valores fixos em R$. Os campos vazios seguem o
+            cálculo automático — base de {year - 1} ×{' '}
+            {view ? Math.round(view.factor * 100) : '—'}%.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -191,105 +262,155 @@ export function ConfigTab({
               </dd>
             </div>
           </dl>
-          {err ? (
-            <p className="mt-3 text-xs text-destructive">Erro: {err}</p>
-          ) : null}
-          {savedMsg ? (
-            <p className="mt-3 text-xs text-primary">{savedMsg}</p>
-          ) : null}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
           <div>
-            <CardTitle>Meta anual {year}</CardTitle>
+            <CardTitle>Meta {year}</CardTitle>
             <CardDescription>
-              Deixe em branco para usar o cálculo automático.
+              {unit === 'pct'
+                ? `Um percentual define o ano e os 12 meses (base do mês × %).`
+                : 'Meta anual fixa em R$; meses vazios distribuem a meta.'}
             </CardDescription>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setAnnualDraft('')}
-            disabled={annualDraft === ''}>
-            <RotateCcwIcon className="size-4" />
-            Usar automática
-          </Button>
+          <UnitSwitch value={unit} onChange={setUnit} />
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <MoneyInput
-              value={annualDraft}
-              placeholder={view ? brl0(view.annualGoalAuto) : '0,00'}
-              onChange={setAnnualDraft}
-              className="w-56"
-            />
-            <span className="text-xs text-muted-foreground">
-              automática: {view ? brl(view.annualGoalAuto) : '—'} · em vigor:{' '}
-              {view ? brl(view.annualGoal) : '—'}
-            </span>
-          </div>
+          {unit === 'pct' ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative">
+                <Input
+                  inputMode="decimal"
+                  value={percentDraft}
+                  placeholder={
+                    view ? String(Math.round(view.factor * 100)) : '115'
+                  }
+                  onChange={e => setPercentDraft(maskPctText(e.target.value))}
+                  className="w-32 pr-8"
+                />
+                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">
+                  %
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPercentDraft('')}
+                disabled={percentDraft === ''}>
+                <RotateCcwIcon className="size-4" />
+                Usar automática
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                ={' '}
+                {effectivePercent !== null && view
+                  ? `${brl(view.baseYear * (effectivePercent / 100))} no ano`
+                  : 'auto × base'}
+              </span>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-3">
+              <MoneyInput
+                value={annualDraft}
+                placeholder={view ? brl0(view.annualGoalAuto) : '0,00'}
+                onChange={setAnnualDraft}
+                className="w-56"
+              />
+              <span className="text-xs text-muted-foreground">
+                automática: {view ? brl(view.annualGoalAuto) : '—'} · em vigor:{' '}
+                {view ? brl(view.annualGoal) : '—'}
+              </span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Metas por mês ({year})</CardTitle>
+          <CardTitle>
+            Metas por mês ({year})
+            {unit === 'pct' && view ? (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                {pct(view.factor)} da base de cada mês
+              </span>
+            ) : null}
+          </CardTitle>
           <CardDescription>
-            Mês vazio continua com a meta automática (ou a distribuição da meta
-            anual personalizada).
+            {unit === 'pct'
+              ? 'Quando a meta é em %, todos os meses seguem o mesmo percentual da base de cada mês.'
+              : 'Mês vazio continua com a meta automática (ou a distribuição da meta anual personalizada).'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {MONTHS.map(month => {
-              const overridden = view ? month in view.monthsCustom : false
-              const effective = view?.effectiveGoals[month]
-              return (
-                <div key={month} className="flex items-center gap-2">
-                  <span className="w-12 shrink-0 text-sm font-medium">
+          {unit === 'pct' ? (
+            <ul className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2 lg:grid-cols-3">
+              {MONTHS.map(month => (
+                <li key={month} className="flex items-center gap-3">
+                  <span className="w-12 shrink-0 font-medium">
                     {MONTH_LABEL[month]}
                   </span>
-                  <MoneyInput
-                    value={monthsDraft[month]}
-                    placeholder="automática"
-                    onChange={v =>
-                      setMonthsDraft(prev => ({
-                        ...prev,
-                        [month]: v,
-                      }))
-                    }
-                    className="h-9 w-32"
-                  />
-                  <span
-                    className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground"
-                    title={
-                      effective !== undefined ? brl(effective) : undefined
-                    }>
-                    {overridden ? (
-                      <span className="font-medium text-chart-3">definida</span>
-                    ) : (
-                      <>
-                        automática:{' '}
-                        {effective !== undefined ? brl(effective) : '—'}
-                      </>
-                    )}
+                  <span className="w-12 tabular-nums text-muted-foreground">
+                    {view ? pct(view.factor) : '—'}
                   </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 shrink-0"
-                    aria-label={`Voltar ${MONTH_LABEL[month]} à meta automática`}
-                    onClick={() => resetMonth(month)}
-                    disabled={monthsDraft[month] === ''}
-                    title="Voltar à meta automática">
-                    <RotateCcwIcon className="size-3.5" />
-                  </Button>
-                </div>
-              )
-            })}
-          </div>
+                  <span className="min-w-0 flex-1 truncate font-semibold tabular-nums">
+                    {view ? brl(view.effectiveGoals[month]) : '—'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {MONTHS.map(month => {
+                const overridden = view ? month in view.monthsCustom : false
+                const effective = view?.effectiveGoals[month]
+                return (
+                  <div key={month} className="flex items-center gap-2">
+                    <span className="w-12 shrink-0 text-sm font-medium">
+                      {MONTH_LABEL[month]}
+                    </span>
+                    <MoneyInput
+                      value={monthsDraft[month]}
+                      placeholder="automática"
+                      onChange={v =>
+                        setMonthsDraft(prev => ({
+                          ...prev,
+                          [month]: v,
+                        }))
+                      }
+                      className="h-9 w-32"
+                    />
+                    <span
+                      className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground"
+                      title={
+                        effective !== undefined ? brl(effective) : undefined
+                      }>
+                      {overridden ? (
+                        <span className="font-medium text-chart-3">
+                          definida
+                        </span>
+                      ) : (
+                        <>
+                          automática:{' '}
+                          {effective !== undefined ? brl(effective) : '—'}
+                        </>
+                      )}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 shrink-0"
+                      aria-label={`Voltar ${MONTH_LABEL[month]} à meta automática`}
+                      onClick={() => resetMonth(month)}
+                      disabled={monthsDraft[month] === ''}
+                      title="Voltar à meta automática">
+                      <RotateCcwIcon className="size-3.5" />
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -309,12 +430,47 @@ export function ConfigTab({
           {saving ? 'Salvando…' : 'Salvar metas'}
         </Button>
       </div>
+      {err ? <p className="text-xs text-destructive">Erro: {err}</p> : null}
+      {savedMsg ? <p className="text-xs text-primary">{savedMsg}</p> : null}
       {invalid ? (
         <p className="text-xs text-destructive">
           Há valores inválidos (use números maiores ou iguais a zero).
         </p>
       ) : null}
     </div>
+  )
+}
+
+function UnitSwitch({
+  value,
+  onChange,
+}: {
+  value: GoalUnit
+  onChange: (u: GoalUnit) => void
+}) {
+  const options: { value: GoalUnit; label: string }[] = [
+    { value: 'pct', label: '% da base' },
+    { value: 'brl', label: 'R$ fixo' },
+  ]
+  return (
+    <fieldset className="flex gap-1 rounded-lg border p-0.5">
+      <legend className="sr-only">Unidade da meta</legend>
+      {options.map(o => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          aria-pressed={value === o.value}
+          className={cn(
+            'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+            value === o.value
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:bg-muted',
+          )}>
+          {o.label}
+        </button>
+      ))}
+    </fieldset>
   )
 }
 

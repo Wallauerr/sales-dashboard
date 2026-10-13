@@ -81,3 +81,32 @@ export const brlDraftSchema = z
     if (t === '') return null
     return Number(t.replace(/\./g, '').replace(',', '.'))
   })
+
+const pctTextRe = /^\d{1,4}(?:,\d)?$/
+
+export function maskPctText(value: string): string {
+  const cleaned = value.replace(/[^\d,]/g, '').replace(/,{2,}/g, ',')
+  const [intRaw = '', decRaw = ''] = cleaned.split(',')
+  const intDigits = intRaw.replace(/\D/g, '').slice(0, 4)
+  const decPart = decRaw.replace(/\D/g, '').slice(0, 1)
+  const intPart = intDigits ? String(Number(intDigits)) : decPart ? '0' : ''
+  return cleaned.includes(',') ? `${intPart},${decPart}` : intPart
+}
+
+export function pctInputValue(v: number): string {
+  return String(Math.round(v * 10) / 10).replace('.', ',')
+}
+
+export const pctDraftSchema = z
+  .string()
+  .refine(s => {
+    const t = s.trim()
+    return (
+      t === '' || (pctTextRe.test(t) && Number(t.replace(',', '.')) <= 1000)
+    )
+  }, 'Percentual inválido.')
+  .transform(s => {
+    const t = s.trim()
+    if (t === '') return null
+    return Number(t.replace(',', '.'))
+  })
