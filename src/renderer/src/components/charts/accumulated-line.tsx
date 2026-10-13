@@ -1,7 +1,8 @@
+import { useId } from 'react'
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ReferenceLine,
   XAxis,
   YAxis,
@@ -32,6 +33,7 @@ export function AccumulatedLine({
   className,
 }: AccumulatedLineProps) {
   const data = labels.map((label, i) => ({ label, cumulative: values[i] ?? 0 }))
+  const gradId = `fill-${useId().replace(/:/g, '')}`
 
   const config = {
     cumulative: { label: 'Acumulado', color: 'var(--chart-2)' },
@@ -42,7 +44,21 @@ export function AccumulatedLine({
     <ChartContainer
       config={config}
       className={cn('aspect-auto min-h-[90px] w-full flex-1', className)}>
-      <LineChart data={data} margin={{ top: 2, right: 2, left: 2, bottom: 0 }}>
+      <AreaChart data={data} margin={{ top: 8, right: 2, left: 2, bottom: 0 }}>
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop
+              offset="5%"
+              stopColor="var(--color-cumulative)"
+              stopOpacity={0.26}
+            />
+            <stop
+              offset="95%"
+              stopColor="var(--color-cumulative)"
+              stopOpacity={0}
+            />
+          </linearGradient>
+        </defs>
         <CartesianGrid
           strokeDasharray="3 3"
           stroke="var(--border)"
@@ -69,13 +85,12 @@ export function AccumulatedLine({
             />
           }
         />
-        <Line
+        <Area
           type="monotone"
           dataKey="cumulative"
           stroke="var(--color-cumulative)"
           strokeWidth={2}
-          dot={{ r: 2 }}
-          activeDot={{ r: 4 }}
+          fill={`url(#${gradId})`}
         />
         {target !== undefined ? (
           <ReferenceLine
@@ -90,7 +105,7 @@ export function AccumulatedLine({
             }}
           />
         ) : null}
-      </LineChart>
+      </AreaChart>
     </ChartContainer>
   )
 }
