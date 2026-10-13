@@ -8,7 +8,10 @@ import {
   brlInputValue,
   int,
   maskBrlText,
+  maskPctText,
   pct,
+  pctDraftSchema,
+  pctInputValue,
 } from '../../src/renderer/src/lib/format'
 
 describe('formatação de moeda', () => {
@@ -71,5 +74,29 @@ describe('máscara de input BRL', () => {
     expect(brlDraftSchema.parse('12,30')).toBe(12.3)
     expect(brlDraftSchema.safeParse('12,3').success).toBe(false)
     expect(brlDraftSchema.safeParse('abc').success).toBe(false)
+  })
+
+  it('maskPctText mantém dígitos e até uma casa decimal', () => {
+    expect(maskPctText('115')).toBe('115')
+    expect(maskPctText('115,5')).toBe('115,5')
+    expect(maskPctText('115,55')).toBe('115,5')
+    expect(maskPctText('1.150')).toBe('1150')
+    expect(maskPctText('abc')).toBe('')
+    expect(maskPctText('0,')).toBe('0,')
+  })
+
+  it('pctInputValue transforma fator em percentual mascarado', () => {
+    expect(pctInputValue(115)).toBe('115')
+    expect(pctInputValue(115.5)).toBe('115,5')
+  })
+
+  it('pctDraftSchema valida vazio, valor válido e rejeita inválido', () => {
+    expect(pctDraftSchema.safeParse('').success).toBe(true)
+    expect(pctDraftSchema.parse('')).toBeNull()
+    expect(pctDraftSchema.parse('115')).toBe(115)
+    expect(pctDraftSchema.parse('115,5')).toBe(115.5)
+    expect(pctDraftSchema.safeParse('1001').success).toBe(false)
+    expect(pctDraftSchema.safeParse('115,55').success).toBe(false)
+    expect(pctDraftSchema.safeParse('abc').success).toBe(false)
   })
 })

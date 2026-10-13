@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { describe, expect, it } from 'vitest'
 import { SalesDatabase } from '../../src/main/db/database'
 import { importWorkbook } from '../../src/main/ingest/index'
-import { getSnapshot } from '../../src/main/kpis/index'
+import { getSnapshot, setGoalConfig } from '../../src/main/kpis/index'
 import {
   buildKpis,
   periodLabel,
@@ -10,7 +10,7 @@ import {
 import { makeSaleRow } from '../fixtures/factories'
 import { writeWorkbook } from '../fixtures/workbook'
 
-function goalSnapshot() {
+async function goalSnapshot() {
   const db = SalesDatabase.open(new DatabaseSync(':memory:'))
   return importWorkbook(
     db,
@@ -112,6 +112,23 @@ describe('buildKpis', () => {
     expect(kpis[1].title).toBe('Meta anual')
     expect(kpis[1].value).toBe('R$\u00A04.600')
     expect(kpis[1].hint).toBe('base 2025 · meta manual R$\u00A04.600')
+  })
+
+  it('hint da meta anual em % usa o fator', async () => {
+    const db = await goalSnapshot()
+    setGoalConfig(db, 2026, {
+      unit: 'pct',
+      percent: 120,
+      annual: null,
+      months: {},
+    })
+    const snap = getSnapshot(db, 2026)
+    const { kpis } = buildKpis({ year: 2026, months: [], sellers: [], snap })
+
+    expect(snap.goalUnit).toBe('pct')
+    expect(snap.customGoal).toBe(true)
+    expect(kpis[1].value).toBe('R$\u00A04.800')
+    expect(kpis[1].hint).toBe('base 2025 × 120%')
   })
 
   it('meses selecionados trocam meta e hint', async () => {
