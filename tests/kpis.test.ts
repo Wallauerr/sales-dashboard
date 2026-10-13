@@ -245,21 +245,75 @@ describe('snapshot de kpis e metas', () => {
     expect(cfg.effectiveGoals.fev).toBe(2300)
     expect(cfg.autoGoals.jan).toBe(1150)
 
-    setGoalConfig(db, 2026, { annual: null, months: { jan: 3000 } })
+    setGoalConfig(db, 2026, {
+      unit: 'brl',
+      percent: null,
+      annual: null,
+      months: { jan: 3000 },
+    })
     const sMes = getSnapshot(db, 2026)
     expect(sMes.annualGoal).toBe(4150)
     expect(sMes.monthlyGoals[0].goal).toBe(3000)
     expect(sMes.monthlyGoals[1].goal).toBe(1150)
+    expect(getGoalConfig(db, 2026).unit).toBe('brl')
+    expect(getGoalConfig(db, 2026).percent).toBeNull()
 
-    setGoalConfig(db, 2026, { annual: null, months: {} })
+    setGoalConfig(db, 2026, {
+      unit: 'brl',
+      percent: null,
+      annual: null,
+      months: {},
+    })
     const sRestaurada = getSnapshot(db, 2026)
     expect(sRestaurada).toMatchObject({
       annualGoal: 2300,
       customGoal: false,
     })
     expect(sRestaurada.monthlyGoals[0].goal).toBe(1150)
+    expect(sRestaurada.goalUnit).toBeNull()
     expect(db.getMeta('metas_mes:2026')).toBeNull()
     expect(db.getMeta('meta_anual:2026')).toBeNull()
+    expect(db.getGoalUnit(2026)).toBeNull()
+  })
+
+  it('meta em percentual único aplica a base de cada mês', () => {
+    setGoalConfig(db, 2026, {
+      unit: 'pct',
+      percent: 120,
+      annual: null,
+      months: {},
+    })
+    const sPct = getSnapshot(db, 2026)
+    expect(sPct.factor).toBe(1.2)
+    expect(sPct.goalUnit).toBe('pct')
+    expect(sPct.customGoal).toBe(true)
+    expect(sPct.annualGoal).toBe(2400)
+    expect(sPct.monthlyGoals[0].goal).toBe(1200)
+    expect(sPct.monthlyGoals[1].goal).toBe(1200)
+    expect(db.getMeta('meta_anual:2026')).toBeNull()
+    expect(db.getMeta('metas_mes:2026')).toBeNull()
+
+    const cfg = getGoalConfig(db, 2026)
+    expect(cfg).toMatchObject({
+      unit: 'pct',
+      percent: 120,
+      factor: 1.2,
+      annualCustom: null,
+      monthsCustom: {},
+      annualGoal: 2400,
+    })
+    expect(cfg.effectiveGoals.jan).toBe(1200)
+
+    setGoalConfig(db, 2026, {
+      unit: 'pct',
+      percent: null,
+      annual: null,
+      months: {},
+    })
+    const sAuto = getSnapshot(db, 2026)
+    expect(sAuto).toMatchObject({ annualGoal: 2300, customGoal: false })
+    expect(db.getFactor(2026)).toBe(1.15)
+    expect(db.getGoalUnit(2026)).toBeNull()
   })
 
   it('filtros de escopo por meses e vendedores', () => {
