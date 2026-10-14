@@ -124,7 +124,7 @@ export function HistoryTab({
               : months.map(m => `${MONTH_LABEL[m]}/${year}`).join(' · ')}
           </span>
         </CardHeader>
-        <CardContent>
+        <CardContent className="max-h-96 overflow-y-auto">
           {err ? (
             <p className="mb-3 text-xs text-destructive">Erro: {err}</p>
           ) : null}
