@@ -18,7 +18,7 @@ export function ActiveFilters({
 }) {
   if (months.length === 0 && sellers.length === 0) return null
   return (
-    <div className="no-print flex flex-wrap items-center gap-2">
+    <div className="no-print flex flex-wrap items-center gap-2 mb-2">
       <span className="text-xs font-medium text-muted-foreground">
         Filtrando por:
       </span>

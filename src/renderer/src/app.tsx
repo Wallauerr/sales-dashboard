@@ -230,8 +230,8 @@ export function App() {
       <TitleBar />
       <WindowResizeHandles />
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <main className="flex w-full flex-col gap-3 p-3 pt-2">
+      <div className="min-h-0 flex overflow-y-auto">
+        <main className="flex w-full flex-col gap-1 p-3 pt-2">
           <DashboardHeader
             year={year}
             onYear={setYear}
@@ -317,7 +317,7 @@ export function App() {
           <Tabs
             value={view}
             onValueChange={v => setView(v as 'dashboard' | 'history')}
-            className="flex min-h-0 flex-1 flex-col gap-3">
+            className="flex min-h-0 flex-1 flex-col gap-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <TabsList className="w-fit">
                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
