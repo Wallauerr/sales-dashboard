@@ -124,7 +124,10 @@ export function GroupedBars({
           axisLine={false}
           tickLine={false}
         />
-        <ChartTooltip content={<BarsTooltip valueFormat={valueFormat} />} />
+        <ChartTooltip
+          cursor={false}
+          content={<BarsTooltip valueFormat={valueFormat} />}
+        />
         <ChartLegend content={<ChartLegendContent />} />
         {bars.map(s => (
           <Bar
@@ -150,7 +153,12 @@ export function GroupedBars({
             stroke={`var(--color-${s.name})`}
             strokeWidth={2}
             dot={false}
-            activeDot={{ r: 3 }}
+            activeDot={{
+              r: 5,
+              fill: 'var(--card)',
+              stroke: `var(--color-${s.name})`,
+              strokeWidth: 2,
+            }}
           />
         ))}
       </ComposedChart>
