@@ -96,6 +96,7 @@ export function AccumulatedLine({
           tickLine={false}
         />
         <ChartTooltip
+          cursor={false}
           content={
             <ChartTooltipContent
               formatter={value => [valueFormat(Number(value))]}
@@ -108,6 +109,12 @@ export function AccumulatedLine({
           stroke="var(--color-cumulative)"
           strokeWidth={2}
           fill={`url(#${patternId})`}
+          activeDot={{
+            r: 5,
+            fill: 'var(--card)',
+            stroke: 'var(--color-cumulative)',
+            strokeWidth: 2,
+          }}
         />
         {target !== undefined ? (
           <ReferenceLine
