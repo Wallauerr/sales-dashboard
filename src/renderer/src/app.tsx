@@ -342,7 +342,7 @@ export function App() {
                   dados)
                 </p>
               ) : (
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col">
                   <ActiveFilters
                     months={months}
                     sellers={selectedSellers}
