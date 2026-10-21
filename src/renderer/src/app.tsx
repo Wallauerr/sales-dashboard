@@ -15,6 +15,7 @@ import {
 } from '@/components/charts/region-donut'
 import { AutoStartCard } from '@/components/config/auto-start-card'
 import { ConfigTab } from '@/components/config/config-tab'
+import { DataCard } from '@/components/config/data-card'
 import { SellersCard } from '@/components/config/sellers-card'
 import { DashboardGrid } from '@/components/dashboard-grid'
 import { DashboardHeader } from '@/components/dashboard-header'
@@ -273,7 +274,31 @@ export function App() {
                 <TabsContent
                   value="general"
                   className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
-                  <AutoStartCard />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <AutoStartCard />
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle>Layout da dashboard</CardTitle>
+                        <CardDescription>
+                          Volta a posição e o tamanho padrão dos cartões.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setLayoutResetKey(k => k + 1)
+                            toast.success('Layout restaurado', {
+                              description: 'Os cartões voltaram ao padrão.',
+                            })
+                          }}>
+                          Restaurar padrão
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
                   <SellersCard
                     active={sellers}
                     disabled={disabled}
@@ -282,29 +307,7 @@ export function App() {
                     onRemove={removePhoto}
                     onToggle={toggleSellerDisable}
                   />
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Layout da dashboard</CardTitle>
-                      <CardDescription>
-                        Arraste os cartões pelo título e redimensione pelo
-                        canto; o layout fica salvo neste computador.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => {
-                          setLayoutResetKey(k => k + 1)
-                          toast.success('Layout restaurado', {
-                            description: 'Os cartões voltaram ao padrão.',
-                          })
-                        }}>
-                        Restaurar padrão
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  <DataCard onChanged={() => setReload(k => k + 1)} />
                 </TabsContent>
               </Tabs>
             </DialogContent>

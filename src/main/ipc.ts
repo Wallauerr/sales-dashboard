@@ -1,4 +1,13 @@
-import { BrowserWindow, dialog, ipcMain } from 'electron'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  type OpenDialogOptions,
+  type SaveDialogOptions,
+} from 'electron'
 import { z } from 'zod'
 import { goalSetInputSchema, sellerNameSchema } from '../shared/schemas.ts'
 import type { SnapshotScope } from '../shared/types.ts'
@@ -8,6 +17,12 @@ import {
   setAutoStartEnabled,
 } from './autostart.ts'
 import type { SalesDatabase } from './db/database.ts'
+import {
+  dbStats,
+  exportBackup,
+  mergeBackup,
+  resetImportedData,
+} from './db/maintenance.ts'
 import { importWorkbook } from './ingest/index.ts'
 import { getGoalConfig, getSnapshot, setGoalConfig } from './kpis/index.ts'
 import { readChosenPhoto } from './photos/pick.ts'
@@ -100,6 +115,61 @@ export function registerIpc(db: SalesDatabase): void {
       enabled: on ? setAutoStartEnabled(true) : setAutoStartEnabled(false),
     }
   })
+
+  ipcMain.handle('db:stats', () => dbStats(db))
+
+  ipcMain.handle('db:reset', () => {
+    resetImportedData(db)
+    return dbStats(db)
+  })
+
+  ipcMain.handle('db:export', async () => {
+    const options: SaveDialogOptions = {
+      title: 'Exportar backup',
+      defaultPath: join(defaultBackupFolder(), backupFileName()),
+      filters: [{ name: 'Banco do Sulmag', extensions: ['db'] }],
+    }
+    const owner = BrowserWindow.getFocusedWindow()
+    const { canceled, filePath } = owner
+      ? await dialog.showSaveDialog(owner, options)
+      : await dialog.showSaveDialog(options)
+    if (canceled || !filePath) return null
+    exportBackup(db, filePath)
+    return { path: filePath }
+  })
+
+  ipcMain.handle('db:import', async () => {
+    const options: OpenDialogOptions = {
+      title: 'Importar backup',
+      properties: ['openFile'],
+      filters: [{ name: 'Banco do Sulmag', extensions: ['db'] }],
+    }
+    const owner = BrowserWindow.getFocusedWindow()
+    const { canceled, filePaths } = owner
+      ? await dialog.showOpenDialog(owner, options)
+      : await dialog.showOpenDialog(options)
+    if (canceled || filePaths.length === 0) return null
+    try {
+      return mergeBackup(db, filePaths[0])
+    } catch (err) {
+      throw err
+    }
+  })
+}
+
+function backupFileName(): string {
+  const now = new Date()
+  const date = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-')
+  return `sulmag-backup-${date}.db`
+}
+
+function defaultBackupFolder(): string {
+  const documents = app.getPath('documents')
+  return existsSync(documents) ? documents : app.getPath('home')
 }
 
 function showImageDialog(

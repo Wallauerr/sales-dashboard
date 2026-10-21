@@ -1,6 +1,9 @@
 import type {
   AutoStartView,
+  BackupExportResult,
+  BackupMergeResult,
   CodeHistory,
+  DbStats,
   GoalConfigView,
   GoalSetInput,
   ImportRecord,
@@ -34,6 +37,10 @@ interface Api {
   removePhoto: (seller: string) => Promise<PhotoResult>
   getAutoStart: () => Promise<AutoStartView>
   setAutoStart: (enabled: boolean) => Promise<AutoStartView>
+  getDbStats: () => Promise<DbStats>
+  resetData: () => Promise<DbStats>
+  exportBackup: () => Promise<BackupExportResult | null>
+  importBackup: () => Promise<BackupMergeResult | null>
   minimize: () => Promise<void>
   toggleMaximize: () => Promise<void>
   closeWindow: () => Promise<void>

@@ -57,16 +57,16 @@ export function AutoStartCard() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-3">
         <CardTitle>Abrir junto com o Windows</CardTitle>
         <CardDescription>
-          Deixa o dashboard aberto automaticamente quando a TV é ligada.
+          Inicia o dashboard automaticamente ao ligar o PC.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         <Button
           type="button"
-          className="w-full"
+          size="sm"
           variant={view?.enabled ? 'secondary' : 'outline'}
           disabled={busy || !view?.supported}
           onClick={() => void toggle()}>

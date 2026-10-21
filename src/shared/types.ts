@@ -57,6 +57,26 @@ export interface AutoStartView {
   enabled: boolean
 }
 
+export interface DbStats {
+  sales: number
+  imports: number
+  sellers: number
+  photos: number
+}
+
+export interface BackupMergeResult {
+  sales: number
+  goals: number
+  photos: number
+  disabledSellers: number
+  imports: number
+  historyItems: number
+}
+
+export interface BackupExportResult {
+  path: string
+}
+
 export interface FunnelMonth {
   month: Month
   quote: number

@@ -1,4 +1,9 @@
-import { PowerIcon, RotateCcwIcon, Trash2Icon } from 'lucide-react'
+import {
+  ChevronDownIcon,
+  PowerIcon,
+  RotateCcwIcon,
+  Trash2Icon,
+} from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -10,6 +15,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { photoUrl } from '@/lib/photo-url'
 
 interface Props {
@@ -137,33 +147,41 @@ export function SellersCard({
         </section>
 
         {disabled.length > 0 ? (
-          <section className="flex flex-col gap-0.5">
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Desativados · {disabled.length} — vendedores desativados contam
-              como VENDAS
-            </p>
-            <ul className="flex flex-col gap-0.5">
-              {disabled.map(v => (
-                <li
-                  key={v}
-                  className="flex items-center gap-2 rounded-md border border-dashed px-2 py-1.5 opacity-80">
-                  <span className="min-w-0 flex-1 truncate text-sm">{v}</span>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="shrink-0"
-                    disabled={busy === `toggle:${v}`}
-                    onClick={() =>
-                      void run(`toggle:${v}`, () => onToggle(v, false))
-                    }>
-                    <RotateCcwIcon />
-                    {busy === `toggle:${v}` ? 'Reativando…' : 'Reativar'}
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <Collapsible className="flex flex-col gap-1.5">
+            <CollapsibleTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-fit gap-1.5 px-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground">
+                Desativados · {disabled.length}
+                <ChevronDownIcon className="size-3.5 transition-transform [[data-state=open]>&]:rotate-180" />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
+              <ul className="flex flex-col gap-0.5">
+                {disabled.map(v => (
+                  <li
+                    key={v}
+                    className="flex items-center gap-2 rounded-md border border-dashed px-2 py-1.5 opacity-80">
+                    <span className="min-w-0 flex-1 truncate text-sm">{v}</span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0"
+                      disabled={busy === `toggle:${v}`}
+                      onClick={() =>
+                        void run(`toggle:${v}`, () => onToggle(v, false))
+                      }>
+                      <RotateCcwIcon />
+                      {busy === `toggle:${v}` ? 'Reativando…' : 'Reativar'}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </CollapsibleContent>
+          </Collapsible>
         ) : null}
       </CardContent>
     </Card>
