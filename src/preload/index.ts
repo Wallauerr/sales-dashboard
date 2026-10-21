@@ -1,7 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
   AutoStartView,
+  BackupExportResult,
+  BackupMergeResult,
   CodeHistory,
+  DbStats,
   GoalConfigView,
   GoalSetInput,
   ImportRecord,
@@ -51,6 +54,12 @@ const api = {
     ipcRenderer.invoke('app:autostart-get') as Promise<AutoStartView>,
   setAutoStart: (enabled: boolean) =>
     ipcRenderer.invoke('app:autostart-set', enabled) as Promise<AutoStartView>,
+  getDbStats: () => ipcRenderer.invoke('db:stats') as Promise<DbStats>,
+  resetData: () => ipcRenderer.invoke('db:reset') as Promise<DbStats>,
+  exportBackup: () =>
+    ipcRenderer.invoke('db:export') as Promise<BackupExportResult | null>,
+  importBackup: () =>
+    ipcRenderer.invoke('db:import') as Promise<BackupMergeResult | null>,
   minimize: () => ipcRenderer.invoke('win:minimize') as Promise<void>,
   toggleMaximize: () =>
     ipcRenderer.invoke('win:toggle-maximize') as Promise<void>,

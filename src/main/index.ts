@@ -122,9 +122,8 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   app.setName('Sulmag Dashboard')
-  db = SalesDatabase.open(
-    new DatabaseSync(join(app.getPath('userData'), 'metas.db')),
-  )
+  const dbPath = join(app.getPath('userData'), 'metas.db')
+  db = SalesDatabase.open(new DatabaseSync(dbPath), dbPath)
 
   registerIpc(db)
   registerPhotoProtocol(db)

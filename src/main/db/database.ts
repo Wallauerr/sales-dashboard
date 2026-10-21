@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS vendedor_desativado (
 );
 `
 
-const SCHEMA_VERSION = 9
+export const SCHEMA_VERSION = 9
 
 // v8 -> v9: vendedor pode ser desativado (some do ranking/filtro) sem apagar as
 // vendas, que continuam contando nas métricas globais.
@@ -100,9 +100,11 @@ function dropFotoOrigemColumn(db: DatabaseSync): void {
 
 export class SalesDatabase {
   private db: DatabaseSync
+  private filePath: string | null
 
   constructor(db: DatabaseSync) {
     this.db = db
+    this.filePath = null
     db.exec('PRAGMA journal_mode = WAL')
     const { user_version } = db.prepare('PRAGMA user_version').get() as {
       user_version: number
@@ -125,12 +127,18 @@ export class SalesDatabase {
     }
   }
 
-  static open(db: DatabaseSync): SalesDatabase {
-    return new SalesDatabase(db)
+  static open(db: DatabaseSync, filePath: string | null = null): SalesDatabase {
+    const instance = new SalesDatabase(db)
+    instance.filePath = filePath
+    return instance
   }
 
   get raw(): DatabaseSync {
     return this.db
+  }
+
+  get path(): string | null {
+    return this.filePath
   }
 
   insertSale(row: {
