@@ -15,6 +15,7 @@ import {
 } from '@/components/charts/region-donut'
 import { AutoStartCard } from '@/components/config/auto-start-card'
 import { ConfigTab } from '@/components/config/config-tab'
+import { DataCard } from '@/components/config/data-card'
 import { SellersCard } from '@/components/config/sellers-card'
 import { DashboardGrid } from '@/components/dashboard-grid'
 import { DashboardHeader } from '@/components/dashboard-header'
@@ -282,6 +283,7 @@ export function App() {
                     onRemove={removePhoto}
                     onToggle={toggleSellerDisable}
                   />
+                  <DataCard onChanged={() => setReload(k => k + 1)} />
                   <Card>
                     <CardHeader>
                       <CardTitle>Layout da dashboard</CardTitle>
