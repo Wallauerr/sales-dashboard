@@ -18,6 +18,14 @@
 - Ao tocar um arquivo, revise os comentários que já estavam nele e corte o que não passar no listão acima.
 - `// biome-ignore`, `/// <reference>` e afins são **diretivas**, não comentários: nunca remover.
 
+## Testes
+
+- **Bug corrigido = teste de regressão.** Antes de corrigir, escreva um teste que reproduza o bug (ele precisa falhar). Depois da correção ele fica no repo de vez; se o bug voltar, o CI acusa. Se não der pra testar (ex.: comportamento nativo do Electron), justifique no PR.
+- O nome do teste descreve a regra ("reset preserva metas"), não a função. Determinístico: seed fixa, sem rede e sem data/hora real.
+- Asserta comportamento (totais, contagens, saída), não implementação (SQL, estrutura interna), pra refactor legítimo não quebrar teste à toa.
+- Regra de negócio silenciosa (dinheiro, filtros, schema) também ganha teste mesmo sem bug — é o caso do `billing-rule.test.ts`.
+- **Testes automatizados já existem.** `pnpm test` roda **vitest** (`vitest run`), sem Playwright. Os testes ficam em `tests/` e `tests/renderer/`. O renderer puro (formatação BRL, `buildKpis`, rótulos, cores, foto) roda sem jsdom. Fixtures em `tests/fixtures/` usam Faker pt-BR com seed fixa. Regras críticas já cobertas: faturamento (`tests/billing-rule.test.ts`), ingestão/reconciliação/histórico (`tests/ingest.test.ts`), banco/metas/vendedores desativados/fator/unidade (`tests/database.test.ts`), KPIs/filtros/escopo (`tests/kpis.test.ts`), fotos (`tests/photos.test.ts`), maximização multi-monitor (`tests/window-maximize.test.ts`), manutenção/backup/reset/merge (`tests/maintenance.test.ts`) e lógica pura do renderer (`tests/renderer/*`). Sempre rode `pnpm test` junto com `pnpm check:ci` antes de entregar.
+
 ## TODOS (ordem de execução)
 
 ### Fase 1 — Números (confiança das métricas)
