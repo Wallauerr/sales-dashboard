@@ -75,3 +75,7 @@
 25. Tratativa de erros: cobrir o app de tratamento de erro com o mesmo rigor dos testes. Hoje vários fluxos engolem exceções em silêncio (ex.: `catch {}` em `loadPhotos`) ou só mostram `e.message` cru. Padronizar: erro de IPC/renderer vira toast (`sonner`) e/ou estado de erro visível; validar/reportar falhas de leitura de planilha, banco e fotos; nada de `catch {}` silencioso sem justificativa; mensagens pt-BR acionáveis.
 26. Ambientes `dev`, `prod` e `test` (base para e2e), usando Faker pt-BR para gerar os dados fictícios; avaliar usar o Faker também nos dados mock do app.
 27. Releases versionadas no GitHub / auto-update (13).
+
+### Backlog (ideias para avaliar)
+
+28. Filtro por **origem da venda** (e-commerce × venda direta): a coluna `Origem` já é lida no ingest (`origin: String(raw.Origem ?? '').trim()`, `src/main/ingest/index.ts:162`), gravada em `vendas.origem` e mapeada para `origin` no `Sale`/schema, mas **não é usada em nenhum KPI, filtro ou gráfico**. Plano provável: `origins: string[]` no `SnapshotScope` (vazio = sem filtro), `origem IN (...)` no `escopo` (`src/main/kpis/index.ts`), `listOrigins()` + IPC `origins:list`, e multi-seleção no header (mesmo padrão de meses/vendedores) com um atalho "E-commerce". Antes de implementar, conferir os valores reais distintos da coluna (variações de caixa/acento, ex.: `E-commerce`/`Ecommerce`/`Site`) e decidir se normaliza no ingest ou agrupa no filtro; avaliar também um card/gráfico de participação por origem.
