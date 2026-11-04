@@ -93,10 +93,22 @@ function readSigeReport(ws: XLSX.WorkSheet): RawBaseRow[] | null {
 }
 
 function readWorkbook(filePath: string): RawBaseRow[] {
-  const wb = XLSX.read(readFileSync(filePath), {
-    type: 'buffer',
-    cellDates: false,
-  })
+  let data: Buffer
+  try {
+    data = readFileSync(filePath)
+  } catch {
+    throw new Error(
+      'Não foi possível abrir a planilha. Verifique se o arquivo existe e se não está aberto no Excel.',
+    )
+  }
+  let wb: XLSX.WorkBook
+  try {
+    wb = XLSX.read(data, { type: 'buffer', cellDates: false })
+  } catch {
+    throw new Error(
+      'Não foi possível ler a planilha. O arquivo pode estar corrompido ou não ser um .xlsx.',
+    )
+  }
   if (wb.Sheets.Base) {
     const rows = readBaseSheet(wb.Sheets.Base, filePath, true)
     if (rows) return rows

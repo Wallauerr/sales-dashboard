@@ -20,6 +20,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import { errorMessage } from '@/lib/errors'
 import { photoUrl } from '@/lib/photo-url'
 
 interface Props {
@@ -61,7 +62,7 @@ export function SellersCard({
       await action()
     } catch (e) {
       toast.error('Não foi possível concluir a ação', {
-        description: e instanceof Error ? e.message : String(e),
+        description: errorMessage(e),
       })
     } finally {
       setBusy(null)

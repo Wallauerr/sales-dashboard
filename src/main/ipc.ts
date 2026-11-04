@@ -149,11 +149,7 @@ export function registerIpc(db: SalesDatabase): void {
       ? await dialog.showOpenDialog(owner, options)
       : await dialog.showOpenDialog(options)
     if (canceled || filePaths.length === 0) return null
-    try {
-      return mergeBackup(db, filePaths[0])
-    } catch (err) {
-      throw err
-    }
+    return mergeBackup(db, filePaths[0])
   })
 }
 

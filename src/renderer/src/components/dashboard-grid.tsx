@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 import {
@@ -19,6 +20,7 @@ import {
   DEFAULT_DASHBOARD_LAYOUT,
   loadDashboardLayout,
   saveDashboardLayout,
+  shouldResetLayout,
 } from '@/lib/dashboard-layout'
 
 const DashboardGridLayout =
@@ -59,6 +61,7 @@ export function DashboardGrid({
   resetKey?: number
 }) {
   const [stored, setStored] = useState<Layout>(loadDashboardLayout)
+  const handledResetKey = useRef(resetKey)
 
   const keys = useMemo(() => gridItemKeys(children), [children])
   const layout = useMemo(() => layoutFor(keys, stored), [keys, stored])
@@ -70,7 +73,8 @@ export function DashboardGrid({
   }, [])
 
   useEffect(() => {
-    if (resetKey === undefined) return
+    if (!shouldResetLayout(resetKey, handledResetKey.current)) return
+    handledResetKey.current = resetKey
     setStored(DEFAULT_DASHBOARD_LAYOUT)
     clearDashboardLayout()
   }, [resetKey])

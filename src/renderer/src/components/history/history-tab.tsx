@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { errorMessage } from '@/lib/errors'
 import { brl0, brlHumanDate, int } from '@/lib/format'
 import { fileName, MONTH_LABEL, statusLabel } from '@/lib/labels'
 import { cn } from '@/lib/utils'
@@ -80,7 +81,7 @@ export function HistoryTab({
     try {
       setImports(await window.api.getImports())
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e))
+      setErr(errorMessage(e))
     } finally {
       setLoadingImports(false)
     }
@@ -100,7 +101,7 @@ export function HistoryTab({
       setResult(h)
       setSearched(c)
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e))
+      setErr(errorMessage(e))
     } finally {
       setSearching(false)
     }

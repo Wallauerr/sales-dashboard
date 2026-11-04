@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import { errorMessage } from '@/lib/errors'
 import {
   brl,
   brl0,
@@ -101,7 +102,7 @@ export function ConfigTab({
         syncDrafts(v)
       })
       .catch(e => {
-        if (!cancelled) setErr(e instanceof Error ? e.message : String(e))
+        if (!cancelled) setErr(errorMessage(e))
       })
     return () => {
       cancelled = true
@@ -186,7 +187,7 @@ export function ConfigTab({
       onSaved()
     } catch (e) {
       toast.error('Não foi possível salvar as metas', {
-        description: e instanceof Error ? e.message : String(e),
+        description: errorMessage(e),
       })
     } finally {
       setSaving(false)
@@ -211,7 +212,7 @@ export function ConfigTab({
       onSaved()
     } catch (e) {
       toast.error('Não foi possível restaurar as metas', {
-        description: e instanceof Error ? e.message : String(e),
+        description: errorMessage(e),
       })
     } finally {
       setSaving(false)

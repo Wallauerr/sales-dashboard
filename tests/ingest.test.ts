@@ -1,3 +1,5 @@
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { describe, expect, it } from 'vitest'
 import { SalesDatabase } from '../src/main/db/database.ts'
@@ -266,5 +268,14 @@ describe('reconciliação diária por código e histórico', () => {
     expect(db.getCodeHistory('901').events).toHaveLength(1)
     expect(db.getCodeHistory('999').sale).toBeNull()
     expect(db.getCodeHistory('999').events).toHaveLength(0)
+  })
+
+  it('erro ao abrir planilha inexistente é acionável', async () => {
+    const db = await openDb()
+    const missing = join(tmpdir(), 'sulmag-planilha-inexistente', 'base.xlsx')
+
+    await expect(importWorkbook(db, missing)).rejects.toThrow(
+      'Não foi possível abrir a planilha',
+    )
   })
 })

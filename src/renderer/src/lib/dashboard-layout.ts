@@ -2,6 +2,8 @@ import type { Layout, LayoutItem } from 'react-grid-layout/legacy'
 
 const DASHBOARD_LAYOUT_KEY = 'sd:dashboard-layout:v4'
 
+// Layout é best-effort: storage indisponível (ex.: modo privado) não pode quebrar a dashboard.
+
 export const DEFAULT_DASHBOARD_LAYOUT: LayoutItem[] = [
   { i: 'billing-monthly', x: 0, y: 0, w: 4, h: 8, minW: 3, minH: 5 },
   { i: 'cumulative', x: 4, y: 0, w: 4, h: 8, minW: 3, minH: 5 },
@@ -12,6 +14,13 @@ export const DEFAULT_DASHBOARD_LAYOUT: LayoutItem[] = [
   { i: 'history', x: 0, y: 12, w: 4, h: 5, minW: 3, minH: 5 },
   { i: 'ticket', x: 8, y: 12, w: 4, h: 5, minW: 3, minH: 5 },
 ]
+
+export function shouldResetLayout(
+  resetKey: number | undefined,
+  handledResetKey: number | undefined,
+): boolean {
+  return resetKey !== undefined && resetKey !== handledResetKey
+}
 
 export function loadDashboardLayout(): Layout {
   try {

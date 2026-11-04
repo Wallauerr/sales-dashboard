@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { app, BrowserWindow, ipcMain, screen } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, screen } from 'electron'
 import { SalesDatabase } from './db/database'
 import { registerIpc } from './ipc'
 import {
@@ -123,7 +123,16 @@ function createWindow(): void {
 app.whenReady().then(() => {
   app.setName('Sulmag Dashboard')
   const dbPath = join(app.getPath('userData'), 'metas.db')
-  db = SalesDatabase.open(new DatabaseSync(dbPath), dbPath)
+  try {
+    db = SalesDatabase.open(new DatabaseSync(dbPath), dbPath)
+  } catch (e) {
+    dialog.showErrorBox(
+      'Falha ao abrir o banco de dados',
+      `Não foi possível abrir ${dbPath}. ${e instanceof Error ? e.message : String(e)}`,
+    )
+    app.quit()
+    return
+  }
 
   registerIpc(db)
   registerPhotoProtocol(db)
