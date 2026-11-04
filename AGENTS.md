@@ -71,7 +71,7 @@
 
 ### Fase 7 — Robustez e entrega
 
-24. Persistência do layout dos cards: trocar de aba (Histórico ↔ Dashboard) reseta posição/tamanho dos cards. O layout já é gravado por `onLayoutChange` → `saveDashboardLayout` (`dashboard-grid.tsx`, chave `sd:dashboard-layout:v3`), então investigar por que o remount/aba perde o estado (provável `ResponsiveGridLayout` recriado com os `layouts` default em vez de hidratar do storage) e garantir que sobreviva à troca de aba.
+24. ✅ Persistência do layout dos cards: trocar de aba (Histórico ↔ Dashboard) resetava posição/tamanho. Causa: `layoutResetKey` começa em `0` e o efeito do `DashboardGrid` (`dashboard-grid.tsx`) limpava o storage a cada montagem; como o Radix desmonta o `TabsContent` inativo, voltar para o Dashboard apagava o layout salvo. Agora `shouldResetLayout` (`src/renderer/src/lib/dashboard-layout.ts`) + `useRef` pulam a primeira execução, então o reset só acontece quando o botão "Restaurar padrão" muda a chave. Regressão em `tests/renderer/dashboard-layout.test.ts` (montagem não descarta, remontagem preserva, botão reseta).
 25. Tratativa de erros: cobrir o app de tratamento de erro com o mesmo rigor dos testes. Hoje vários fluxos engolem exceções em silêncio (ex.: `catch {}` em `loadPhotos`) ou só mostram `e.message` cru. Padronizar: erro de IPC/renderer vira toast (`sonner`) e/ou estado de erro visível; validar/reportar falhas de leitura de planilha, banco e fotos; nada de `catch {}` silencioso sem justificativa; mensagens pt-BR acionáveis.
 26. Ambientes `dev`, `prod` e `test` (base para e2e), usando Faker pt-BR para gerar os dados fictícios; avaliar usar o Faker também nos dados mock do app.
 27. Releases versionadas no GitHub / auto-update (13).
