@@ -13,6 +13,13 @@ export const DEFAULT_DASHBOARD_LAYOUT: LayoutItem[] = [
   { i: 'ticket', x: 8, y: 12, w: 4, h: 5, minW: 3, minH: 5 },
 ]
 
+export function shouldResetLayout(
+  resetKey: number | undefined,
+  handledResetKey: number | undefined,
+): boolean {
+  return resetKey !== undefined && resetKey !== handledResetKey
+}
+
 export function loadDashboardLayout(): Layout {
   try {
     const raw = localStorage.getItem(DASHBOARD_LAYOUT_KEY)
