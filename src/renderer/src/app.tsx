@@ -42,6 +42,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { WindowResizeHandles } from '@/components/window-resize-handles'
 import { chartColor } from '@/lib/colors'
+import { errorMessage } from '@/lib/errors'
 import { brl, brl0, int, pct } from '@/lib/format'
 import { fileName, MONTH_LABEL } from '@/lib/labels'
 import { useWindowMaximized } from '@/lib/useWindowMaximized'
@@ -85,7 +86,7 @@ export function App() {
       }
       setSnap(s)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errorMessage(e))
     }
   }, [year, months, selectedSellers])
 
@@ -100,7 +101,12 @@ export function App() {
       setPhotos(new Set(list.map(f => f.seller)))
       setSellers(active)
       setDisabled(disabledList)
-    } catch {}
+    } catch (e) {
+      toast.error('Não foi possível carregar vendedores e fotos', {
+        id: 'photos-load',
+        description: errorMessage(e),
+      })
+    }
   }, [])
 
   const refresh = useCallback(() => {
@@ -184,7 +190,7 @@ export function App() {
     } catch (e) {
       toast.error('Falha ao importar os dados do SIGE', {
         id,
-        description: e instanceof Error ? e.message : String(e),
+        description: errorMessage(e),
       })
     } finally {
       setImporting(false)

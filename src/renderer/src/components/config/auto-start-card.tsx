@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { errorMessage } from '@/lib/errors'
 import type { AutoStartView } from '../../../../shared/types'
 
 export function AutoStartCard() {
@@ -25,7 +26,7 @@ export function AutoStartCard() {
       .catch(e => {
         if (!cancelled)
           toast.error('Não foi possível ler a configuração de autostart', {
-            description: e instanceof Error ? e.message : String(e),
+            description: errorMessage(e),
           })
       })
     return () => {
@@ -48,7 +49,7 @@ export function AutoStartCard() {
       )
     } catch (e) {
       toast.error('Não foi possível alterar o autostart', {
-        description: e instanceof Error ? e.message : String(e),
+        description: errorMessage(e),
       })
     } finally {
       setBusy(false)

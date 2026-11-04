@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { errorMessage } from '@/lib/errors'
 import { int } from '@/lib/format'
 import type { DbStats } from '../../../../shared/types'
 
@@ -45,7 +46,7 @@ export function DataCard({ onChanged }: Props) {
       setStats(await window.api.getDbStats())
     } catch (e) {
       toast.error('Não foi possível ler o banco de dados', {
-        description: e instanceof Error ? e.message : String(e),
+        description: errorMessage(e),
       })
     }
   }, [])
@@ -65,7 +66,7 @@ export function DataCard({ onChanged }: Props) {
       await action()
     } catch (e) {
       toast.error('Não foi possível concluir a ação', {
-        description: e instanceof Error ? e.message : String(e),
+        description: errorMessage(e),
       })
     } finally {
       setBusy(null)
