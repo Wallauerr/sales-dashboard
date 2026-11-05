@@ -74,6 +74,7 @@ O **funil** faz o contrário: conta cada status **separadamente** (`Orçamento`,
 src/
 ├── main/                     # processo principal (Electron + Node)
 │   ├── index.ts                  # janela, ciclo de vida, maximizar multi-monitor
+│   ├── env.ts                    # ambiente (dev/prod/test) e caminho do banco
 │   ├── ipc.ts                    # canais IPC (ingest, kpis, metas, fotos, autostart)
 │   ├── window-maximize.ts        # geometria pura de maximizar por monitor
 │   ├── autostart.ts              # "abrir com o Windows" (só win32)
@@ -84,6 +85,7 @@ src/
 │   │   ├── index.ts              # lê a planilha e faz upsert por código
 │   │   └── normalize.ts          # datas, UF/região, status, vendor
 │   ├── kpis/index.ts             # snapshot (faturamento, funil, metas, ticket)
+│   ├── seed/                     # dados fictícios (Faker pt-BR) para dev/teste
 │   └── photos/
 │       ├── protocol.ts           # protocolo photo:// (foto do vendedor)
 │       └── pick.ts               # valida e lê a imagem escolhida
@@ -109,6 +111,7 @@ src/
         │   └── title-bar.tsx         # barra de título própria (janela frameless)
         ├── lib/                  # formatação BRL, rótulos, cores, layout
         └── index.css             # tema (variáveis CSS) + Tailwind
+scripts/                      # utilitários de linha de comando (seed)
 tests/                        # Vitest (main, kpis, ingest, renderer puro)
 docs/                         # documentação
 ```
@@ -123,7 +126,7 @@ Três processos com uma fronteira só — o IPC:
 
 | Módulo | Papel |
 |---|---|
-| `src/main/index.ts` | Abre o banco (`userData/metas.db`), registra IPC e o protocolo de foto, cria a janela frameless e cuida de maximizar/restaurar |
+| `src/main/index.ts` | Resolve o ambiente, abre o banco (`userData/metas.db` em prod; `userData/dev/metas.db` em dev), registra IPC e o protocolo de foto, cria a janela frameless e cuida de maximizar/restaurar |
 | `src/main/ipc.ts` | Um `ipcMain.handle` por operação; valida a entrada com Zod antes de tocar no banco |
 | `src/main/db/database.ts` | Todo o SQL, o schema (`SCHEMA_VERSION`) e as migrations |
 | `src/main/ingest` | Lê o `.xlsx`, normaliza cada linha e reconcilia por código dentro de uma transação |
@@ -169,7 +172,28 @@ pnpm install
 pnpm dev      # sobe o Electron com hot reload do renderer
 ```
 
-O banco é criado sozinho no primeiro boot, na pasta de dados do usuário (`metas.db`). Sem dados, o dashboard mostra o convite para rodar **Importar dados do SIGE**.
+O banco é criado sozinho no primeiro boot. Em desenvolvimento ele fica isolado em `userData/dev/metas.db`, para nunca tocar no banco real de produção (`userData/metas.db`). Sem dados, o dashboard mostra o convite para rodar **Importar dados do SIGE** — ou use `pnpm seed` para popular com dados fictícios.
+
+### Ambientes
+
+O ambiente é resolvido em `src/main/env.ts`: `SD_ENV` (ou `--sd-env`) vence tudo; `NODE_ENV=test` vira `test`; senão `app.isPackaged` decide entre `prod` e `dev`.
+
+| Variável | Efeito |
+|---|---|
+| `SD_ENV=dev\|prod\|test` | Força o ambiente |
+| `SD_USER_DATA=<pasta>` | Sobrescreve o `userData` (útil para e2e isolado) |
+| `SD_DB=<arquivo>` | Usado só pelo script de seed para apontar o banco |
+
+### Dados de exemplo
+
+```bash
+pnpm seed                    # popula o banco de dev (userData/dev/metas.db)
+pnpm seed --year=2025        # escolhe o ano (gera também o anterior)
+pnpm seed --seed=7 --count=300
+pnpm seed --workbook=exemplo.xlsx   # só gera a planilha, sem tocar no banco
+```
+
+O seed usa Faker pt-BR com seed fixa (determinístico), gera dois anos de vendas, metas em %, um vendedor desativado e fotos. O Faker fica fora do bundle de produção: o seed só existe como script.
 
 ---
 
@@ -186,6 +210,7 @@ O banco é criado sozinho no primeiro boot, na pasta de dados do usuário (`meta
 | `pnpm format` | Formata o código com Biome |
 | `pnpm check:ci` | Tudo o que o CI roda (Biome + TypeScript) |
 | `pnpm test` | Roda os testes (Vitest) |
+| `pnpm seed` | Popula o banco de desenvolvimento com dados fictícios |
 | `pnpm dist:linux` | Empacota o AppImage (Linux) |
 | `pnpm dist:win` | Empacota o instalador NSIS (Windows) |
 
@@ -203,9 +228,12 @@ O banco é criado sozinho no primeiro boot, na pasta de dados do usuário (`meta
 | `tests/kpis.test.ts` | Snapshot: faturamento, funil, filtros, escopo |
 | `tests/photos.test.ts` | Foto do vendedor (assinatura, limite) |
 | `tests/window-maximize.test.ts` | Geometria de maximizar em multi-monitor |
-| `tests/renderer/*` | Módulos puros do renderer (formatação, `buildKpis`, rótulos, cores, foto) |
+| `tests/maintenance.test.ts` | Zerar dados, exportar e mesclar backup |
+| `tests/env.test.ts` | Resolução de ambiente e caminho do banco |
+| `tests/seed.test.ts` | Seed determinístico, dois anos, metas, vendedor desativado e fotos |
+| `tests/renderer/*` | Módulos puros do renderer (formatação, `buildKpis`, rótulos, cores, foto, erros, layout) |
 
-A planilha dos testes é gerada por `tests/fixtures/workbook.ts` e os dados fictícios por `tests/fixtures/factories.ts` (Faker pt-BR; com `seed` fixa os agregados se mantêm estáveis). Os testes do renderer rodam sem DOM/jsdom.
+A planilha dos testes é gerada por `src/main/seed/workbook.ts` e os dados fictícios por `src/main/seed/factories.ts` (Faker pt-BR; com `seed` fixa os agregados se mantêm estáveis). Os fixtures em `tests/fixtures/` reexportam esses módulos. Os testes do renderer rodam sem DOM/jsdom.
 
 ---
 
@@ -218,7 +246,7 @@ pnpm dist:linux   # release/*.AppImage
 pnpm dist:win     # release/*.exe (instalador NSIS)
 ```
 
-- **Nome:** Sulmag Dashboard · **App ID:** `com.wallauer.sales-dashboard`
+- **Nome:** Sulmag Dashboard · **App ID:** `br.com.wallauer.sales-dashboard`
 - Só o pacote pt-BR é embutido (`electronLanguages: pt_BR`), para o app ficar leve.
 - O ícone vem de `resources/icon.png` (e do `assetsInlineLimit: 0` no renderer, para não virar `data:` e ser bloqueado pelo CSP).
 
