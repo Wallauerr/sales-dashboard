@@ -1,7 +1,9 @@
-import { join } from 'node:path'
+import { mkdirSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { app, BrowserWindow, dialog, ipcMain, screen } from 'electron'
 import { SalesDatabase } from './db/database'
+import { databasePath, resolveAppEnv } from './env'
 import { registerIpc } from './ipc'
 import {
   registerPhotoProtocol,
@@ -15,6 +17,14 @@ import {
 } from './window-maximize'
 
 app.disableHardwareAcceleration()
+
+const env = resolveAppEnv({
+  isPackaged: app.isPackaged,
+  env: process.env.SD_ENV,
+  nodeEnv: process.env.NODE_ENV,
+})
+const userDataOverride = process.env.SD_USER_DATA
+if (userDataOverride) app.setPath('userData', userDataOverride)
 
 // Antes do app ready: sem isso o esquema não entra na lista de privilegiados.
 registerPhotoSchemePrivileges()
@@ -122,7 +132,9 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   app.setName('Sulmag Dashboard')
-  const dbPath = join(app.getPath('userData'), 'metas.db')
+  const dbPath = databasePath(app.getPath('userData'), env)
+  mkdirSync(dirname(dbPath), { recursive: true })
+  if (env !== 'prod') console.log(`[${env}] banco: ${dbPath}`)
   try {
     db = SalesDatabase.open(new DatabaseSync(dbPath), dbPath)
   } catch (e) {
