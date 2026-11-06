@@ -12,6 +12,8 @@ import type {
   PhotoResult,
   SellerPhoto,
   SnapshotScope,
+  UpdateState,
+  UpdateView,
 } from '../shared/types'
 
 interface WindowBounds {
@@ -37,6 +39,11 @@ interface Api {
   removePhoto: (seller: string) => Promise<PhotoResult>
   getAutoStart: () => Promise<AutoStartView>
   setAutoStart: (enabled: boolean) => Promise<AutoStartView>
+  getUpdateState: () => Promise<UpdateView>
+  checkForUpdates: () => Promise<UpdateView>
+  downloadUpdate: () => Promise<UpdateView>
+  installUpdate: () => Promise<void>
+  onUpdateState: (callback: (state: UpdateState) => void) => () => void
   getDbStats: () => Promise<DbStats>
   resetData: () => Promise<DbStats>
   exportBackup: () => Promise<BackupExportResult | null>

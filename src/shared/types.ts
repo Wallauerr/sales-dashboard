@@ -57,6 +57,27 @@ export interface AutoStartView {
   enabled: boolean
 }
 
+export type UpdateStatus =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error'
+
+export interface UpdateState {
+  status: UpdateStatus
+  version: string | null
+  percent: number | null
+  message: string | null
+}
+
+export interface UpdateView {
+  supported: boolean
+  currentVersion: string
+  state: UpdateState
+}
+
 export interface DbStats {
   sales: number
   imports: number
