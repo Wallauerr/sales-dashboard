@@ -15,18 +15,29 @@ import { makeSaleRow } from './fixtures/factories.ts'
 import { writeWorkbook } from './fixtures/workbook.ts'
 
 let dir: string
+const openDbs: SalesDatabase[] = []
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'sd-manutencao-'))
 })
 
 afterEach(() => {
+  for (const db of openDbs.splice(0)) db.raw.close()
   rmSync(dir, { recursive: true, force: true })
 })
 
+function openDb(
+  handle: DatabaseSync,
+  path: string | null = null,
+): SalesDatabase {
+  const db = SalesDatabase.open(handle, path)
+  openDbs.push(db)
+  return db
+}
+
 function fileDb(name: string): SalesDatabase {
   const path = join(dir, name)
-  return SalesDatabase.open(new DatabaseSync(path), path)
+  return openDb(new DatabaseSync(path), path)
 }
 
 async function seededDb(name: string): Promise<SalesDatabase> {
@@ -87,7 +98,7 @@ describe('manutenção de dados', () => {
   })
 
   it('export falha quando o banco não está em arquivo', async () => {
-    const db = SalesDatabase.open(new DatabaseSync(':memory:'))
+    const db = openDb(new DatabaseSync(':memory:'))
     expect(() => exportBackup(db, join(dir, 'backup.db'))).toThrow(
       /não está salvo em arquivo/,
     )
@@ -99,7 +110,7 @@ describe('manutenção de dados', () => {
     source.setSellerPhoto('Ana', 'image/png', new Uint8Array([1, 2, 3]))
     source.setSellerDisabled('Bruno', true)
 
-    const target = SalesDatabase.open(new DatabaseSync(':memory:'))
+    const target = openDb(new DatabaseSync(':memory:'))
     const result = mergeBackup(target, source.path as string)
 
     expect(result.sales).toBe(2)
@@ -117,7 +128,7 @@ describe('manutenção de dados', () => {
 
   it('merge atualiza venda existente em vez de duplicar', async () => {
     const source = await seededDb('backup.db')
-    const target = SalesDatabase.open(new DatabaseSync(':memory:'))
+    const target = openDb(new DatabaseSync(':memory:'))
     await importWorkbook(
       target,
       writeWorkbook([makeSaleRow({ code: '1001', year: 2026, value: 100 })]),
@@ -132,7 +143,7 @@ describe('manutenção de dados', () => {
   })
 
   it('merge recusa arquivo que não é um backup', () => {
-    const target = SalesDatabase.open(new DatabaseSync(':memory:'))
+    const target = openDb(new DatabaseSync(':memory:'))
     const bogus = join(dir, 'lixo.db')
     const handle = new DatabaseSync(bogus)
     handle.exec('CREATE TABLE vendas (codigo TEXT)')
