@@ -12,6 +12,11 @@ asar: true
 npmRebuild: false
 electronLanguages:
   - pt_BR
+publish:
+  provider: github
+  owner: Wallauerr
+  repo: sales-dashboard
+  releaseType: draft
 linux:
   target:
     - AppImage
@@ -24,3 +29,8 @@ win:
   target:
     - nsis
   icon: resources/icon.png
+  artifactName: Sulmag-Dashboard-Setup-${version}.${ext}
+nsis:
+  oneClick: true
+  perMachine: false
+  deleteAppDataOnUninstall: false

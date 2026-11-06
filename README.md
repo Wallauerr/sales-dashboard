@@ -211,8 +211,9 @@ O seed usa Faker pt-BR com seed fixa (determinístico), gera dois anos de vendas
 | `pnpm check:ci` | Tudo o que o CI roda (Biome + TypeScript) |
 | `pnpm test` | Roda os testes (Vitest) |
 | `pnpm seed` | Popula o banco de desenvolvimento com dados fictícios |
-| `pnpm dist:linux` | Empacota o AppImage (Linux) |
-| `pnpm dist:win` | Empacota o instalador NSIS (Windows) |
+| `pnpm dist:linux` | Empacota o AppImage (Linux), sem publicar |
+| `pnpm dist:win` | Empacota o instalador NSIS (Windows), sem publicar |
+| `pnpm release:win` | Empacota e publica o release draft no GitHub (usado pelo CI) |
 
 ---
 
@@ -231,6 +232,7 @@ O seed usa Faker pt-BR com seed fixa (determinístico), gera dois anos de vendas
 | `tests/maintenance.test.ts` | Zerar dados, exportar e mesclar backup |
 | `tests/env.test.ts` | Resolução de ambiente e caminho do banco |
 | `tests/seed.test.ts` | Seed determinístico, dois anos, metas, vendedor desativado e fotos |
+| `tests/updater.test.ts` | Quando o auto-update pode rodar (só prod empacotado) |
 | `tests/renderer/*` | Módulos puros do renderer (formatação, `buildKpis`, rótulos, cores, foto, erros, layout) |
 
 A planilha dos testes é gerada por `src/main/seed/workbook.ts` e os dados fictícios por `src/main/seed/factories.ts` (Faker pt-BR; com `seed` fixa os agregados se mantêm estáveis). Os fixtures em `tests/fixtures/` reexportam esses módulos. Os testes do renderer rodam sem DOM/jsdom.
@@ -251,6 +253,33 @@ pnpm dist:win     # release/*.exe (instalador NSIS)
 - O ícone vem de `resources/icon.png` (e do `assetsInlineLimit: 0` no renderer, para não virar `data:` e ser bloqueado pelo CSP).
 
 > Cada sistema gera o seu próprio pacote: o `.exe` precisa ser gerado no Windows e o AppImage no Linux.
+
+### Releases e auto-update
+
+O foco de distribuição é **Windows (NSIS)**. O release é publicado pelo workflow `.github/workflows/release.yml`, disparado por tag `v*`. A primeira release é a `v1.0.0` (o `package.json` já está nessa versão):
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Para as próximas, suba a versão antes de taguear:
+
+```bash
+npm version patch --no-git-tag-version   # ou minor/major
+git add package.json && git commit -m "build: release 1.0.1"
+git tag v1.0.1
+git push origin main
+git push origin v1.0.1
+```
+
+O workflow roda `check:ci` + `test`, confere se a tag bate com o `package.json` e chama `pnpm release:win`, que cria um **release draft** no GitHub com o instalador, o `.blockmap` e o `latest.yml`. O auto-update só enxerga o release depois que ele é **publicado** manualmente (baixe o `.exe`, teste e clique em publicar).
+
+O app usa `electron-updater` (`src/main/updater/`) apenas em produção empacotada. Ao abrir, ele consulta a versão mais recente; se houver, mostra um aviso com a ação **Baixar** e, depois do download, **Reiniciar e atualizar** — o usuário decide. Em Configurações → Geral também há o card **Atualizações** com a versão instalada e o botão **Verificar atualizações**.
+
+- O `artifactName` do Windows é fixo (`Sulmag-Dashboard-Setup-${version}.${ext}`) para o `latest.yml` não apontar para um nome com espaços.
+- O instalador não é assinado; o Windows pode exibir o aviso do SmartScreen.
+- Linux continua empacotável localmente, mas não é publicado e não recebe auto-update.
 
 ---
 

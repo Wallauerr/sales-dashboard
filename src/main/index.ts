@@ -9,6 +9,7 @@ import {
   registerPhotoProtocol,
   registerPhotoSchemePrivileges,
 } from './photos/protocol'
+import { setupAutoUpdater } from './updater'
 import type { Point, Screen } from './window-maximize'
 import {
   cursorScreenBounds,
@@ -150,6 +151,7 @@ app.whenReady().then(() => {
   registerPhotoProtocol(db)
 
   createWindow()
+  setupAutoUpdater(env, app.isPackaged)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

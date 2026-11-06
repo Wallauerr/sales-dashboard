@@ -17,6 +17,7 @@ import { AutoStartCard } from '@/components/config/auto-start-card'
 import { ConfigTab } from '@/components/config/config-tab'
 import { DataCard } from '@/components/config/data-card'
 import { SellersCard } from '@/components/config/sellers-card'
+import { UpdatesCard } from '@/components/config/updates-card'
 import { DashboardGrid } from '@/components/dashboard-grid'
 import { DashboardHeader } from '@/components/dashboard-header'
 import { HistoryTab } from '@/components/history/history-tab'
@@ -45,6 +46,7 @@ import { chartColor } from '@/lib/colors'
 import { errorMessage } from '@/lib/errors'
 import { brl, brl0, int, pct } from '@/lib/format'
 import { fileName, MONTH_LABEL } from '@/lib/labels'
+import { useUpdateNotifications } from '@/lib/updates'
 import { useWindowMaximized } from '@/lib/useWindowMaximized'
 import { cn } from '@/lib/utils'
 import type { KpiSnapshot, Month } from '../../shared/types'
@@ -59,6 +61,7 @@ export function App() {
   const [goalsOpen, setGoalsOpen] = useState(false)
   const [layoutResetKey, setLayoutResetKey] = useState(0)
   const maximized = useWindowMaximized()
+  useUpdateNotifications()
   const [snap, setSnap] = useState<KpiSnapshot | null>(null)
   const [photos, setPhotos] = useState<Set<string>>(new Set())
   const [sellers, setSellers] = useState<string[]>([])
@@ -282,6 +285,7 @@ export function App() {
                   className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
                   <div className="grid gap-4 md:grid-cols-2">
                     <AutoStartCard />
+                    <UpdatesCard />
                     <Card>
                       <CardHeader className="pb-3">
                         <CardTitle>Layout da dashboard</CardTitle>

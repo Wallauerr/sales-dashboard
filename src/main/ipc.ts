@@ -26,6 +26,12 @@ import {
 import { importWorkbook } from './ingest/index.ts'
 import { getGoalConfig, getSnapshot, setGoalConfig } from './kpis/index.ts'
 import { readChosenPhoto } from './photos/pick.ts'
+import {
+  checkForUpdates,
+  downloadUpdate,
+  installUpdate,
+  updateView,
+} from './updater/index.ts'
 
 export function registerIpc(db: SalesDatabase): void {
   ipcMain.handle('ingest:import', async () => {
@@ -114,6 +120,16 @@ export function registerIpc(db: SalesDatabase): void {
       supported: AUTOSTART_SUPPORTED,
       enabled: on ? setAutoStartEnabled(true) : setAutoStartEnabled(false),
     }
+  })
+
+  ipcMain.handle('updates:get', () => updateView())
+
+  ipcMain.handle('updates:check', () => checkForUpdates())
+
+  ipcMain.handle('updates:download', () => downloadUpdate())
+
+  ipcMain.handle('updates:install', () => {
+    installUpdate()
   })
 
   ipcMain.handle('db:stats', () => dbStats(db))

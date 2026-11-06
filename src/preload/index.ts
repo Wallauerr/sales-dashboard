@@ -13,6 +13,8 @@ import type {
   PhotoResult,
   SellerPhoto,
   SnapshotScope,
+  UpdateState,
+  UpdateView,
 } from '../shared/types.ts'
 
 export interface WindowBounds {
@@ -54,6 +56,21 @@ const api = {
     ipcRenderer.invoke('app:autostart-get') as Promise<AutoStartView>,
   setAutoStart: (enabled: boolean) =>
     ipcRenderer.invoke('app:autostart-set', enabled) as Promise<AutoStartView>,
+  getUpdateState: () =>
+    ipcRenderer.invoke('updates:get') as Promise<UpdateView>,
+  checkForUpdates: () =>
+    ipcRenderer.invoke('updates:check') as Promise<UpdateView>,
+  downloadUpdate: () =>
+    ipcRenderer.invoke('updates:download') as Promise<UpdateView>,
+  installUpdate: () => ipcRenderer.invoke('updates:install') as Promise<void>,
+  onUpdateState: (callback: (state: UpdateState) => void) => {
+    const listener = (_e: Electron.IpcRendererEvent, value: UpdateState) =>
+      callback(value)
+    ipcRenderer.on('updates:state', listener)
+    return () => {
+      ipcRenderer.off('updates:state', listener)
+    }
+  },
   getDbStats: () => ipcRenderer.invoke('db:stats') as Promise<DbStats>,
   resetData: () => ipcRenderer.invoke('db:reset') as Promise<DbStats>,
   exportBackup: () =>
