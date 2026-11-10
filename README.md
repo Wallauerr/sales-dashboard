@@ -256,30 +256,35 @@ pnpm dist:win     # release/*.exe (instalador NSIS)
 
 ### Releases e auto-update
 
-O foco de distribuição é **Windows (NSIS)**. O release é publicado pelo workflow `.github/workflows/release.yml`, disparado por tag `v*`. A primeira release é a `v1.0.0` (o `package.json` já está nessa versão):
+O foco de distribuição é **Windows (NSIS)**. O release é publicado pelo workflow `.github/workflows/release.yml`, disparado por tag `v*` — push normal na `main` roda só o CI. O passo a passo completo (versão, tag, draft, notas e publicação) está em [docs/releases.md](docs/releases.md).
 
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-Para as próximas, suba a versão antes de taguear:
+Resumo:
 
 ```bash
 npm version patch --no-git-tag-version   # ou minor/major
-git add package.json && git commit -m "build: release 1.0.1"
-git tag v1.0.1
+git add package.json package-lock.json && git commit -m "build: release 1.0.2"
 git push origin main
-git push origin v1.0.1
+git tag v1.0.2
+git push origin v1.0.2
 ```
 
-O workflow roda `check:ci` + `test`, confere se a tag bate com o `package.json` e chama `pnpm release:win`, que cria um **release draft** no GitHub com o instalador, o `.blockmap` e o `latest.yml`. O auto-update só enxerga o release depois que ele é **publicado** manualmente (baixe o `.exe`, teste e clique em publicar).
+Se a tag não bater com o `package.json`, o workflow falha antes de buildar. O workflow roda `check:ci` + `test` e cria um **release draft** com o instalador, o `.blockmap` e o `latest.yml`. Preencha as notas no draft, teste o `.exe` e **publique** — o auto-update só enxerga releases publicadas.
 
 O app usa `electron-updater` (`src/main/updater/`) apenas em produção empacotada. Ao abrir, ele consulta a versão mais recente; se houver, mostra um aviso com a ação **Baixar** e, depois do download, **Reiniciar e atualizar** — o usuário decide. Em Configurações → Geral também há o card **Atualizações** com a versão instalada e o botão **Verificar atualizações**.
 
 - O `artifactName` do Windows é fixo (`Sulmag-Dashboard-Setup-${version}.${ext}`) para o `latest.yml` não apontar para um nome com espaços.
 - O instalador não é assinado; o Windows pode exibir o aviso do SmartScreen.
 - Linux continua empacotável localmente, mas não é publicado e não recebe auto-update.
+
+#### Notas de versão
+
+As notas vêm do **corpo do release publicado no GitHub**, no formato `## Novidades` / `## Melhorias` / `## Correções` / `## Removido` (template em [docs/releases.md](docs/releases.md)). O app consulta a API do GitHub (`src/main/releases/notes.ts`), guarda um cache em `localStorage` e mostra:
+
+- o **modal de boas-vindas** na primeira abertura após a instalação, com um resumo do app e como usar (conteúdo local, em `src/renderer/src/lib/welcome.ts`; quem já tem dados importados vê o modal de novidades da versão);
+- o **modal de novidades** na primeira abertura depois de uma atualização, com as notas da versão instalada (a última versão vista fica em `localStorage['sd:last-version']`, então ele não repete);
+- o card **Novidades** em Configurações → Geral, com no máximo as **3 releases mais recentes** e o botão **GitHub**.
+
+Sem internet, o app usa o último cache; se não houver cache, o card e o modal avisam que não foi possível carregar as notas.
 
 ---
 
@@ -288,6 +293,7 @@ O app usa `electron-updater` (`src/main/updater/`) apenas em produção empacota
 | Documento | Descrição |
 |---|---|
 | [docs/design-to-component.md](docs/design-to-component.md) | Como converter um design (screenshot/Figma) em componentes React neste projeto |
+| [docs/releases.md](docs/releases.md) | Passo a passo para publicar uma release, escrever as notas e liberar o auto-update |
 | [AGENTS.md](AGENTS.md) | Convenções de código, comentários e o roadmap por fases |
 
 ---
