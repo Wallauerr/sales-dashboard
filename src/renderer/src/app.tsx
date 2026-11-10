@@ -13,9 +13,9 @@ import {
   regionBarData,
   regionDonutData,
 } from '@/components/charts/region-donut'
-import { AutoStartCard } from '@/components/config/auto-start-card'
 import { ConfigTab } from '@/components/config/config-tab'
 import { DataCard } from '@/components/config/data-card'
+import { PreferencesCard } from '@/components/config/preferences-card'
 import { ReleasesCard } from '@/components/config/releases-card'
 import { SellersCard } from '@/components/config/sellers-card'
 import { UpdatesCard } from '@/components/config/updates-card'
@@ -27,14 +27,6 @@ import { KpiCard } from '@/components/kpi/kpi-card'
 import { ReleaseNotesDialog } from '@/components/release-notes'
 import { SellerCards } from '@/components/sellers/seller-cards'
 import { TitleBar } from '@/components/title-bar'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -332,8 +324,15 @@ export function App() {
                 <TabsContent
                   value="general"
                   className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
+                  <PreferencesCard
+                    onResetLayout={() => {
+                      setLayoutResetKey(k => k + 1)
+                      toast.success('Layout restaurado', {
+                        description: 'Os cartões voltaram ao padrão.',
+                      })
+                    }}
+                  />
                   <div className="grid gap-4 md:grid-cols-2">
-                    <AutoStartCard />
                     <UpdatesCard />
                     <ReleasesCard
                       releases={releases}
@@ -341,28 +340,6 @@ export function App() {
                       error={releasesError}
                       onRefresh={refreshReleases}
                     />
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle>Layout da dashboard</CardTitle>
-                        <CardDescription>
-                          Volta a posição e o tamanho padrão dos cartões.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setLayoutResetKey(k => k + 1)
-                            toast.success('Layout restaurado', {
-                              description: 'Os cartões voltaram ao padrão.',
-                            })
-                          }}>
-                          Restaurar padrão
-                        </Button>
-                      </CardContent>
-                    </Card>
                   </div>
                   <SellersCard
                     active={sellers}
