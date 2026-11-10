@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { ReleaseNote } from '../shared/releases.ts'
 import type {
   AutoStartView,
   BackupExportResult,
@@ -56,6 +57,9 @@ const api = {
     ipcRenderer.invoke('app:autostart-get') as Promise<AutoStartView>,
   setAutoStart: (enabled: boolean) =>
     ipcRenderer.invoke('app:autostart-set', enabled) as Promise<AutoStartView>,
+  openRepo: () => ipcRenderer.invoke('app:open-repo') as Promise<void>,
+  listReleases: () =>
+    ipcRenderer.invoke('releases:list') as Promise<ReleaseNote[]>,
   getUpdateState: () =>
     ipcRenderer.invoke('updates:get') as Promise<UpdateView>,
   checkForUpdates: () =>
