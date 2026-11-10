@@ -301,8 +301,8 @@ export function App() {
               <DialogHeader>
                 <DialogTitle>Configurações</DialogTitle>
                 <DialogDescription>
-                  Ajuste as metas e o comportamento do app; o dashboard reflete
-                  na hora.
+                  Ajuste metas, preferências, vendedores e dados; o dashboard
+                  reflete na hora.
                 </DialogDescription>
               </DialogHeader>
               <Tabs
@@ -311,6 +311,8 @@ export function App() {
                 <TabsList className="w-fit shrink-0">
                   <TabsTrigger value="goals">Métricas</TabsTrigger>
                   <TabsTrigger value="general">Geral</TabsTrigger>
+                  <TabsTrigger value="sellers">Vendedores</TabsTrigger>
+                  <TabsTrigger value="data">Dados</TabsTrigger>
                 </TabsList>
                 <TabsContent
                   value="goals"
@@ -341,6 +343,10 @@ export function App() {
                       onRefresh={refreshReleases}
                     />
                   </div>
+                </TabsContent>
+                <TabsContent
+                  value="sellers"
+                  className="min-h-0 flex-1 overflow-y-auto pr-1">
                   <SellersCard
                     active={sellers}
                     disabled={disabled}
@@ -349,6 +355,10 @@ export function App() {
                     onRemove={removePhoto}
                     onToggle={toggleSellerDisable}
                   />
+                </TabsContent>
+                <TabsContent
+                  value="data"
+                  className="min-h-0 flex-1 overflow-y-auto pr-1">
                   <DataCard onChanged={() => setReload(k => k + 1)} />
                 </TabsContent>
               </Tabs>
