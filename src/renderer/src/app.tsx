@@ -16,6 +16,7 @@ import {
 import { AutoStartCard } from '@/components/config/auto-start-card'
 import { ConfigTab } from '@/components/config/config-tab'
 import { DataCard } from '@/components/config/data-card'
+import { ReleasesCard } from '@/components/config/releases-card'
 import { SellersCard } from '@/components/config/sellers-card'
 import { UpdatesCard } from '@/components/config/updates-card'
 import { DashboardGrid } from '@/components/dashboard-grid'
@@ -23,6 +24,7 @@ import { DashboardHeader } from '@/components/dashboard-header'
 import { HistoryTab } from '@/components/history/history-tab'
 import { buildKpis, periodLabel } from '@/components/kpi/build-kpis'
 import { KpiCard } from '@/components/kpi/kpi-card'
+import { ReleaseNotesDialog } from '@/components/release-notes'
 import { SellerCards } from '@/components/sellers/seller-cards'
 import { TitleBar } from '@/components/title-bar'
 import { Button } from '@/components/ui/button'
@@ -47,8 +49,15 @@ import { errorMessage } from '@/lib/errors'
 import { brl, brl0, int, pct } from '@/lib/format'
 import { fileName, MONTH_LABEL } from '@/lib/labels'
 import { useUpdateNotifications } from '@/lib/updates'
+import { useReleases } from '@/lib/use-releases'
 import { useWindowMaximized } from '@/lib/useWindowMaximized'
 import { cn } from '@/lib/utils'
+import {
+  readLastVersion,
+  resolveWhatsNew,
+  type WhatsNewMode,
+  writeLastVersion,
+} from '@/lib/whats-new'
 import type { KpiSnapshot, Month } from '../../shared/types'
 import { MONTHS } from '../../shared/types'
 
@@ -60,8 +69,18 @@ export function App() {
   const [view, setView] = useState<'dashboard' | 'history'>('dashboard')
   const [goalsOpen, setGoalsOpen] = useState(false)
   const [layoutResetKey, setLayoutResetKey] = useState(0)
+  const [whatsNew, setWhatsNew] = useState<{
+    mode: WhatsNewMode
+    version: string
+  } | null>(null)
   const maximized = useWindowMaximized()
   useUpdateNotifications()
+  const {
+    releases,
+    loading: releasesLoading,
+    error: releasesError,
+    refresh: refreshReleases,
+  } = useReleases()
   const [snap, setSnap] = useState<KpiSnapshot | null>(null)
   const [photos, setPhotos] = useState<Set<string>>(new Set())
   const [sellers, setSellers] = useState<string[]>([])
@@ -69,6 +88,36 @@ export function App() {
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const [reload, setReload] = useState(1)
+
+  useEffect(() => {
+    const api = window.api
+    if (!api) return
+    let cancelled = false
+    void api
+      .getUpdateState()
+      .then(async view => {
+        if (cancelled) return
+        const lastSeen = readLastVersion(window.localStorage)
+        let mode = resolveWhatsNew(view.currentVersion, lastSeen)
+        if (mode === 'welcome' && view.supported) {
+          try {
+            const stats = await api.getDbStats()
+            mode = resolveWhatsNew(
+              view.currentVersion,
+              lastSeen,
+              stats.sales > 0,
+            )
+          } catch {}
+        }
+        if (cancelled) return
+        if (mode) setWhatsNew({ mode, version: view.currentVersion })
+        writeLastVersion(window.localStorage, view.currentVersion)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const api = window.api
 
@@ -286,6 +335,12 @@ export function App() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <AutoStartCard />
                     <UpdatesCard />
+                    <ReleasesCard
+                      releases={releases}
+                      loading={releasesLoading}
+                      error={releasesError}
+                      onRefresh={refreshReleases}
+                    />
                     <Card>
                       <CardHeader className="pb-3">
                         <CardTitle>Layout da dashboard</CardTitle>
@@ -583,6 +638,21 @@ export function App() {
           </Tabs>
         </main>
       </div>
+      <ReleaseNotesDialog
+        open={whatsNew !== null}
+        mode={whatsNew?.mode ?? 'welcome'}
+        version={whatsNew?.version ?? ''}
+        release={
+          whatsNew
+            ? (releases.find(release => release.version === whatsNew.version) ??
+              null)
+            : null
+        }
+        loading={releasesLoading}
+        onOpenChange={open => {
+          if (!open) setWhatsNew(null)
+        }}
+      />
     </div>
   )
 }

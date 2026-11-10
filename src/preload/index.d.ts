@@ -1,3 +1,4 @@
+import type { ReleaseNote } from '../shared/releases'
 import type {
   AutoStartView,
   BackupExportResult,
@@ -39,6 +40,8 @@ interface Api {
   removePhoto: (seller: string) => Promise<PhotoResult>
   getAutoStart: () => Promise<AutoStartView>
   setAutoStart: (enabled: boolean) => Promise<AutoStartView>
+  openRepo: () => Promise<void>
+  listReleases: () => Promise<ReleaseNote[]>
   getUpdateState: () => Promise<UpdateView>
   checkForUpdates: () => Promise<UpdateView>
   downloadUpdate: () => Promise<UpdateView>

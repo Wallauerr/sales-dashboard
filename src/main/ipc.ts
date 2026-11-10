@@ -7,8 +7,10 @@ import {
   ipcMain,
   type OpenDialogOptions,
   type SaveDialogOptions,
+  shell,
 } from 'electron'
 import { z } from 'zod'
+import { REPO_URL } from '../shared/repo.ts'
 import { goalSetInputSchema, sellerNameSchema } from '../shared/schemas.ts'
 import type { SnapshotScope } from '../shared/types.ts'
 import {
@@ -26,6 +28,7 @@ import {
 import { importWorkbook } from './ingest/index.ts'
 import { getGoalConfig, getSnapshot, setGoalConfig } from './kpis/index.ts'
 import { readChosenPhoto } from './photos/pick.ts'
+import { listReleases } from './releases/notes.ts'
 import {
   checkForUpdates,
   downloadUpdate,
@@ -106,6 +109,10 @@ export function registerIpc(db: SalesDatabase): void {
     setGoalConfig(db, Number(year), goalSetInputSchema.parse(input))
     return getGoalConfig(db, Number(year))
   })
+
+  ipcMain.handle('app:open-repo', () => shell.openExternal(REPO_URL))
+
+  ipcMain.handle('releases:list', () => listReleases())
 
   ipcMain.handle('app:autostart-get', () => {
     return {

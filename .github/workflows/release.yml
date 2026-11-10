@@ -36,7 +36,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release create "$GITHUB_REF_NAME" --draft --title "$GITHUB_REF_NAME" --notes "Release $GITHUB_REF_NAME"
+            cat > "$RUNNER_TEMP/release-notes.md" <<'EOF'
+          ## Novidades
+
+          ## Melhorias
+
+          ## Correções
+
+          ## Removido
+          EOF
+            gh release create "$GITHUB_REF_NAME" --draft --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/release-notes.md"
           fi
       - name: Build and publish draft release
         run: pnpm release:win
