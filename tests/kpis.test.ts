@@ -64,7 +64,7 @@ const ROWS: unknown[][] = [
     'Bruno Keller',
     'Equipamentos',
     '',
-    '',
+    'Venda Direta',
     'C1',
     'Alegre',
     'RS',
@@ -85,7 +85,7 @@ const ROWS: unknown[][] = [
     'Rosemeri',
     'Neodimio',
     '',
-    '',
+    'E-commerce',
     'C2',
     'Porto',
     'RS',
@@ -106,7 +106,7 @@ const ROWS: unknown[][] = [
     'Stephani Strack da Silva',
     'Follow-Up',
     '',
-    '',
+    'Venda Direta',
     'C3',
     'Lins',
     'SP',
@@ -148,7 +148,7 @@ const ROWS: unknown[][] = [
     'Ursula',
     'Neodimio',
     '',
-    '',
+    'E-commerce',
     'C5',
     'Curitiba',
     'PR',
@@ -347,6 +347,22 @@ describe('snapshot de kpis e metas', () => {
       sellers: ['Ursula', 'Stephani Strack da Silva'],
     })
     expect(sDuasMeses.periodTotal).toBe(7000)
+  })
+
+  it('filtro por origem', () => {
+    const all = getSnapshot(db, 2026)
+    const ecommerce = getSnapshot(db, 2026, { origins: ['E-commerce'] })
+    const direta = getSnapshot(db, 2026, { origins: ['Venda Direta'] })
+
+    expect(ecommerce.periodTotal).toBe(6000)
+    expect(direta.periodTotal).toBe(4000)
+    expect(ecommerce.periodTotal + direta.periodTotal).toBe(all.periodTotal)
+
+    const combinado = getSnapshot(db, 2026, {
+      origins: ['E-commerce', 'Venda Direta'],
+      months: ['jan'],
+    })
+    expect(combinado.periodTotal).toBe(6000)
   })
 })
 
