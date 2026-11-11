@@ -4,7 +4,7 @@ import { errorMessage } from '../../src/renderer/src/lib/errors'
 describe('mensagem de erro', () => {
   it('remove o prefixo do IPC do Electron', () => {
     const error = new Error(
-      "Error invoking remote method 'ingest:import': Error: Planilha inválida",
+      "Error invoking remote method 'ingest:preview': Error: Planilha inválida",
     )
     expect(errorMessage(error)).toBe('Planilha inválida')
   })
