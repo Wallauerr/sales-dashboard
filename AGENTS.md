@@ -6,6 +6,7 @@
 - Seguir o estilo de mensagens já usado no repo (Conventional Commits: `feat(...)`, `fix(...)`, `refactor(...)`, `build(...)`, `style(...)`, `revert(...)`).
 - **Nunca commitar sem autorização explícita do usuário.** Após concluir um trabalho, deixe tudo **uncommitted** e apresente o resumo para revisão; só faça `git commit` quando o usuário pedir (ex.: "pode commitar").
 - pt-BR nas conversas com o usuário; mensagens de commit em inglês.
+- **Nunca dar push direto na `main`**: todo trabalho, inclusive o bump de release, vai em branch + PR. Para release, crie `build/release-X.Y.Z`, commite o bump (`build: release X.Y.Z`) e abra PR; só **depois do merge** crie e envie a tag `vX.Y.Z`. As notas do draft no GitHub (template `## Novidades`/`## Melhorias`/`## Correções`/`## Removido`) precisam ser preenchidas **antes** de publicar — o app só lê releases publicadas.
 
 ## Comentários
 
