@@ -530,6 +530,18 @@ export class SalesDatabase {
     return rows.map(r => r.vendedor).filter(v => v !== NO_SELLER_LABEL)
   }
 
+  listOrigins(): string[] {
+    const rows = this.db
+      .prepare('SELECT DISTINCT origem FROM vendas')
+      .all() as unknown as { origem: string | null }[]
+    const values = [...new Set(rows.map(r => r.origem ?? ''))]
+    return values.sort((a, b) => {
+      if (a === '') return 1
+      if (b === '') return -1
+      return a.localeCompare(b, 'pt-BR')
+    })
+  }
+
   listDisabledSellers(): string[] {
     const rows = this.db
       .prepare('SELECT vendedor FROM vendedor_desativado')

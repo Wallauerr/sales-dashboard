@@ -42,6 +42,7 @@ export const SYSTEM_STATUSES = [
 export interface SnapshotScope {
   months?: Month[] | null
   sellers?: string[] | null
+  origins?: string[] | null
 }
 
 export interface SellerPhoto {

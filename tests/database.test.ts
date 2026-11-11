@@ -17,6 +17,18 @@ describe('banco de dados', () => {
     expect(db.listYears()).toEqual([2025, 2026])
   })
 
+  it('listOrigins traz origens distintas, não informado por último', async () => {
+    const db = SalesDatabase.open(new DatabaseSync(':memory:'))
+    const rows = [
+      makeSaleRow({ origin: 'Venda Direta' }),
+      makeSaleRow({ origin: 'E-commerce' }),
+      makeSaleRow({ origin: 'Venda Direta' }),
+      makeSaleRow({ origin: '' }),
+    ]
+    await importWorkbook(db, writeWorkbook(rows))
+    expect(db.listOrigins()).toEqual(['E-commerce', 'Venda Direta', ''])
+  })
+
   it('setMeta/getMeta/clearMeta fazem roundtrip', () => {
     const db = SalesDatabase.open(new DatabaseSync(':memory:'))
     expect(db.getMeta('chave')).toBeNull()

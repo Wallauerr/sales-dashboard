@@ -58,6 +58,8 @@ export function App() {
   const [years, setYears] = useState<number[]>([])
   const [months, setMonths] = useState<Month[]>([])
   const [selectedSellers, setSelectedSellers] = useState<string[]>([])
+  const [selectedOrigins, setSelectedOrigins] = useState<string[]>([])
+  const [originOptions, setOriginOptions] = useState<string[]>([])
   const [view, setView] = useState<'dashboard' | 'history'>('dashboard')
   const [goalsOpen, setGoalsOpen] = useState(false)
   const [layoutResetKey, setLayoutResetKey] = useState(0)
@@ -121,6 +123,7 @@ export function App() {
         api.getSnapshot(year, {
           months: months.length ? months : null,
           sellers: selectedSellers.length ? selectedSellers : null,
+          origins: selectedOrigins.length ? selectedOrigins : null,
         }),
         api.listYears(),
       ])
@@ -132,7 +135,7 @@ export function App() {
     } catch (e) {
       setError(errorMessage(e))
     }
-  }, [year, months, selectedSellers])
+  }, [year, months, selectedSellers, selectedOrigins])
 
   const loadPhotos = useCallback(async () => {
     if (!api) return
@@ -153,10 +156,25 @@ export function App() {
     }
   }, [])
 
+  const loadOrigins = useCallback(async () => {
+    if (!api) return
+    try {
+      const list = await api.listOrigins()
+      setOriginOptions(list)
+      setSelectedOrigins(prev => prev.filter(o => list.includes(o)))
+    } catch (e) {
+      toast.error('Não foi possível carregar as origens', {
+        id: 'origins-load',
+        description: errorMessage(e),
+      })
+    }
+  }, [])
+
   const refresh = useCallback(() => {
     void load()
     void loadPhotos()
-  }, [load, loadPhotos])
+    void loadOrigins()
+  }, [load, loadPhotos, loadOrigins])
 
   const toggleSellerDisable = async (
     seller: string,
@@ -289,6 +307,9 @@ export function App() {
             months={months}
             onMonth={toggleMonth}
             onClearMonths={() => setMonths([])}
+            origins={selectedOrigins}
+            originOptions={originOptions}
+            onOrigins={setSelectedOrigins}
             view={view}
             importing={importing}
             onImport={() => void handleImport()}

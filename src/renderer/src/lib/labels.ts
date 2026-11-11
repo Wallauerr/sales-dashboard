@@ -19,6 +19,10 @@ export function statusLabel(status: string): string {
   return status === 'Pedido Nao Faturado' ? 'Pedido Não Faturado' : status
 }
 
+export function originLabel(origin: string): string {
+  return origin === '' ? 'Não informado' : origin
+}
+
 export function fileName(path: string): string {
   return path.split(/[\\/]/).pop() ?? path
 }
