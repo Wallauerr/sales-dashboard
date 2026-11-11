@@ -21,6 +21,7 @@ export interface SaleRowOverrides {
   category?: string
   seller?: string
   state?: string
+  origin?: string
   customer?: string
   value?: number
   month?: number
@@ -41,6 +42,10 @@ export function makeSaleRow(overrides: SaleRowOverrides = {}): unknown[] {
   const day = faker.number.int({ min: 1, max: 28 })
   const date = fmtDate(year, month, day)
   const status = overrides.status ?? faker.helpers.arrayElement(STATUS_POOL)
+  const code =
+    overrides.code ?? String(faker.number.int({ min: 1000, max: 99999 }))
+  const origin =
+    overrides.origin ?? (Number(code) % 4 === 0 ? 'E-commerce' : 'Venda Direta')
 
   let quoteApproved = ''
   let orderApproved = ''
@@ -58,7 +63,7 @@ export function makeSaleRow(overrides: SaleRowOverrides = {}): unknown[] {
   }
 
   return [
-    overrides.code ?? String(faker.number.int({ min: 1000, max: 99999 })),
+    code,
     date,
     quoteApproved,
     'X',
@@ -66,7 +71,7 @@ export function makeSaleRow(overrides: SaleRowOverrides = {}): unknown[] {
     overrides.seller ?? faker.person.fullName(),
     overrides.category ?? faker.helpers.arrayElement(CATEGORY_POOL),
     '',
-    '',
+    origin,
     overrides.customer ?? `C${faker.number.int({ min: 100, max: 9999 })}`,
     faker.location.city(),
     overrides.state ?? faker.helpers.arrayElement(STATES),
