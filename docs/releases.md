@@ -2,7 +2,7 @@
 
 Guia para publicar uma versão do Sulmag Dashboard e liberar a atualização automática.
 
-O fluxo é: **versão no `package.json` → commit → tag `vX.Y.Z` → workflow no GitHub → draft → notas → publicação → auto-update**.
+O fluxo é: **versão no `package.json` em branch → PR → merge → tag `vX.Y.Z` → workflow no GitHub → draft → notas → publicação → auto-update**.
 
 ## Pré-requisitos
 
@@ -20,13 +20,17 @@ npm version patch --no-git-tag-version   # ou minor/major
 
 Isso altera `package.json` e `package-lock.json`. A versão precisa ser **maior** que a última publicada e igual à tag.
 
-### 2. Commite e envie a `main`
+### 2. Commite em uma branch e abra o PR
 
 ```bash
+git switch -c build/release-1.0.2
 git add package.json package-lock.json
 git commit -m "build: release 1.0.2"
-git push origin main
+git push -u origin build/release-1.0.2
+gh pr create --title "build: release 1.0.2" --body "Bump da versão para 1.0.2."
 ```
+
+Faça o merge do PR na `main`. **Nunca dê push direto na `main`**, nem para o bump.
 
 ### 3. Crie e envie a tag
 
@@ -35,7 +39,7 @@ git tag v1.0.2
 git push origin v1.0.2
 ```
 
-Push normal na `main` roda só o CI. O workflow `Release` (`.github/workflows/release.yml`) dispara **apenas em tag `v*`**.
+Push normal na `main` (depois do merge do PR) roda só o CI. O workflow `Release` (`.github/workflows/release.yml`) dispara **apenas em tag `v*`**.
 
 ### 4. Acompanhe o workflow
 
@@ -109,7 +113,7 @@ Em uma máquina com a versão anterior:
 ## Checklist rápido
 
 - [ ] `package.json` com a versão nova
-- [ ] commit `build: release X.Y.Z` na `main`
+- [ ] PR `build/release-X.Y.Z` com o commit `build: release X.Y.Z` mergeado
 - [ ] tag `vX.Y.Z` enviada
 - [ ] workflow `Release` verde
 - [ ] notas preenchidas no draft (template acima)
