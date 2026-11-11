@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { ActiveFilters } from '@/components/active-filters'
+import { AddressDialog } from '@/components/address-dialog'
 import { ChartCard } from '@/components/chart-card'
 import { AccumulatedLine } from '@/components/charts/accumulated-line'
 import { GroupedBars } from '@/components/charts/grouped-bars'
@@ -50,7 +51,12 @@ import {
   type WhatsNewMode,
   writeLastVersion,
 } from '@/lib/whats-new'
-import type { KpiSnapshot, Month } from '../../shared/types'
+import type {
+  AddressCorrection,
+  ImportPreview,
+  KpiSnapshot,
+  Month,
+} from '../../shared/types'
 import { MONTHS } from '../../shared/types'
 
 export function App() {
@@ -79,6 +85,8 @@ export function App() {
   const [disabled, setDisabled] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
+  const [preview, setPreview] = useState<ImportPreview | null>(null)
+  const [addressOpen, setAddressOpen] = useState(false)
   const [reload, setReload] = useState(1)
 
   useEffect(() => {
@@ -213,32 +221,76 @@ export function App() {
     refresh()
   }, [reload, refresh])
 
+  const commitImport = async (
+    filePath: string,
+    corrections: AddressCorrection[],
+  ): Promise<boolean> => {
+    if (!api) return false
+    const id = toast.loading('Importando dados do SIGE…')
+    try {
+      const r = await api.commitImport(filePath, corrections)
+      const parts = `${int(r.inserted)} novos, ${int(r.updated)} atualizados`
+      toast.success('Dados importados', {
+        id,
+        description: `${fileName(r.filePath)} — ${parts}${
+          r.discarded ? `, ${int(r.discarded)} descartados` : ''
+        }`,
+      })
+      setReload(k => k + 1)
+      return true
+    } catch (e) {
+      toast.error('Falha ao importar os dados do SIGE', {
+        id,
+        description: errorMessage(e),
+      })
+      return false
+    }
+  }
+
   const handleImport = async (): Promise<void> => {
     if (!api) return
     setImporting(true)
-    const id = toast.loading('Importando dados do SIGE…')
+    const id = toast.loading('Lendo a planilha do SIGE…')
     try {
-      const r = await api.importWorkbook()
-      if (r) {
-        const parts = `${int(r.inserted)} novos, ${int(r.updated)} atualizados`
-        toast.success('Dados importados', {
-          id,
-          description: `${fileName(r.filePath)} — ${parts}${
-            r.discarded ? `, ${int(r.discarded)} descartados` : ''
-          }`,
-        })
-        setReload(k => k + 1)
-      } else {
-        toast.dismiss(id)
+      const p = await api.previewImport()
+      toast.dismiss(id)
+      if (!p) return
+      if (p.pending.length === 0) {
+        await commitImport(p.filePath, [])
+        return
       }
+      setPreview(p)
+      setAddressOpen(true)
     } catch (e) {
-      toast.error('Falha ao importar os dados do SIGE', {
+      toast.error('Falha ao ler a planilha do SIGE', {
         id,
         description: errorMessage(e),
       })
     } finally {
       setImporting(false)
     }
+  }
+
+  const saveAddresses = async (
+    corrections: AddressCorrection[],
+  ): Promise<void> => {
+    if (!preview) return
+    setImporting(true)
+    const ok = await commitImport(preview.filePath, corrections)
+    setImporting(false)
+    if (!ok) return
+    setAddressOpen(false)
+    setPreview(null)
+  }
+
+  const skipAddresses = async (): Promise<void> => {
+    if (!preview) return
+    setImporting(true)
+    const ok = await commitImport(preview.filePath, [])
+    setImporting(false)
+    if (!ok) return
+    setAddressOpen(false)
+    setPreview(null)
   }
 
   if (!api) {
@@ -364,6 +416,19 @@ export function App() {
               </Tabs>
             </DialogContent>
           </Dialog>
+
+          <AddressDialog
+            open={addressOpen}
+            onOpenChange={open => {
+              setAddressOpen(open)
+              if (!open) setPreview(null)
+            }}
+            pending={preview?.pending ?? []}
+            busy={importing}
+            mode="import"
+            onSave={saveAddresses}
+            onSkip={skipAddresses}
+          />
 
           {error ? (
             <p className="text-xs text-destructive no-print">Erro: {error}</p>
