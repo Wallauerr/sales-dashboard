@@ -193,11 +193,75 @@ function normalizeRow(raw: RawBaseRow): Sale {
   })
 }
 
+export function previewImport(
+  db: SalesDatabase,
+  filePath: string,
+): ImportPreview {
+  const rows = readWorkbook(filePath)
+  const existing = new Set(
+    (
+      db.raw.prepare('SELECT codigo FROM vendas').all() as unknown as {
+        codigo: string
+      }[]
+    ).map(r => r.codigo),
+  )
+  const overrides = db.getAddressOverrides()
+  const pending = new Map<string, PendingAddress>()
+  const seen = new Set<string>()
+  let newCount = 0
+  let existingCount = 0
+  let discarded = 0
+
+  for (const raw of rows) {
+    if (!String(raw.Código ?? '').trim()) {
+      discarded += 1
+      continue
+    }
+    let sale = normalizeRow(raw)
+    const override = overrides.get(sale.code)
+    if (override) {
+      sale = {
+        ...sale,
+        city: override.city,
+        state: override.state,
+        region: override.region,
+      }
+    }
+    if (!seen.has(sale.code)) {
+      seen.add(sale.code)
+      if (existing.has(sale.code)) existingCount += 1
+      else newCount += 1
+    }
+    if (isBillingSale(sale) && (!sale.state || !sale.region)) {
+      pending.set(sale.code, {
+        code: sale.code,
+        customer: sale.customer,
+        city: sale.city,
+        state: sale.state,
+        region: sale.region,
+        totalValue: sale.totalValue,
+        date: sale.date,
+        systemStatus: sale.systemStatus,
+      })
+    }
+  }
+
+  return {
+    filePath,
+    totalRows: rows.length,
+    newCount,
+    existingCount,
+    discarded,
+    pending: [...pending.values()],
+  }
+}
+
 export async function importWorkbook(
   db: SalesDatabase,
   filePath: string,
 ): Promise<ImportResult> {
   const rows = readWorkbook(filePath)
+  const overrides = db.getAddressOverrides()
   const result: ImportResult = {
     filePath,
     totalRows: rows.length,
@@ -224,8 +288,17 @@ export async function importWorkbook(
       }
       // O código do SIGE é sequencial e não muda quando o orçamento vira
       // pedido, então a reconciliação nunca apaga linha.
-      const nr = normalizeRow(raw)
-      const op = db.upsertSale(nr)
+      let sale = normalizeRow(raw)
+      const override = overrides.get(sale.code)
+      if (override) {
+        sale = {
+          ...sale,
+          city: override.city,
+          state: override.state,
+          region: override.region,
+        }
+      }
+      const op = db.upsertSale(sale)
       if (op === 'inserted') {
         result.inserted += 1
       } else if (op === 'updated') {
@@ -233,13 +306,13 @@ export async function importWorkbook(
       }
       if (op !== 'unchanged') {
         items.push({
-          code: nr.code,
+          code: sale.code,
           op,
-          systemStatus: nr.systemStatus,
-          totalValue: nr.totalValue,
-          date: nr.date,
-          month: nr.month,
-          year: nr.year,
+          systemStatus: sale.systemStatus,
+          totalValue: sale.totalValue,
+          date: sale.date,
+          month: sale.month,
+          year: sale.year,
         })
       }
     }

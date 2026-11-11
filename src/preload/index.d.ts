@@ -1,5 +1,6 @@
 import type { ReleaseNote } from '../shared/releases'
 import type {
+  AddressCorrection,
   AutoStartView,
   BackupExportResult,
   BackupMergeResult,
@@ -7,9 +8,11 @@ import type {
   DbStats,
   GoalConfigView,
   GoalSetInput,
+  ImportPreview,
   ImportRecord,
   ImportResult,
   KpiSnapshot,
+  PendingAddress,
   PhotoResult,
   SellerPhoto,
   SnapshotScope,
@@ -25,7 +28,13 @@ interface WindowBounds {
 }
 
 interface Api {
-  importWorkbook: () => Promise<ImportResult | null>
+  previewImport: () => Promise<ImportPreview | null>
+  commitImport: (
+    filePath: string,
+    corrections: AddressCorrection[],
+  ) => Promise<ImportResult>
+  listPendingAddresses: () => Promise<PendingAddress[]>
+  saveAddressOverrides: (corrections: AddressCorrection[]) => Promise<number>
   getImports: () => Promise<ImportRecord[]>
   getCodeHistory: (code: string) => Promise<CodeHistory>
   getSnapshot: (year: number, scope?: SnapshotScope) => Promise<KpiSnapshot>
