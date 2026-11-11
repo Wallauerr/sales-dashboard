@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MONTH_LABEL } from '@/lib/labels'
+import { MONTH_LABEL, originLabel } from '@/lib/labels'
 import { cn } from '@/lib/utils'
 import type { Month } from '../../../shared/types'
 import { MONTHS } from '../../../shared/types'
@@ -25,6 +25,9 @@ export function DashboardHeader({
   months,
   onMonth,
   onClearMonths,
+  origins,
+  originOptions,
+  onOrigins,
   view,
   importing,
   onImport,
@@ -36,6 +39,9 @@ export function DashboardHeader({
   months: Month[]
   onMonth: (m: Month) => void
   onClearMonths: () => void
+  origins: string[]
+  originOptions: string[]
+  onOrigins: (origins: string[]) => void
   view: 'dashboard' | 'history'
   importing: boolean
   onImport: () => void
@@ -48,6 +54,12 @@ export function DashboardHeader({
       : months.length === 1
         ? MONTH_LABEL[months[0]]
         : `${months.length} meses`
+  const originText =
+    origins.length === 0
+      ? 'Todas as origens'
+      : origins.length === 1
+        ? originLabel(origins[0])
+        : `${origins.length} origens`
   return (
     <header className="flex flex-wrap items-center justify-between gap-4">
       <div>
@@ -112,6 +124,58 @@ export function DashboardHeader({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        {view === 'dashboard' && originOptions.length > 1 ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="h-9 w-40 justify-between gap-2 px-3 text-sm font-normal">
+                <span className="truncate">{originText}</span>
+                <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem
+                onSelect={() => onOrigins([])}
+                className="justify-between">
+                Todas as origens
+                {origins.length === 0 ? (
+                  <span className="size-4 text-primary">
+                    <CheckIcon className="size-4" />
+                  </span>
+                ) : null}
+              </DropdownMenuItem>
+              {originOptions.includes('E-commerce') ? (
+                <DropdownMenuItem
+                  onSelect={() => onOrigins(['E-commerce'])}
+                  className="justify-between">
+                  Só E-commerce
+                  {origins.length === 1 && origins[0] === 'E-commerce' ? (
+                    <span className="size-4 text-primary">
+                      <CheckIcon className="size-4" />
+                    </span>
+                  ) : null}
+                </DropdownMenuItem>
+              ) : null}
+              <DropdownMenuSeparator />
+              {originOptions.map(o => (
+                <DropdownMenuCheckboxItem
+                  key={o}
+                  checked={origins.includes(o)}
+                  onSelect={e => {
+                    e.preventDefault()
+                    onOrigins(
+                      origins.includes(o)
+                        ? origins.filter(x => x !== o)
+                        : [...origins, o],
+                    )
+                  }}>
+                  {originLabel(o)}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
         <Button onClick={onImport} disabled={importing}>
           <FileUpIcon className="size-4" />
           {importing ? 'Importando…' : 'Importar dados do SIGE'}
