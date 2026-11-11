@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { ReleaseNote } from '../shared/releases.ts'
 import type {
+  AddressCorrection,
   AutoStartView,
   BackupExportResult,
   BackupMergeResult,
@@ -8,9 +9,11 @@ import type {
   DbStats,
   GoalConfigView,
   GoalSetInput,
+  ImportPreview,
   ImportRecord,
   ImportResult,
   KpiSnapshot,
+  PendingAddress,
   PhotoResult,
   SellerPhoto,
   SnapshotScope,
@@ -26,8 +29,18 @@ export interface WindowBounds {
 }
 
 const api = {
-  importWorkbook: () =>
-    ipcRenderer.invoke('ingest:import') as Promise<ImportResult | null>,
+  previewImport: () =>
+    ipcRenderer.invoke('ingest:preview') as Promise<ImportPreview | null>,
+  commitImport: (filePath: string, corrections: AddressCorrection[]) =>
+    ipcRenderer.invoke(
+      'ingest:commit',
+      filePath,
+      corrections,
+    ) as Promise<ImportResult>,
+  listPendingAddresses: () =>
+    ipcRenderer.invoke('addresses:pending') as Promise<PendingAddress[]>,
+  saveAddressOverrides: (corrections: AddressCorrection[]) =>
+    ipcRenderer.invoke('addresses:save', corrections) as Promise<number>,
   getImports: () =>
     ipcRenderer.invoke('ingest:imports') as Promise<ImportRecord[]>,
   getCodeHistory: (code: string) =>

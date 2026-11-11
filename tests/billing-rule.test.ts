@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { SalesDatabase } from '../src/main/db/database.ts'
 import { importWorkbook } from '../src/main/ingest/index.ts'
 import { getSnapshot } from '../src/main/kpis/index.ts'
+import { isBillingSale } from '../src/shared/billing.ts'
 import type { KpiSnapshot } from '../src/shared/types.ts'
 import { writeWorkbook } from './fixtures/workbook.ts'
 
@@ -120,5 +121,22 @@ describe('regra de faturamento', () => {
     ])
     expect(s.billingByMonth.jan).toBe(600)
     expect(s.quantityByMonth.jan).toBe(1)
+  })
+
+  it('isBillingSale tem paridade com a cláusula SQL', () => {
+    const cases: [string, string, boolean][] = [
+      ['Pedido', '', true],
+      ['Pedido Faturado', '', true],
+      ['Pedido Aprovado Sem Faturamento', 'Operacional', true],
+      ['Pedido Aprovado Sem Faturamento', '', true],
+      ['Pedido Aprovado Sem Faturamento', 'Remessa', false],
+      ['Pedido Aprovado Sem Faturamento', 'Amostra', false],
+      ['Pedido Aprovado Sem Faturamento', 'Remessa amostra grátis', false],
+      ['Pedido Cancelado', '', false],
+      ['Orçamento', '', false],
+    ]
+    for (const [systemStatus, category, expected] of cases) {
+      expect(isBillingSale({ systemStatus, category })).toBe(expected)
+    }
   })
 })

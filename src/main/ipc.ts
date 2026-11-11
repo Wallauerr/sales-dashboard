@@ -11,7 +11,11 @@ import {
 } from 'electron'
 import { z } from 'zod'
 import { REPO_URL } from '../shared/repo.ts'
-import { goalSetInputSchema, sellerNameSchema } from '../shared/schemas.ts'
+import {
+  addressCorrectionSchema,
+  goalSetInputSchema,
+  sellerNameSchema,
+} from '../shared/schemas.ts'
 import type { SnapshotScope } from '../shared/types.ts'
 import {
   AUTOSTART_SUPPORTED,
@@ -25,7 +29,7 @@ import {
   mergeBackup,
   resetImportedData,
 } from './db/maintenance.ts'
-import { importWorkbook } from './ingest/index.ts'
+import { importWorkbook, previewImport } from './ingest/index.ts'
 import { getGoalConfig, getSnapshot, setGoalConfig } from './kpis/index.ts'
 import { readChosenPhoto } from './photos/pick.ts'
 import { listReleases } from './releases/notes.ts'
@@ -37,10 +41,27 @@ import {
 } from './updater/index.ts'
 
 export function registerIpc(db: SalesDatabase): void {
-  ipcMain.handle('ingest:import', async () => {
+  ipcMain.handle('ingest:preview', async () => {
     const filePath = await pickWorkbookPath()
     if (!filePath) return null
-    return importWorkbook(db, filePath)
+    return previewImport(db, filePath)
+  })
+
+  ipcMain.handle(
+    'ingest:commit',
+    (_event, filePath: unknown, corrections: unknown) => {
+      const path = z.string().min(1).parse(filePath)
+      const parsed = z.array(addressCorrectionSchema).parse(corrections ?? [])
+      db.saveAddressOverrides(parsed)
+      return importWorkbook(db, path)
+    },
+  )
+
+  ipcMain.handle('addresses:pending', () => db.listPendingAddresses())
+
+  ipcMain.handle('addresses:save', (_event, corrections: unknown) => {
+    const parsed = z.array(addressCorrectionSchema).parse(corrections ?? [])
+    return db.saveAddressOverrides(parsed)
   })
 
   ipcMain.handle('ingest:imports', () => {

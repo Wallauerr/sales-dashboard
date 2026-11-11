@@ -126,6 +126,26 @@ describe('manutenção de dados', () => {
     expect(target.listImports()).toHaveLength(1)
   })
 
+  it('merge traz correções de endereço e reaplica nas vendas', async () => {
+    const source = await seededDb('backup.db')
+    source.saveAddressOverrides([{ code: '1001', city: 'Alegre', state: 'RS' }])
+    const target = openDb(new DatabaseSync(':memory:'))
+
+    const result = mergeBackup(target, source.path as string)
+
+    expect(result.addressOverrides).toBe(1)
+    expect(target.getAddressOverrides().get('1001')).toEqual({
+      city: 'Alegre',
+      state: 'RS',
+      region: 'Sul',
+    })
+    expect(target.findSaleByCode('1001')).toMatchObject({
+      city: 'Alegre',
+      state: 'RS',
+      region: 'Sul',
+    })
+  })
+
   it('merge atualiza venda existente em vez de duplicar', async () => {
     const source = await seededDb('backup.db')
     const target = openDb(new DatabaseSync(':memory:'))

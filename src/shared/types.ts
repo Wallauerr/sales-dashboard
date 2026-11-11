@@ -92,6 +92,33 @@ export interface BackupMergeResult {
   disabledSellers: number
   imports: number
   historyItems: number
+  addressOverrides: number
+}
+
+export interface PendingAddress {
+  code: string
+  customer: string
+  city: string
+  state: string
+  region: string
+  totalValue: number
+  date: string | null
+  systemStatus: string
+}
+
+export interface ImportPreview {
+  filePath: string
+  totalRows: number
+  newCount: number
+  existingCount: number
+  discarded: number
+  pending: PendingAddress[]
+}
+
+export interface AddressCorrection {
+  code: string
+  city: string
+  state: string
 }
 
 export interface BackupExportResult {

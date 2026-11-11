@@ -1,11 +1,13 @@
 import {
   DatabaseIcon,
   DownloadIcon,
+  MapPinIcon,
   Trash2Icon,
   UploadIcon,
 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { AddressDialog } from '@/components/address-dialog'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -25,7 +27,11 @@ import {
 import { Input } from '@/components/ui/input'
 import { errorMessage } from '@/lib/errors'
 import { int } from '@/lib/format'
-import type { DbStats } from '../../../../shared/types'
+import type {
+  AddressCorrection,
+  DbStats,
+  PendingAddress,
+} from '../../../../shared/types'
 
 interface Props {
   onChanged: () => void
@@ -39,6 +45,8 @@ export function DataCard({ onChanged }: Props) {
   const [busy, setBusy] = useState<string | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [typed, setTyped] = useState('')
+  const [pending, setPending] = useState<PendingAddress[]>([])
+  const [reviewOpen, setReviewOpen] = useState(false)
 
   const loadStats = useCallback(async () => {
     if (!window.api) return
@@ -51,9 +59,21 @@ export function DataCard({ onChanged }: Props) {
     }
   }, [])
 
+  const loadPending = useCallback(async () => {
+    if (!window.api) return
+    try {
+      setPending(await window.api.listPendingAddresses())
+    } catch (e) {
+      toast.error('Não foi possível ler os endereços pendentes', {
+        description: errorMessage(e),
+      })
+    }
+  }, [])
+
   useEffect(() => {
     void loadStats()
-  }, [loadStats])
+    void loadPending()
+  }, [loadStats, loadPending])
 
   if (!api) return null
 
@@ -89,13 +109,36 @@ export function DataCard({ onChanged }: Props) {
     })
   }
 
+  const saveAddresses = async (
+    corrections: AddressCorrection[],
+  ): Promise<void> => {
+    setBusy('addresses')
+    try {
+      const saved = await api.saveAddressOverrides(corrections)
+      setPending(await api.listPendingAddresses())
+      setStats(await api.getDbStats())
+      onChanged()
+      toast.success('Endereços atualizados', {
+        description: `${int(saved)} pedido${saved === 1 ? '' : 's'} corrigido${saved === 1 ? '' : 's'}.`,
+      })
+      setReviewOpen(false)
+    } catch (e) {
+      toast.error('Não foi possível salvar os endereços', {
+        description: errorMessage(e),
+      })
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const resetData = async (): Promise<void> => {
     setStats(await api.resetData())
     setConfirmOpen(false)
     setTyped('')
     onChanged()
     toast.success('Dados importados apagados', {
-      description: 'Metas, fotos e vendedores desativados foram mantidos.',
+      description:
+        'Metas, fotos, vendedores desativados e correções de endereço foram mantidos.',
     })
   }
 
@@ -109,9 +152,10 @@ export function DataCard({ onChanged }: Props) {
       <CardHeader>
         <CardTitle>Dados</CardTitle>
         <CardDescription>
-          Exporte um backup do banco, restaure um backup antigo ou apague os
-          dados importados da planilha do SIGE. Metas, fotos e vendedores
-          desativados são preservados ao apagar.
+          Exporte um backup do banco, restaure um backup antigo, corrija
+          endereços pendentes ou apague os dados importados da planilha do SIGE.
+          Metas, fotos, vendedores desativados e correções de endereço são
+          preservados ao apagar.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -142,6 +186,16 @@ export function DataCard({ onChanged }: Props) {
             onClick={() => void run('import', importData)}>
             <UploadIcon />
             {busy === 'import' ? 'Importando…' : 'Importar backup'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy !== null || pending.length === 0}
+            onClick={() => setReviewOpen(true)}>
+            <MapPinIcon />
+            {pending.length === 0
+              ? 'Endereços em dia'
+              : `Revisar endereços (${int(pending.length)})`}
           </Button>
           <Button
             type="button"
@@ -203,6 +257,15 @@ export function DataCard({ onChanged }: Props) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <AddressDialog
+          open={reviewOpen}
+          onOpenChange={setReviewOpen}
+          pending={pending}
+          busy={busy === 'addresses'}
+          mode="review"
+          onSave={saveAddresses}
+        />
       </CardContent>
     </Card>
   )

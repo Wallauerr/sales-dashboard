@@ -1,10 +1,18 @@
 import type { DatabaseSync } from 'node:sqlite'
+import { billingClause } from '../../shared/billing.ts'
 import { saleSchema } from '../../shared/schemas.ts'
+import {
+  canonicalRegion,
+  canonicalState,
+  isValidState,
+} from '../../shared/states.ts'
 import type {
+  AddressCorrection,
   CodeHistory,
   ImportCodeEvent,
   ImportRecord,
   Month,
+  PendingAddress,
   Sale,
 } from '../../shared/types.ts'
 import { MONTHS, NO_SELLER_LABEL } from '../../shared/types.ts'
@@ -84,9 +92,17 @@ CREATE TABLE IF NOT EXISTS vendedor_fotos (
 CREATE TABLE IF NOT EXISTS vendedor_desativado (
   vendedor TEXT PRIMARY KEY
 );
+
+CREATE TABLE IF NOT EXISTS sale_address_override (
+  codigo TEXT PRIMARY KEY,
+  cidade TEXT NOT NULL DEFAULT '',
+  estado TEXT NOT NULL DEFAULT '',
+  regiao TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `
 
-export const SCHEMA_VERSION = 9
+export const SCHEMA_VERSION = 10
 
 // v8 -> v9: vendedor pode ser desativado (some do ranking/filtro) sem apagar as
 // vendas, que continuam contando nas métricas globais.
@@ -528,6 +544,93 @@ export class SalesDatabase {
       )
       .all() as unknown as { vendedor: string }[]
     return rows.map(r => r.vendedor).filter(v => v !== NO_SELLER_LABEL)
+  }
+
+  getAddressOverrides(): Map<
+    string,
+    { city: string; state: string; region: string }
+  > {
+    const rows = this.db
+      .prepare(
+        'SELECT codigo, cidade, estado, regiao FROM sale_address_override',
+      )
+      .all() as unknown as {
+      codigo: string
+      cidade: string
+      estado: string
+      regiao: string
+    }[]
+    return new Map(
+      rows.map(r => [
+        r.codigo,
+        { city: r.cidade, state: r.estado, region: r.regiao },
+      ]),
+    )
+  }
+
+  saveAddressOverrides(rows: AddressCorrection[]): number {
+    if (rows.length === 0) return 0
+    const upsert = this.db.prepare(
+      `INSERT INTO sale_address_override (codigo, cidade, estado, regiao, updated_at)
+       VALUES (?, ?, ?, ?, datetime('now'))
+       ON CONFLICT(codigo) DO UPDATE SET
+         cidade = excluded.cidade,
+         estado = excluded.estado,
+         regiao = excluded.regiao,
+         updated_at = excluded.updated_at`,
+    )
+    const updateSale = this.db.prepare(
+      'UPDATE vendas SET cidade = ?, estado = ?, regiao = ? WHERE codigo = ?',
+    )
+    let saved = 0
+    this.db.exec('BEGIN')
+    try {
+      for (const row of rows) {
+        const state = canonicalState(row.state)
+        if (!isValidState(state)) continue
+        const city = row.city.trim()
+        const region = canonicalRegion(state, '')
+        upsert.run(row.code, city, state, region)
+        updateSale.run(city, state, region, row.code)
+        saved += 1
+      }
+      this.db.exec('COMMIT')
+    } catch (err) {
+      this.db.exec('ROLLBACK')
+      throw err
+    }
+    return saved
+  }
+
+  listPendingAddresses(): PendingAddress[] {
+    const clause = billingClause()
+    const rows = this.db
+      .prepare(
+        `SELECT codigo, cliente, cidade, estado, regiao, valor_total, data, status_sistema
+         FROM vendas
+         WHERE ${clause.sql} AND (estado = '' OR regiao = '')
+         ORDER BY cliente COLLATE NOCASE, codigo`,
+      )
+      .all(...clause.params) as unknown as {
+      codigo: string
+      cliente: string
+      cidade: string
+      estado: string
+      regiao: string
+      valor_total: number
+      data: string | null
+      status_sistema: string
+    }[]
+    return rows.map(r => ({
+      code: r.codigo,
+      customer: r.cliente,
+      city: r.cidade,
+      state: r.estado,
+      region: r.regiao,
+      totalValue: r.valor_total,
+      date: r.data,
+      systemStatus: r.status_sistema,
+    }))
   }
 
   listDisabledSellers(): string[] {

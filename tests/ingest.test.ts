@@ -5,14 +5,13 @@ import { describe, expect, it } from 'vitest'
 import { SalesDatabase } from '../src/main/db/database.ts'
 import { importWorkbook } from '../src/main/ingest/index.ts'
 import {
-  canonicalRegion,
-  canonicalState,
   monthKey,
   parseDate,
   referenceDate,
   statusRaw,
   titleCase,
 } from '../src/main/ingest/normalize.ts'
+import { canonicalRegion, canonicalState } from '../src/shared/states.ts'
 import { makeSaleRow } from './fixtures/factories.ts'
 import { writeWorkbook } from './fixtures/workbook.ts'
 

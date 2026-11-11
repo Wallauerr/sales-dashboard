@@ -1,3 +1,4 @@
+import { billingClause } from '../../shared/billing.ts'
 import type {
   AverageTicket,
   FunnelMonth,
@@ -9,14 +10,7 @@ import type {
   MonthlyGoal,
   SnapshotScope,
 } from '../../shared/types.ts'
-import {
-  APPROVED_WITHOUT_BILLING_STATUS,
-  BILLING_STATUSES,
-  MONTHS,
-  NO_SELLER_LABEL,
-  NO_STATE_LABEL,
-  NON_BILLING_CATEGORIES,
-} from '../../shared/types.ts'
+import { MONTHS, NO_SELLER_LABEL, NO_STATE_LABEL } from '../../shared/types.ts'
 import type { SalesDatabase } from '../db/database.ts'
 
 const PRODUCT_SELLERS: Record<string, string[]> = {
@@ -41,24 +35,6 @@ const REGION_POSITION: Record<string, { x: number; y: number }> = {
 interface Scope {
   where: string
   params: (string | number)[]
-}
-
-// Filtro de faturamento: `Pedido`/`Pedido Faturado` sempre entram;
-// `Pedido Aprovado Sem Faturamento` só quando a categoria não é remessa nem
-// amostra — categoria vazia conta.
-function billingClause(): { sql: string; params: string[] } {
-  const inStatus = BILLING_STATUSES.map(() => '?').join(', ')
-  const notLike = NON_BILLING_CATEGORIES.map(() => 'categoria NOT LIKE ?').join(
-    ' AND ',
-  )
-  return {
-    sql: `(status_sistema IN (${inStatus}) OR (status_sistema = ? AND ${notLike}))`,
-    params: [
-      ...BILLING_STATUSES,
-      APPROVED_WITHOUT_BILLING_STATUS,
-      ...NON_BILLING_CATEGORIES,
-    ],
-  }
 }
 
 // O filtro de faturamento é opcional porque o funil e o nº de fechamento contam

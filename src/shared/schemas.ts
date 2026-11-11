@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isValidState } from './states.ts'
 
 export const MONTHS = [
   'jan',
@@ -117,3 +118,9 @@ export const sellerNameSchema = z
   .min(1)
   .max(120)
   .refine(v => !v.includes('/'), 'Nome de vendedor inválido.')
+
+export const addressCorrectionSchema = z.object({
+  code: z.string().trim().min(1),
+  city: z.string().trim().max(120),
+  state: z.string().trim().refine(isValidState, 'UF inválida.'),
+})
