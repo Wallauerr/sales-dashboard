@@ -1,12 +1,18 @@
 import { readFileSync } from 'node:fs'
 import * as XLSX from 'xlsx'
+import { isBillingSale } from '../../shared/billing.ts'
 import { importResultSchema, saleSchema } from '../../shared/schemas.ts'
-import type { ImportResult, Month, Sale } from '../../shared/types.ts'
+import { canonicalRegion, canonicalState } from '../../shared/states.ts'
+import type {
+  ImportPreview,
+  ImportResult,
+  Month,
+  PendingAddress,
+  Sale,
+} from '../../shared/types.ts'
 import { MONTHS } from '../../shared/types.ts'
 import type { SalesDatabase } from '../db/database.ts'
 import {
-  canonicalRegion,
-  canonicalState,
   monthKey,
   parseDate,
   referenceDate,
