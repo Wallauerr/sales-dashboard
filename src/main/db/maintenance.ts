@@ -72,9 +72,11 @@ export function mergeBackup(
       disabledSellers: 0,
       imports: 0,
       historyItems: 0,
+      addressOverrides: 0,
     }
     db.raw.exec('BEGIN')
     try {
+      result.addressOverrides = mergeAddressOverrides(db, backup)
       result.sales = mergeSales(db, backup)
       result.goals = mergeGoals(db, backup)
       result.photos = mergePhotos(db, backup)
@@ -132,12 +134,57 @@ function assertBackupIsValid(backup: DatabaseSync): void {
   }
 }
 
+function mergeAddressOverrides(
+  db: SalesDatabase,
+  backup: DatabaseSync,
+): number {
+  const tables = (
+    backup
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+      .all() as unknown as { name: string }[]
+  ).map(r => r.name)
+  if (!tables.includes('sale_address_override')) return 0
+  const rows = backup
+    .prepare('SELECT codigo, cidade, estado, regiao FROM sale_address_override')
+    .all() as unknown as {
+    codigo: string
+    cidade: string
+    estado: string
+    regiao: string
+  }[]
+  const insert = db.raw.prepare(
+    `INSERT INTO sale_address_override (codigo, cidade, estado, regiao, updated_at)
+     VALUES (?, ?, ?, ?, datetime('now'))
+     ON CONFLICT(codigo) DO UPDATE SET
+       cidade = excluded.cidade,
+       estado = excluded.estado,
+       regiao = excluded.regiao,
+       updated_at = excluded.updated_at`,
+  )
+  for (const row of rows) {
+    insert.run(row.codigo, row.cidade, row.estado, row.regiao)
+  }
+  return rows.length
+}
+
 function mergeSales(db: SalesDatabase, backup: DatabaseSync): number {
   const rows = backup
     .prepare('SELECT * FROM vendas')
     .all() as unknown as Record<string, unknown>[]
+  const overrides = db.getAddressOverrides()
   for (const row of rows) {
-    db.upsertSale(saleSchema.parse(rowToSale(row)))
+    const sale = saleSchema.parse(rowToSale(row))
+    const override = overrides.get(sale.code)
+    db.upsertSale(
+      override
+        ? {
+            ...sale,
+            city: override.city,
+            state: override.state,
+            region: override.region,
+          }
+        : sale,
+    )
   }
   return rows.length
 }
