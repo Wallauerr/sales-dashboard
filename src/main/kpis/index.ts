@@ -94,6 +94,10 @@ function scope(
     where.push(`vendedor IN (${[...values].map(() => '?').join(', ')})`)
     params.push(...values)
   }
+  if (filter?.origins?.length) {
+    where.push(`origem IN (${filter.origins.map(() => '?').join(', ')})`)
+    params.push(...filter.origins)
+  }
   return { where: `WHERE ${where.join(' AND ')}`, params }
 }
 
