@@ -33,6 +33,7 @@ interface Api {
   setGoalConfig: (year: number, input: GoalSetInput) => Promise<GoalConfigView>
   getPhotos: () => Promise<SellerPhoto[]>
   listSellers: () => Promise<string[]>
+  listOrigins: () => Promise<string[]>
   listDisabledSellers: () => Promise<string[]>
   setSellerDisabled: (seller: string, disabled: boolean) => Promise<void>
   listYears: () => Promise<number[]>

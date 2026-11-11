@@ -40,6 +40,7 @@ const api = {
     ipcRenderer.invoke('goals:set', year, input) as Promise<GoalConfigView>,
   getPhotos: () => ipcRenderer.invoke('photos:list') as Promise<SellerPhoto[]>,
   listSellers: () => ipcRenderer.invoke('sellers:list') as Promise<string[]>,
+  listOrigins: () => ipcRenderer.invoke('origins:list') as Promise<string[]>,
   listDisabledSellers: () =>
     ipcRenderer.invoke('sellers:disabled') as Promise<string[]>,
   setSellerDisabled: (seller: string, disabled: boolean) =>

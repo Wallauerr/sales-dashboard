@@ -62,6 +62,8 @@ export function registerIpc(db: SalesDatabase): void {
 
   ipcMain.handle('sellers:list', () => db.listSellers())
 
+  ipcMain.handle('origins:list', () => db.listOrigins())
+
   ipcMain.handle('sellers:disabled', () => db.listDisabledSellers())
 
   ipcMain.handle(
