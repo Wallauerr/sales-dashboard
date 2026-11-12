@@ -104,7 +104,7 @@ describe('correções de endereço', () => {
     await importWorkbook(
       db,
       writeWorkbook([
-        row({ code: '1', customer: 'Alfa' }),
+        row({ code: '1', customer: 'Alfa', city: 'Alegre' }),
         row({ code: '2', customer: 'Alfa' }),
         row({ code: '3', customer: 'Beta' }),
       ]),
@@ -112,8 +112,8 @@ describe('correções de endereço', () => {
     expect(db.listPendingAddresses().map(p => p.code)).toEqual(['1', '2', '3'])
 
     const saved = db.saveAddressOverrides([
-      { code: '1', city: 'Alegre', state: 'rs' },
-      { code: '2', city: 'Alegre', state: 'rs' },
+      { code: '1', state: 'rs' },
+      { code: '2', state: 'rs' },
     ])
 
     expect(saved).toBe(2)
@@ -126,15 +126,14 @@ describe('correções de endereço', () => {
       estado: 'RS',
       regiao: 'Sul',
     })
+    expect(db.getAddressOverride('1')).toEqual({ state: 'RS', region: 'Sul' })
   })
 
   it('ignora UF inválida', async () => {
     const db = openDb()
     await importWorkbook(db, writeWorkbook([row({ code: '1' })]))
 
-    expect(
-      db.saveAddressOverrides([{ code: '1', city: 'X', state: 'ZZ' }]),
-    ).toBe(0)
+    expect(db.saveAddressOverrides([{ code: '1', state: 'ZZ' }])).toBe(0)
     expect(db.getAddressOverrides().size).toBe(0)
     expect(db.listPendingAddresses()).toHaveLength(1)
   })
@@ -143,7 +142,7 @@ describe('correções de endereço', () => {
     const db = openDb()
     const file = writeWorkbook([row({ code: '1' })])
     await importWorkbook(db, file)
-    db.saveAddressOverrides([{ code: '1', city: 'Alegre', state: 'RS' }])
+    db.saveAddressOverrides([{ code: '1', state: 'RS' }])
 
     await importWorkbook(db, file)
 
@@ -151,7 +150,7 @@ describe('correções de endereço', () => {
       .prepare("SELECT cidade, estado, regiao FROM vendas WHERE codigo = '1'")
       .get()
     expect(stored).toMatchObject({
-      cidade: 'Alegre',
+      cidade: '',
       estado: 'RS',
       regiao: 'Sul',
     })
@@ -159,10 +158,110 @@ describe('correções de endereço', () => {
 
   it('não pede endereço já coberto por override', () => {
     const db = openDb()
-    db.saveAddressOverrides([{ code: '1', city: 'Alegre', state: 'RS' }])
+    db.saveAddressOverrides([{ code: '1', state: 'RS' }])
 
     const preview = previewImport(db, writeWorkbook([row({ code: '1' })]))
 
     expect(preview.pending).toHaveLength(0)
+  })
+})
+
+describe('edição de pedido já preenchido', () => {
+  it('troca a UF e restaura o valor da planilha ao limpar o override', async () => {
+    const db = openDb()
+    await importWorkbook(
+      db,
+      writeWorkbook([row({ code: '1', state: 'SP', region: 'Sudeste' })]),
+    )
+    expect(db.listPendingAddresses()).toHaveLength(0)
+
+    db.saveAddressOverrides([{ code: '1', state: 'rs' }])
+
+    expect(db.findSaleByCode('1')).toMatchObject({
+      state: 'RS',
+      region: 'Sul',
+    })
+    expect(db.getAddressOverride('1')).toEqual({ state: 'RS', region: 'Sul' })
+
+    expect(db.clearAddressOverride('1')).toBe(true)
+    expect(db.getAddressOverride('1')).toBeNull()
+    expect(db.findSaleByCode('1')).toMatchObject({
+      state: 'SP',
+      region: 'Sudeste',
+    })
+    expect(db.clearAddressOverride('1')).toBe(false)
+  })
+
+  it('atualiza o valor original quando a planilha muda', async () => {
+    const db = openDb()
+    await importWorkbook(
+      db,
+      writeWorkbook([row({ code: '1', state: 'SP', region: 'Sudeste' })]),
+    )
+    db.saveAddressOverrides([{ code: '1', state: 'RS' }])
+
+    await importWorkbook(
+      db,
+      writeWorkbook([row({ code: '1', state: 'PR', region: 'Sul' })]),
+    )
+    expect(db.findSaleByCode('1')).toMatchObject({
+      state: 'RS',
+      region: 'Sul',
+    })
+
+    db.clearAddressOverride('1')
+    expect(db.findSaleByCode('1')).toMatchObject({
+      state: 'PR',
+      region: 'Sul',
+    })
+  })
+
+  it('preserva o override original ao corrigir de novo', async () => {
+    const db = openDb()
+    await importWorkbook(
+      db,
+      writeWorkbook([row({ code: '1', state: 'SP', region: 'Sudeste' })]),
+    )
+
+    db.saveAddressOverrides([{ code: '1', state: 'RS' }])
+    db.saveAddressOverrides([{ code: '1', state: 'PR' }])
+    db.clearAddressOverride('1')
+
+    expect(db.findSaleByCode('1')).toMatchObject({
+      state: 'SP',
+      region: 'Sudeste',
+    })
+  })
+})
+
+describe('migração do schema', () => {
+  it('adiciona as colunas originais em bancos v10', () => {
+    const raw = new DatabaseSync(':memory:')
+    raw.exec(`
+      CREATE TABLE sale_address_override (
+        codigo TEXT PRIMARY KEY,
+        cidade TEXT NOT NULL DEFAULT '',
+        estado TEXT NOT NULL DEFAULT '',
+        regiao TEXT NOT NULL DEFAULT '',
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      INSERT INTO sale_address_override (codigo, cidade, estado, regiao)
+      VALUES ('1', 'Alegre', 'RS', 'Sul');
+      PRAGMA user_version = 10;
+    `)
+
+    const db = SalesDatabase.open(raw)
+    const cols = (
+      raw.prepare('PRAGMA table_info(sale_address_override)').all() as {
+        name: string
+      }[]
+    ).map(c => c.name)
+
+    expect(cols).toContain('estado_original')
+    expect(cols).toContain('regiao_original')
+    expect(raw.prepare('PRAGMA user_version').get()).toEqual({
+      user_version: 11,
+    })
+    expect(db.getAddressOverride('1')).toEqual({ state: 'RS', region: 'Sul' })
   })
 })

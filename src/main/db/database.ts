@@ -8,6 +8,7 @@ import {
 } from '../../shared/states.ts'
 import type {
   AddressCorrection,
+  AddressOverride,
   CodeHistory,
   ImportCodeEvent,
   ImportRecord,
@@ -98,11 +99,13 @@ CREATE TABLE IF NOT EXISTS sale_address_override (
   cidade TEXT NOT NULL DEFAULT '',
   estado TEXT NOT NULL DEFAULT '',
   regiao TEXT NOT NULL DEFAULT '',
+  estado_original TEXT NOT NULL DEFAULT '',
+  regiao_original TEXT NOT NULL DEFAULT '',
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 `
 
-export const SCHEMA_VERSION = 10
+export const SCHEMA_VERSION = 11
 
 // v8 -> v9: vendedor pode ser desativado (some do ranking/filtro) sem apagar as
 // vendas, que continuam contando nas métricas globais.
@@ -112,6 +115,23 @@ function dropFotoOrigemColumn(db: DatabaseSync): void {
   }[]
   if (!cols.some(c => c.name === 'origem')) return
   db.exec('ALTER TABLE vendedor_fotos DROP COLUMN origem')
+}
+
+// v10 -> v11: guarda o valor da planilha para o "restaurar" do ajuste manual.
+function addOverrideOriginalColumns(db: DatabaseSync): void {
+  const cols = db.prepare('PRAGMA table_info(sale_address_override)').all() as {
+    name: string
+  }[]
+  if (!cols.some(c => c.name === 'estado_original')) {
+    db.exec(
+      "ALTER TABLE sale_address_override ADD COLUMN estado_original TEXT NOT NULL DEFAULT ''",
+    )
+  }
+  if (!cols.some(c => c.name === 'regiao_original')) {
+    db.exec(
+      "ALTER TABLE sale_address_override ADD COLUMN regiao_original TEXT NOT NULL DEFAULT ''",
+    )
+  }
 }
 
 export class SalesDatabase {
@@ -134,12 +154,12 @@ export class SalesDatabase {
       } catch {
         // tabela ainda não existe (instalação nova) — o SCHEMA abaixo cria.
       }
-      db.exec(SCHEMA)
-      dropFotoOrigemColumn(db)
+    }
+    db.exec(SCHEMA)
+    dropFotoOrigemColumn(db)
+    addOverrideOriginalColumns(db)
+    if (user_version < SCHEMA_VERSION) {
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`)
-    } else {
-      db.exec(SCHEMA)
-      dropFotoOrigemColumn(db)
     }
   }
 
@@ -546,41 +566,44 @@ export class SalesDatabase {
     return rows.map(r => r.vendedor).filter(v => v !== NO_SELLER_LABEL)
   }
 
-  getAddressOverrides(): Map<
-    string,
-    { city: string; state: string; region: string }
-  > {
+  getAddressOverrides(): Map<string, AddressOverride> {
     const rows = this.db
-      .prepare(
-        'SELECT codigo, cidade, estado, regiao FROM sale_address_override',
-      )
+      .prepare('SELECT codigo, estado, regiao FROM sale_address_override')
       .all() as unknown as {
       codigo: string
-      cidade: string
       estado: string
       regiao: string
     }[]
     return new Map(
-      rows.map(r => [
-        r.codigo,
-        { city: r.cidade, state: r.estado, region: r.regiao },
-      ]),
+      rows.map(r => [r.codigo, { state: r.estado, region: r.regiao }]),
     )
+  }
+
+  getAddressOverride(code: string): AddressOverride | null {
+    const row = this.db
+      .prepare(
+        'SELECT estado, regiao FROM sale_address_override WHERE codigo = ?',
+      )
+      .get(code) as { estado: string; regiao: string } | undefined
+    return row ? { state: row.estado, region: row.regiao } : null
   }
 
   saveAddressOverrides(rows: AddressCorrection[]): number {
     if (rows.length === 0) return 0
+    const current = this.db.prepare(
+      'SELECT estado, regiao FROM vendas WHERE codigo = ?',
+    )
     const upsert = this.db.prepare(
-      `INSERT INTO sale_address_override (codigo, cidade, estado, regiao, updated_at)
-       VALUES (?, ?, ?, ?, datetime('now'))
+      `INSERT INTO sale_address_override
+         (codigo, estado, regiao, estado_original, regiao_original, updated_at)
+       VALUES (?, ?, ?, ?, ?, datetime('now'))
        ON CONFLICT(codigo) DO UPDATE SET
-         cidade = excluded.cidade,
          estado = excluded.estado,
          regiao = excluded.regiao,
          updated_at = excluded.updated_at`,
     )
     const updateSale = this.db.prepare(
-      'UPDATE vendas SET cidade = ?, estado = ?, regiao = ? WHERE codigo = ?',
+      'UPDATE vendas SET estado = ?, regiao = ? WHERE codigo = ?',
     )
     let saved = 0
     this.db.exec('BEGIN')
@@ -588,10 +611,18 @@ export class SalesDatabase {
       for (const row of rows) {
         const state = canonicalState(row.state)
         if (!isValidState(state)) continue
-        const city = row.city.trim()
         const region = canonicalRegion(state, '')
-        upsert.run(row.code, city, state, region)
-        updateSale.run(city, state, region, row.code)
+        const sale = current.get(row.code) as
+          | { estado: string; regiao: string }
+          | undefined
+        upsert.run(
+          row.code,
+          state,
+          region,
+          sale?.estado ?? '',
+          sale?.regiao ?? '',
+        )
+        updateSale.run(state, region, row.code)
         saved += 1
       }
       this.db.exec('COMMIT')
@@ -600,6 +631,43 @@ export class SalesDatabase {
       throw err
     }
     return saved
+  }
+
+  refreshAddressOverrideOriginals(
+    code: string,
+    state: string,
+    region: string,
+  ): void {
+    this.db
+      .prepare(
+        'UPDATE sale_address_override SET estado_original = ?, regiao_original = ? WHERE codigo = ?',
+      )
+      .run(state, region, code)
+  }
+
+  clearAddressOverride(code: string): boolean {
+    const row = this.db
+      .prepare(
+        'SELECT estado_original, regiao_original FROM sale_address_override WHERE codigo = ?',
+      )
+      .get(code) as
+      | { estado_original: string; regiao_original: string }
+      | undefined
+    if (!row) return false
+    this.db.exec('BEGIN')
+    try {
+      this.db
+        .prepare('UPDATE vendas SET estado = ?, regiao = ? WHERE codigo = ?')
+        .run(row.estado_original, row.regiao_original, code)
+      this.db
+        .prepare('DELETE FROM sale_address_override WHERE codigo = ?')
+        .run(code)
+      this.db.exec('COMMIT')
+    } catch (err) {
+      this.db.exec('ROLLBACK')
+      throw err
+    }
+    return true
   }
 
   listPendingAddresses(): PendingAddress[] {

@@ -15,6 +15,7 @@ import type {
   KpiSnapshot,
   PendingAddress,
   PhotoResult,
+  SaleLookup,
   SellerPhoto,
   SnapshotScope,
   UpdateState,
@@ -41,6 +42,10 @@ const api = {
     ipcRenderer.invoke('addresses:pending') as Promise<PendingAddress[]>,
   saveAddressOverrides: (corrections: AddressCorrection[]) =>
     ipcRenderer.invoke('addresses:save', corrections) as Promise<number>,
+  clearAddressOverride: (code: string) =>
+    ipcRenderer.invoke('addresses:clear', code) as Promise<boolean>,
+  findSale: (code: string) =>
+    ipcRenderer.invoke('sales:find', code) as Promise<SaleLookup | null>,
   getImports: () =>
     ipcRenderer.invoke('ingest:imports') as Promise<ImportRecord[]>,
   getCodeHistory: (code: string) =>

@@ -14,6 +14,7 @@ import type {
   KpiSnapshot,
   PendingAddress,
   PhotoResult,
+  SaleLookup,
   SellerPhoto,
   SnapshotScope,
   UpdateState,
@@ -35,6 +36,8 @@ interface Api {
   ) => Promise<ImportResult>
   listPendingAddresses: () => Promise<PendingAddress[]>
   saveAddressOverrides: (corrections: AddressCorrection[]) => Promise<number>
+  clearAddressOverride: (code: string) => Promise<boolean>
+  findSale: (code: string) => Promise<SaleLookup | null>
   getImports: () => Promise<ImportRecord[]>
   getCodeHistory: (code: string) => Promise<CodeHistory>
   getSnapshot: (year: number, scope?: SnapshotScope) => Promise<KpiSnapshot>

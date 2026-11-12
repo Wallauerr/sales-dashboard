@@ -128,21 +128,26 @@ describe('manutenção de dados', () => {
 
   it('merge traz correções de endereço e reaplica nas vendas', async () => {
     const source = await seededDb('backup.db')
-    source.saveAddressOverrides([{ code: '1001', city: 'Alegre', state: 'RS' }])
+    const original = source.findSaleByCode('1001')
+    source.saveAddressOverrides([{ code: '1001', state: 'RS' }])
     const target = openDb(new DatabaseSync(':memory:'))
 
     const result = mergeBackup(target, source.path as string)
 
     expect(result.addressOverrides).toBe(1)
     expect(target.getAddressOverrides().get('1001')).toEqual({
-      city: 'Alegre',
       state: 'RS',
       region: 'Sul',
     })
     expect(target.findSaleByCode('1001')).toMatchObject({
-      city: 'Alegre',
       state: 'RS',
       region: 'Sul',
+    })
+
+    target.clearAddressOverride('1001')
+    expect(target.findSaleByCode('1001')).toMatchObject({
+      state: original?.state,
+      region: original?.region,
     })
   })
 

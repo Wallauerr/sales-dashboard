@@ -220,12 +220,7 @@ export function previewImport(
     let sale = normalizeRow(raw)
     const override = overrides.get(sale.code)
     if (override) {
-      sale = {
-        ...sale,
-        city: override.city,
-        state: override.state,
-        region: override.region,
-      }
+      sale = { ...sale, state: override.state, region: override.region }
     }
     if (!seen.has(sale.code)) {
       seen.add(sale.code)
@@ -291,12 +286,8 @@ export async function importWorkbook(
       let sale = normalizeRow(raw)
       const override = overrides.get(sale.code)
       if (override) {
-        sale = {
-          ...sale,
-          city: override.city,
-          state: override.state,
-          region: override.region,
-        }
+        db.refreshAddressOverrideOriginals(sale.code, sale.state, sale.region)
+        sale = { ...sale, state: override.state, region: override.region }
       }
       const op = db.upsertSale(sale)
       if (op === 'inserted') {
