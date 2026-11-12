@@ -7,6 +7,7 @@ import {
   brlHumanDate,
   brlInputValue,
   int,
+  isoDate,
   maskBrlText,
   maskPctText,
   pct,
@@ -42,6 +43,16 @@ describe('brlHumanDate', () => {
 
   it('devolve a entrada quando não for data válida', () => {
     expect(brlHumanDate('nao-e-data')).toBe('nao-e-data')
+  })
+})
+
+describe('isoDate', () => {
+  it('formata a data ISO sem hora', () => {
+    expect(isoDate('2026-07-12T14:30')).toBe('12/07/2026')
+  })
+
+  it('devolve a entrada quando não for data válida', () => {
+    expect(isoDate('nao-e-data')).toBe('nao-e-data')
   })
 })
 

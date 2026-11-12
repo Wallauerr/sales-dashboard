@@ -3,6 +3,7 @@ import {
   correctionsFromDrafts,
   draftsFromGroups,
   groupByCustomer,
+  normalizeSaleCode,
   regionForState,
   validDraftCount,
 } from '../../src/renderer/src/lib/addresses.ts'
@@ -49,7 +50,7 @@ describe('agrupamento de endereços pendentes', () => {
     ])
 
     expect(draftsFromGroups(groups)).toEqual({
-      Alfa: { city: 'Alegre', state: 'RS' },
+      Alfa: { state: 'RS' },
     })
   })
 
@@ -60,27 +61,32 @@ describe('agrupamento de endereços pendentes', () => {
       pending({ code: '3', customer: 'Beta' }),
     ])
     const drafts = {
-      Alfa: { city: '  Alegre  ', state: 'rs' },
-      Beta: { city: 'Porto', state: 'ZZ' },
+      Alfa: { state: 'rs' },
+      Beta: { state: 'ZZ' },
     }
 
     expect(correctionsFromDrafts(groups, drafts)).toEqual([
-      { code: '1', city: 'Alegre', state: 'RS' },
-      { code: '2', city: 'Alegre', state: 'RS' },
+      { code: '1', state: 'RS' },
+      { code: '2', state: 'RS' },
     ])
     expect(validDraftCount(groups, drafts)).toBe(1)
   })
 
   it('não gera correção sem UF preenchida', () => {
     const groups = groupByCustomer([pending({ code: '1' })])
-    expect(
-      correctionsFromDrafts(groups, { Cliente: { city: 'Alegre', state: '' } }),
-    ).toEqual([])
+    expect(correctionsFromDrafts(groups, { Cliente: { state: '' } })).toEqual(
+      [],
+    )
   })
 
   it('deriva a região da UF', () => {
     expect(regionForState('rs')).toBe('Sul')
     expect(regionForState('SP')).toBe('Sudeste')
     expect(regionForState('')).toBe('')
+  })
+
+  it('normaliza o código buscado', () => {
+    expect(normalizeSaleCode('  1234 ')).toBe('1234')
+    expect(normalizeSaleCode('abc-9')).toBe('ABC-9')
   })
 })
