@@ -64,6 +64,16 @@ export function registerIpc(db: SalesDatabase): void {
     return db.saveAddressOverrides(parsed)
   })
 
+  ipcMain.handle('addresses:clear', (_event, code: unknown) => {
+    return db.clearAddressOverride(z.string().trim().min(1).parse(code))
+  })
+
+  ipcMain.handle('sales:find', (_event, code: unknown) => {
+    const sale = db.findSaleByCode(z.string().trim().min(1).parse(code))
+    if (!sale) return null
+    return { sale, override: db.getAddressOverride(sale.code) }
+  })
+
   ipcMain.handle('ingest:imports', () => {
     return db.listImports()
   })

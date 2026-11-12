@@ -121,6 +121,5 @@ export const sellerNameSchema = z
 
 export const addressCorrectionSchema = z.object({
   code: z.string().trim().min(1),
-  city: z.string().trim().max(120),
   state: z.string().trim().refine(isValidState, 'UF inválida.'),
 })

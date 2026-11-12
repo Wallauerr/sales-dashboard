@@ -144,25 +144,57 @@ function mergeAddressOverrides(
       .all() as unknown as { name: string }[]
   ).map(r => r.name)
   if (!tables.includes('sale_address_override')) return 0
+  const cols = (
+    backup
+      .prepare('PRAGMA table_info(sale_address_override)')
+      .all() as unknown as {
+      name: string
+    }[]
+  ).map(c => c.name)
+  const hasOriginal =
+    cols.includes('estado_original') && cols.includes('regiao_original')
   const rows = backup
-    .prepare('SELECT codigo, cidade, estado, regiao FROM sale_address_override')
+    .prepare(
+      `SELECT codigo, cidade, estado, regiao,
+         ${hasOriginal ? 'estado_original' : "'' AS estado_original"},
+         ${hasOriginal ? 'regiao_original' : "'' AS regiao_original"}
+       FROM sale_address_override`,
+    )
     .all() as unknown as {
     codigo: string
     cidade: string
     estado: string
     regiao: string
+    estado_original: string
+    regiao_original: string
   }[]
   const insert = db.raw.prepare(
-    `INSERT INTO sale_address_override (codigo, cidade, estado, regiao, updated_at)
-     VALUES (?, ?, ?, ?, datetime('now'))
+    `INSERT INTO sale_address_override
+       (codigo, cidade, estado, regiao, estado_original, regiao_original, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
      ON CONFLICT(codigo) DO UPDATE SET
        cidade = excluded.cidade,
        estado = excluded.estado,
        regiao = excluded.regiao,
+       estado_original = CASE
+         WHEN excluded.estado_original <> '' THEN excluded.estado_original
+         ELSE sale_address_override.estado_original
+       END,
+       regiao_original = CASE
+         WHEN excluded.regiao_original <> '' THEN excluded.regiao_original
+         ELSE sale_address_override.regiao_original
+       END,
        updated_at = excluded.updated_at`,
   )
   for (const row of rows) {
-    insert.run(row.codigo, row.cidade, row.estado, row.regiao)
+    insert.run(
+      row.codigo,
+      row.cidade,
+      row.estado,
+      row.regiao,
+      row.estado_original,
+      row.regiao_original,
+    )
   }
   return rows.length
 }
@@ -177,12 +209,7 @@ function mergeSales(db: SalesDatabase, backup: DatabaseSync): number {
     const override = overrides.get(sale.code)
     db.upsertSale(
       override
-        ? {
-            ...sale,
-            city: override.city,
-            state: override.state,
-            region: override.region,
-          }
+        ? { ...sale, state: override.state, region: override.region }
         : sale,
     )
   }

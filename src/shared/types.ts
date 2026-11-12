@@ -117,8 +117,17 @@ export interface ImportPreview {
 
 export interface AddressCorrection {
   code: string
-  city: string
   state: string
+}
+
+export interface AddressOverride {
+  state: string
+  region: string
+}
+
+export interface SaleLookup {
+  sale: Sale
+  override: AddressOverride | null
 }
 
 export interface BackupExportResult {
