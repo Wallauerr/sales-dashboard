@@ -1,5 +1,6 @@
 import { SearchIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { StateSelect } from '@/components/state-select'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -19,8 +20,6 @@ import {
   validDraftCount,
 } from '@/lib/addresses'
 import { brl0 } from '@/lib/format'
-import { cn } from '@/lib/utils'
-import { canonicalState, isValidState } from '../../../shared/states'
 import type { AddressCorrection, PendingAddress } from '../../../shared/types'
 
 interface Props {
@@ -61,7 +60,7 @@ export function AddressDialog({
 
   const setDraft = (customer: string, patch: Partial<AddressDraft>): void => {
     setDrafts(prev => {
-      const current = prev[customer] ?? { city: '', state: '' }
+      const current = prev[customer] ?? { state: '' }
       return { ...prev, [customer]: { ...current, ...patch } }
     })
   }
@@ -72,9 +71,9 @@ export function AddressDialog({
         <DialogHeader>
           <DialogTitle>Endereços pendentes</DialogTitle>
           <DialogDescription>
-            {pending.length} pedido(s) faturado(s) sem UF/região. Preencha a UF
-            (a região é derivada) e a cidade; o ajuste fica salvo por cliente e
-            é reaplicado nas próximas importações.
+            {pending.length} pedido(s) faturado(s) sem UF/região. Escolha a UF
+            (a região é derivada); o ajuste fica salvo por cliente e é
+            reaplicado nas próximas importações.
           </DialogDescription>
         </DialogHeader>
 
@@ -100,9 +99,7 @@ export function AddressDialog({
             </p>
           ) : (
             filtered.map(group => {
-              const draft = drafts[group.customer] ?? { city: '', state: '' }
-              const state = canonicalState(draft.state)
-              const invalid = state.length === 2 && !isValidState(state)
+              const draft = drafts[group.customer] ?? { state: '' }
               return (
                 <div
                   key={group.customer}
@@ -122,36 +119,13 @@ export function AddressDialog({
                         : ''}
                     </p>
                   </div>
-                  <Input
-                    className="w-36"
-                    placeholder="Cidade"
-                    aria-label={`Cidade de ${group.customer}`}
-                    value={draft.city}
-                    onChange={e =>
-                      setDraft(group.customer, { city: e.target.value })
-                    }
-                  />
-                  <Input
-                    className={cn(
-                      'w-16 text-center uppercase',
-                      invalid && 'border-destructive',
-                    )}
-                    placeholder="UF"
-                    maxLength={2}
-                    aria-label={`UF de ${group.customer}`}
-                    aria-invalid={invalid}
+                  <StateSelect
                     value={draft.state}
-                    onChange={e =>
-                      setDraft(group.customer, {
-                        state: e.target.value
-                          .toUpperCase()
-                          .replace(/[^A-Z]/g, '')
-                          .slice(0, 2),
-                      })
-                    }
+                    onChange={state => setDraft(group.customer, { state })}
+                    ariaLabel={`UF de ${group.customer}`}
                   />
                   <span className="w-24 text-xs text-muted-foreground">
-                    {state ? regionForState(state) || '—' : '—'}
+                    {draft.state ? regionForState(draft.state) || '—' : '—'}
                   </span>
                 </div>
               )

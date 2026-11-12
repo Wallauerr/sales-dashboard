@@ -12,7 +12,6 @@ export interface CustomerGroup {
 }
 
 export interface AddressDraft {
-  city: string
   state: string
 }
 
@@ -42,8 +41,7 @@ export function draftsFromGroups(
 ): Record<string, AddressDraft> {
   const drafts: Record<string, AddressDraft> = {}
   for (const group of groups) {
-    const first = group.items[0]
-    drafts[group.customer] = { city: first.city, state: first.state }
+    drafts[group.customer] = { state: group.items[0].state }
   }
   return drafts
 }
@@ -58,9 +56,8 @@ export function correctionsFromDrafts(
     if (!draft) continue
     const state = canonicalState(draft.state)
     if (!isValidState(state)) continue
-    const city = draft.city.trim()
     for (const item of group.items) {
-      corrections.push({ code: item.code, city, state })
+      corrections.push({ code: item.code, state })
     }
   }
   return corrections
@@ -78,4 +75,8 @@ export function validDraftCount(
 
 export function regionForState(state: string): string {
   return canonicalRegion(canonicalState(state), '')
+}
+
+export function normalizeSaleCode(term: string): string {
+  return term.trim().toUpperCase()
 }
