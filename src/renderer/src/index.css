@@ -190,6 +190,42 @@ body {
   display: none;
 }
 
+@keyframes retro-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes retro-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.retro-slide {
+  animation: retro-fade-up 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.retro-bar {
+  transform-origin: left center;
+  animation: retro-grow 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .retro-slide,
+  .retro-bar {
+    animation: none;
+  }
+}
+
 @media print {
   @page {
     size: A4;

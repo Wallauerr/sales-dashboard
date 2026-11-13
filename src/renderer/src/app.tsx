@@ -26,6 +26,7 @@ import { HistoryTab } from '@/components/history/history-tab'
 import { buildKpis, periodLabel } from '@/components/kpi/build-kpis'
 import { KpiCard } from '@/components/kpi/kpi-card'
 import { ReleaseNotesDialog } from '@/components/release-notes'
+import { Retrospective } from '@/components/retrospective'
 import { SellerCards } from '@/components/sellers/seller-cards'
 import { TitleBar } from '@/components/title-bar'
 import {
@@ -66,6 +67,7 @@ export function App() {
   const [selectedSellers, setSelectedSellers] = useState<string[]>([])
   const [view, setView] = useState<'dashboard' | 'history'>('dashboard')
   const [goalsOpen, setGoalsOpen] = useState(false)
+  const [retroOpen, setRetroOpen] = useState(false)
   const [layoutResetKey, setLayoutResetKey] = useState(0)
   const [whatsNew, setWhatsNew] = useState<{
     mode: WhatsNewMode
@@ -345,7 +347,14 @@ export function App() {
             importing={importing}
             onImport={() => void handleImport()}
             onOpenMeta={() => setGoalsOpen(true)}
+            onOpenRetrospective={() => setRetroOpen(true)}
             years={years}
+          />
+
+          <Retrospective
+            open={retroOpen}
+            year={year}
+            onClose={() => setRetroOpen(false)}
           />
 
           <Dialog open={goalsOpen} onOpenChange={setGoalsOpen}>

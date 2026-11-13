@@ -15,6 +15,21 @@ export const MONTH_LABEL: Record<Month, string> = {
   dez: 'Dez',
 }
 
+export const MONTH_FULL: Record<Month, string> = {
+  jan: 'Janeiro',
+  fev: 'Fevereiro',
+  mar: 'Março',
+  abr: 'Abril',
+  mai: 'Maio',
+  jun: 'Junho',
+  jul: 'Julho',
+  ago: 'Agosto',
+  set: 'Setembro',
+  out: 'Outubro',
+  nov: 'Novembro',
+  dez: 'Dezembro',
+}
+
 export function statusLabel(status: string): string {
   return status === 'Pedido Nao Faturado' ? 'Pedido Não Faturado' : status
 }

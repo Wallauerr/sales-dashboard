@@ -2,6 +2,7 @@ import {
   CheckIcon,
   ChevronDownIcon,
   FileUpIcon,
+  PresentationIcon,
   SettingsIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -29,6 +30,7 @@ export function DashboardHeader({
   importing,
   onImport,
   onOpenMeta,
+  onOpenRetrospective,
   years,
 }: {
   year: number
@@ -40,6 +42,7 @@ export function DashboardHeader({
   importing: boolean
   onImport: () => void
   onOpenMeta: () => void
+  onOpenRetrospective: () => void
   years: number[]
 }) {
   const selectedText =
@@ -112,6 +115,12 @@ export function DashboardHeader({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        {view === 'dashboard' ? (
+          <Button variant="outline" onClick={onOpenRetrospective}>
+            <PresentationIcon className="size-4" />
+            Retrospectiva
+          </Button>
+        ) : null}
         <Button onClick={onImport} disabled={importing}>
           <FileUpIcon className="size-4" />
           {importing ? 'Importando…' : 'Importar dados do SIGE'}
