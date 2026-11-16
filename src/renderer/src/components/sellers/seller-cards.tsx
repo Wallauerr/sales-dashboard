@@ -51,7 +51,7 @@ export function SellerCards({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" className="gap-2">
           <UsersIcon />
           <span className="max-w-40 truncate">
             {selected.length === 1
