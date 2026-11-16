@@ -2,9 +2,11 @@ import {
   CheckIcon,
   ChevronDownIcon,
   FileUpIcon,
+  HistoryIcon,
   PresentationIcon,
   SettingsIcon,
 } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -26,24 +28,26 @@ export function DashboardHeader({
   months,
   onMonth,
   onClearMonths,
-  view,
   importing,
   onImport,
   onOpenMeta,
+  onOpenHistory,
   onOpenRetrospective,
   years,
+  sellerFilter,
 }: {
   year: number
   onYear: (v: number) => void
   months: Month[]
   onMonth: (m: Month) => void
   onClearMonths: () => void
-  view: 'dashboard' | 'history'
   importing: boolean
   onImport: () => void
   onOpenMeta: () => void
+  onOpenHistory: () => void
   onOpenRetrospective: () => void
   years: number[]
+  sellerFilter?: ReactNode
 }) {
   const selectedText =
     months.length === 0
@@ -60,9 +64,7 @@ export function DashboardHeader({
         <h1 className="font-heading text-2xl font-semibold tracking-tight">
           Metas Comercial
         </h1>
-        <p className="text-sm text-muted-foreground">
-          {view === 'dashboard' ? 'Dashboard de vendas' : 'Histórico de vendas'}
-        </p>
+        <p className="text-sm text-muted-foreground">Dashboard de vendas</p>
       </div>
       <div className="no-print flex flex-wrap items-center gap-2">
         <div className="flex rounded-lg border bg-muted p-0.5">
@@ -115,15 +117,25 @@ export function DashboardHeader({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-        {view === 'dashboard' ? (
-          <Button variant="outline" onClick={onOpenRetrospective}>
-            <PresentationIcon className="size-4" />
-            Retrospectiva
-          </Button>
-        ) : null}
-        <Button onClick={onImport} disabled={importing}>
+        {sellerFilter}
+        <Button variant="outline" onClick={onOpenRetrospective}>
+          <PresentationIcon className="size-4" />
+          Retrospectiva
+        </Button>
+        <Button
+          onClick={onImport}
+          disabled={importing}
+          title="Importar dados do SIGE"
+          aria-label="Importar dados do SIGE">
           <FileUpIcon className="size-4" />
-          {importing ? 'Importando…' : 'Importar dados do SIGE'}
+          {importing ? 'Importando…' : 'Importar'}
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Abrir histórico"
+          onClick={onOpenHistory}>
+          <HistoryIcon className="size-4" />
         </Button>
         <Button
           variant="outline"
