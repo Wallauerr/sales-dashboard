@@ -5,6 +5,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Table,
   TableBody,
   TableCell,
@@ -14,24 +21,14 @@ import {
 } from '@/components/ui/table'
 import { errorMessage } from '@/lib/errors'
 import { brl0, brlHumanDate, int } from '@/lib/format'
+import {
+  activeImportYear,
+  filterImportsByPeriod,
+  importYears,
+} from '@/lib/history'
 import { fileName, MONTH_LABEL, statusLabel } from '@/lib/labels'
 import { cn } from '@/lib/utils'
 import type { CodeHistory, ImportRecord, Month } from '../../../../shared/types'
-
-const MONTH_NUM: Record<Month, string> = {
-  jan: '01',
-  fev: '02',
-  mar: '03',
-  abr: '04',
-  mai: '05',
-  jun: '06',
-  jul: '07',
-  ago: '08',
-  set: '09',
-  out: '10',
-  nov: '11',
-  dez: '12',
-}
 
 function StatusBadge({ status }: { status: string }) {
   return (
@@ -49,30 +46,31 @@ function StatusBadge({ status }: { status: string }) {
 
 export function HistoryTab({
   reloadKey,
-  year,
   months,
 }: {
   reloadKey: number
-  year: number
   months: Month[]
 }) {
   const [imports, setImports] = useState<ImportRecord[]>([])
   const [loadingImports, setLoadingImports] = useState(true)
   const [err, setErr] = useState<string | null>(null)
+  const [selectedYear, setSelectedYear] = useState<number | null>(null)
 
   const [codigo, setCodigo] = useState('')
   const [searching, setSearching] = useState(false)
   const [result, setResult] = useState<CodeHistory | null>(null)
   const [searched, setSearched] = useState<string | null>(null)
 
-  const filteredImports = useMemo(() => {
-    const yearPrefix = `${year}-`
-    return imports.filter(i => {
-      if (!i.importedAt.startsWith(yearPrefix)) return false
-      if (months.length === 0) return true
-      return months.some(m => i.importedAt.slice(5, 7) === MONTH_NUM[m])
-    })
-  }, [imports, year, months])
+  const years = useMemo(() => importYears(imports), [imports])
+  const activeYear = activeImportYear(years, selectedYear)
+
+  const filteredImports = useMemo(
+    () =>
+      activeYear === null
+        ? []
+        : filterImportsByPeriod(imports, activeYear, months),
+    [imports, activeYear, months],
+  )
 
   const loadImports = useCallback(async () => {
     if (!window.api) return
@@ -116,14 +114,37 @@ export function HistoryTab({
   return (
     <div className="flex flex-col gap-6">
       <Card>
-        <CardHeader className="flex-row items-center justify-between gap-3">
+        <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
           <CardTitle>Importações realizadas</CardTitle>
-          <span className="text-xs text-muted-foreground">
-            só de{' '}
-            {months.length === 0
-              ? year
-              : months.map(m => `${MONTH_LABEL[m]}/${year}`).join(' · ')}
-          </span>
+          {activeYear !== null ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                value={String(activeYear)}
+                onValueChange={value => setSelectedYear(Number(value))}>
+                <SelectTrigger
+                  size="sm"
+                  className="w-24"
+                  aria-label="Filtrar importações por ano">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map(y => (
+                    <SelectItem key={y} value={String(y)}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-xs text-muted-foreground">
+                só de{' '}
+                {months.length === 0
+                  ? activeYear
+                  : months
+                      .map(m => `${MONTH_LABEL[m]}/${activeYear}`)
+                      .join(' · ')}
+              </span>
+            </div>
+          ) : null}
         </CardHeader>
         <CardContent className="max-h-96 overflow-y-auto">
           {err ? (
@@ -144,7 +165,7 @@ export function HistoryTab({
               <p className="text-xs">
                 {imports.length === 0
                   ? 'Use o botão "Importar dados do SIGE" para alimentar o app.'
-                  : 'Ajuste o filtro de ano/mês para ver os imports de outro período.'}
+                  : 'Troque o ano acima ou o filtro de meses do dashboard para ver outro período.'}
               </p>
             </div>
           ) : (

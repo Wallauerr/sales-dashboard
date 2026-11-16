@@ -446,7 +446,7 @@ export function App() {
                 </DialogDescription>
               </DialogHeader>
               <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                <HistoryTab reloadKey={reload} year={year} months={months} />
+                <HistoryTab reloadKey={reload} months={months} />
               </div>
             </DialogContent>
           </Dialog>
