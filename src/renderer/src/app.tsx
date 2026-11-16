@@ -65,8 +65,8 @@ export function App() {
   const [years, setYears] = useState<number[]>([])
   const [months, setMonths] = useState<Month[]>([])
   const [selectedSellers, setSelectedSellers] = useState<string[]>([])
-  const [view, setView] = useState<'dashboard' | 'history'>('dashboard')
   const [goalsOpen, setGoalsOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [retroOpen, setRetroOpen] = useState(false)
   const [layoutResetKey, setLayoutResetKey] = useState(0)
   const [whatsNew, setWhatsNew] = useState<{
@@ -343,12 +343,23 @@ export function App() {
             months={months}
             onMonth={toggleMonth}
             onClearMonths={() => setMonths([])}
-            view={view}
             importing={importing}
             onImport={() => void handleImport()}
             onOpenMeta={() => setGoalsOpen(true)}
+            onOpenHistory={() => setHistoryOpen(true)}
             onOpenRetrospective={() => setRetroOpen(true)}
             years={years}
+            sellerFilter={
+              <SellerCards
+                year={year}
+                sellers={snap?.bySeller ?? []}
+                photos={photos}
+                selected={selectedSellers}
+                onSelect={toggleSeller}
+                onClear={() => setSelectedSellers([])}
+                disabled={disabled.length}
+              />
+            }
           />
 
           <Retrospective
@@ -426,6 +437,20 @@ export function App() {
             </DialogContent>
           </Dialog>
 
+          <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+            <DialogContent className="flex max-h-[85vh] flex-col gap-3 overflow-hidden sm:max-w-5xl">
+              <DialogHeader>
+                <DialogTitle>Histórico</DialogTitle>
+                <DialogDescription>
+                  Importações e pedidos do período selecionado.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                <HistoryTab reloadKey={reload} year={year} months={months} />
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <AddressDialog
             open={addressOpen}
             onOpenChange={open => {
@@ -443,260 +468,234 @@ export function App() {
             <p className="text-xs text-destructive no-print">Erro: {error}</p>
           ) : null}
 
-          <Tabs
-            value={view}
-            onValueChange={v => setView(v as 'dashboard' | 'history')}
-            className="flex min-h-0 flex-1 flex-col gap-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <TabsList className="w-fit">
-                <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-                <TabsTrigger value="history">Histórico</TabsTrigger>
-              </TabsList>
-              {view === 'dashboard' ? (
-                <SellerCards
-                  year={year}
-                  sellers={snap?.bySeller ?? []}
-                  photos={photos}
-                  selected={selectedSellers}
-                  onSelect={toggleSeller}
-                  onClear={() => setSelectedSellers([])}
-                  disabled={disabled.length}
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            {!snap ? (
+              <p className="py-16 text-center text-sm text-muted-foreground">
+                Carregando… (rode "Importar dados do SIGE" para carregar os
+                dados)
+              </p>
+            ) : (
+              <div className="flex flex-col">
+                <ActiveFilters
+                  months={months}
+                  sellers={selectedSellers}
+                  onClearMonth={m =>
+                    setMonths(prev => prev.filter(x => x !== m))
+                  }
+                  onClearSeller={n =>
+                    setSelectedSellers(prev => prev.filter(x => x !== n))
+                  }
+                  onClearAll={() => {
+                    setMonths([])
+                    setSelectedSellers([])
+                  }}
                 />
-              ) : null}
-            </div>
-            <TabsContent value="dashboard" className="flex flex-col gap-3">
-              {!snap ? (
-                <p className="py-16 text-center text-sm text-muted-foreground">
-                  Carregando… (rode "Importar dados do SIGE" para carregar os
-                  dados)
-                </p>
-              ) : (
-                <div className="flex flex-col">
-                  <ActiveFilters
-                    months={months}
-                    sellers={selectedSellers}
-                    onClearMonth={m =>
-                      setMonths(prev => prev.filter(x => x !== m))
-                    }
-                    onClearSeller={n =>
-                      setSelectedSellers(prev => prev.filter(x => x !== n))
-                    }
-                    onClearAll={() => {
-                      setMonths([])
-                      setSelectedSellers([])
-                    }}
-                  />
 
-                  <section
-                    className={cn('grid gap-2 sm:grid-cols-3', gridClass)}>
-                    {kpis.map(k => (
-                      <KpiCard
-                        key={k.title}
-                        title={k.title}
-                        value={k.value}
-                        hint={k.hint}
-                      />
-                    ))}
-                  </section>
+                <section className={cn('grid gap-2 sm:grid-cols-3', gridClass)}>
+                  {kpis.map(k => (
+                    <KpiCard
+                      key={k.title}
+                      title={k.title}
+                      value={k.value}
+                      hint={k.hint}
+                    />
+                  ))}
+                </section>
 
-                  <DashboardGrid resetKey={layoutResetKey}>
-                    {!monthActive ? (
-                      <ChartCard
-                        key="billing-monthly"
-                        headerClassName="card-drag-handle cursor-move"
-                        title={
-                          sellerTitle
-                            ? `Faturamento mensal — ${sellerTitle}`
-                            : 'Faturamento mensal × meta'
-                        }
-                        contentClassName="gap-2">
-                        <GroupedBars
-                          labels={MONTHS.map(m => MONTH_LABEL[m])}
-                          series={[
-                            {
-                              name: 'Realizado',
-                              kind: 'bar',
-                              color: chartColor(1),
-                              values: MONTHS.map(m => snap.billingByMonth[m]),
-                            },
-                            ...(!sellerTitle
-                              ? [
-                                  {
-                                    name: 'Meta',
-                                    kind: 'line' as const,
-                                    color: chartColor(3),
-                                    values: MONTHS.map(
-                                      (_m, i) => snap.monthlyGoals[i].goal,
-                                    ),
-                                  },
-                                ]
-                              : []),
-                          ]}
-                          onClick={i => toggleMonth(MONTHS[i])}
-                        />
-                      </ChartCard>
-                    ) : null}
-
-                    {!monthActive ? (
-                      <ChartCard
-                        key="cumulative"
-                        headerClassName="card-drag-handle cursor-move"
-                        title={
-                          sellerTitle
-                            ? `Acumulado ${year} — ${sellerTitle}`
-                            : 'Acumulado anual × meta'
-                        }>
-                        <AccumulatedLine
-                          labels={MONTHS.map(m => MONTH_LABEL[m])}
-                          values={MONTHS.map(m => snap.cumulativeByMonth[m])}
-                          target={sellerTitle ? undefined : snap.annualGoal}
-                        />
-                      </ChartCard>
-                    ) : null}
-
-                    {!monthActive ? (
-                      <ChartCard
-                        key="closing"
-                        headerClassName="card-drag-handle cursor-move"
-                        title="Nº de fechamento por mês">
-                        <GroupedBars
-                          labels={MONTHS.map(m => MONTH_LABEL[m])}
-                          valueFormat={v => int(v)}
-                          series={[
-                            {
-                              name: 'Orçamentos',
-                              kind: 'bar',
-                              color: chartColor(2),
-                              values: MONTHS.map(
-                                m => snap.closingCounts[m].quote,
-                              ),
-                            },
-                            {
-                              name: 'Pedidos',
-                              kind: 'bar',
-                              color: chartColor(3),
-                              values: MONTHS.map(
-                                m => snap.closingCounts[m].order,
-                              ),
-                            },
-                          ]}
-                        />
-                      </ChartCard>
-                    ) : null}
-
+                <DashboardGrid resetKey={layoutResetKey}>
+                  {!monthActive ? (
                     <ChartCard
-                      key="funnel"
+                      key="billing-monthly"
                       headerClassName="card-drag-handle cursor-move"
-                      title={`Funil de vendas · ${[
-                        sellerFilter,
-                        monthActive ? `${periodLabel(months)}/${year}` : year,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}`}>
-                      <HorizontalBars
-                        data={funnelItems(snap)}
-                        showValue
-                        valueFormat={int}
-                      />
-                    </ChartCard>
-
-                    <ChartCard
-                      key="regions"
-                      headerClassName="card-drag-handle cursor-move"
-                      title="Regiões"
+                      title={
+                        sellerTitle
+                          ? `Faturamento mensal — ${sellerTitle}`
+                          : 'Faturamento mensal × meta'
+                      }
                       contentClassName="gap-2">
-                      <RegionDonut data={regionDonutData(snap)} />
-                      <HorizontalBars
-                        data={regionBarData(snap)}
-                        valueFormat={brl0}
-                      />
-                    </ChartCard>
-
-                    <ChartCard
-                      key="states"
-                      headerClassName="card-drag-handle cursor-move"
-                      title="Estados">
-                      <HorizontalBars
-                        data={snap.byState.slice(0, 8).map(e => ({
-                          label: `${e.state} · ${pct(e.share)}`,
-                          value: e.value,
-                          color: chartColor(2),
-                        }))}
-                        valueFormat={brl0}
-                      />
-                    </ChartCard>
-
-                    <ChartCard
-                      key="ticket"
-                      headerClassName="card-drag-handle cursor-move"
-                      title="Ticket médio por produto">
-                      <div className="flex flex-1 flex-col justify-evenly gap-2">
-                        {snap.averageTickets.map(t => (
-                          <div
-                            key={t.product}
-                            className="flex items-center justify-between gap-2 text-sm">
-                            <div>
-                              <p className="font-medium">{t.product}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {int(t.volume)} vendas · {brl0(t.value)}
-                              </p>
-                            </div>
-                            <span className="text-lg font-semibold tabular-nums">
-                              {brl(t.ticket)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </ChartCard>
-
-                    <ChartCard
-                      key="history"
-                      headerClassName="card-drag-handle cursor-move"
-                      title="Histórico">
-                      <div className="flex flex-1 flex-col justify-evenly gap-3 text-sm">
-                        {[
+                      <GroupedBars
+                        labels={MONTHS.map(m => MONTH_LABEL[m])}
+                        series={[
                           {
-                            label: 'Faturamento total (todos os anos)',
-                            value: brl0(snap.historyTotal),
+                            name: 'Realizado',
+                            kind: 'bar',
+                            color: chartColor(1),
+                            values: MONTHS.map(m => snap.billingByMonth[m]),
                           },
-                          {
-                            label: `Participação de ${year}`,
-                            value: pct(snap.yearShare),
-                          },
-                          {
-                            label: `Base meta ${year}`,
-                            value: brl0(snap.annualGoalBase),
-                          },
-                          ...(snap.goalUnit === 'brl'
-                            ? []
-                            : [
+                          ...(!sellerTitle
+                            ? [
                                 {
-                                  label: 'Fator de meta',
-                                  value: `×${(snap.factor * 100).toFixed(0)}%`,
+                                  name: 'Meta',
+                                  kind: 'line' as const,
+                                  color: chartColor(3),
+                                  values: MONTHS.map(
+                                    (_m, i) => snap.monthlyGoals[i].goal,
+                                  ),
                                 },
-                              ]),
-                        ].map(row => (
-                          <div
-                            key={row.label}
-                            className="flex items-center justify-between">
-                            <span className="text-muted-foreground">
-                              {row.label}
-                            </span>
-                            <span className="font-semibold tabular-nums">
-                              {row.value}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                              ]
+                            : []),
+                        ]}
+                        onClick={i => toggleMonth(MONTHS[i])}
+                      />
                     </ChartCard>
-                  </DashboardGrid>
-                </div>
-              )}
-            </TabsContent>
-            <TabsContent value="history">
-              <HistoryTab reloadKey={reload} year={year} months={months} />
-            </TabsContent>
-          </Tabs>
+                  ) : null}
+
+                  {!monthActive ? (
+                    <ChartCard
+                      key="cumulative"
+                      headerClassName="card-drag-handle cursor-move"
+                      title={
+                        sellerTitle
+                          ? `Acumulado ${year} — ${sellerTitle}`
+                          : 'Acumulado anual × meta'
+                      }>
+                      <AccumulatedLine
+                        labels={MONTHS.map(m => MONTH_LABEL[m])}
+                        values={MONTHS.map(m => snap.cumulativeByMonth[m])}
+                        target={sellerTitle ? undefined : snap.annualGoal}
+                      />
+                    </ChartCard>
+                  ) : null}
+
+                  {!monthActive ? (
+                    <ChartCard
+                      key="closing"
+                      headerClassName="card-drag-handle cursor-move"
+                      title="Nº de fechamento por mês">
+                      <GroupedBars
+                        labels={MONTHS.map(m => MONTH_LABEL[m])}
+                        valueFormat={v => int(v)}
+                        series={[
+                          {
+                            name: 'Orçamentos',
+                            kind: 'bar',
+                            color: chartColor(2),
+                            values: MONTHS.map(
+                              m => snap.closingCounts[m].quote,
+                            ),
+                          },
+                          {
+                            name: 'Pedidos',
+                            kind: 'bar',
+                            color: chartColor(3),
+                            values: MONTHS.map(
+                              m => snap.closingCounts[m].order,
+                            ),
+                          },
+                        ]}
+                      />
+                    </ChartCard>
+                  ) : null}
+
+                  <ChartCard
+                    key="funnel"
+                    headerClassName="card-drag-handle cursor-move"
+                    title={`Funil de vendas · ${[
+                      sellerFilter,
+                      monthActive ? `${periodLabel(months)}/${year}` : year,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}`}>
+                    <HorizontalBars
+                      data={funnelItems(snap)}
+                      showValue
+                      valueFormat={int}
+                    />
+                  </ChartCard>
+
+                  <ChartCard
+                    key="regions"
+                    headerClassName="card-drag-handle cursor-move"
+                    title="Regiões"
+                    contentClassName="gap-2">
+                    <RegionDonut data={regionDonutData(snap)} />
+                    <HorizontalBars
+                      data={regionBarData(snap)}
+                      valueFormat={brl0}
+                    />
+                  </ChartCard>
+
+                  <ChartCard
+                    key="states"
+                    headerClassName="card-drag-handle cursor-move"
+                    title="Estados">
+                    <HorizontalBars
+                      data={snap.byState.slice(0, 8).map(e => ({
+                        label: `${e.state} · ${pct(e.share)}`,
+                        value: e.value,
+                        color: chartColor(2),
+                      }))}
+                      valueFormat={brl0}
+                    />
+                  </ChartCard>
+
+                  <ChartCard
+                    key="ticket"
+                    headerClassName="card-drag-handle cursor-move"
+                    title="Ticket médio por produto">
+                    <div className="flex flex-1 flex-col justify-evenly gap-2">
+                      {snap.averageTickets.map(t => (
+                        <div
+                          key={t.product}
+                          className="flex items-center justify-between gap-2 text-sm">
+                          <div>
+                            <p className="font-medium">{t.product}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {int(t.volume)} vendas · {brl0(t.value)}
+                            </p>
+                          </div>
+                          <span className="text-lg font-semibold tabular-nums">
+                            {brl(t.ticket)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </ChartCard>
+
+                  <ChartCard
+                    key="history"
+                    headerClassName="card-drag-handle cursor-move"
+                    title="Histórico">
+                    <div className="flex flex-1 flex-col justify-evenly gap-3 text-sm">
+                      {[
+                        {
+                          label: 'Faturamento total (todos os anos)',
+                          value: brl0(snap.historyTotal),
+                        },
+                        {
+                          label: `Participação de ${year}`,
+                          value: pct(snap.yearShare),
+                        },
+                        {
+                          label: `Base meta ${year}`,
+                          value: brl0(snap.annualGoalBase),
+                        },
+                        ...(snap.goalUnit === 'brl'
+                          ? []
+                          : [
+                              {
+                                label: 'Fator de meta',
+                                value: `×${(snap.factor * 100).toFixed(0)}%`,
+                              },
+                            ]),
+                      ].map(row => (
+                        <div
+                          key={row.label}
+                          className="flex items-center justify-between">
+                          <span className="text-muted-foreground">
+                            {row.label}
+                          </span>
+                          <span className="font-semibold tabular-nums">
+                            {row.value}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </ChartCard>
+                </DashboardGrid>
+              </div>
+            )}
+          </div>
         </main>
       </div>
       <ReleaseNotesDialog
