@@ -17,10 +17,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MONTH_LABEL } from '@/lib/labels'
-import { cn } from '@/lib/utils'
 import type { Month } from '../../../shared/types'
 import { MONTHS } from '../../../shared/types'
 import { ThemeToggle } from './theme-toggle'
+import { YearFilter } from './year-filter'
 
 export function DashboardHeader({
   year,
@@ -67,22 +67,7 @@ export function DashboardHeader({
         <p className="text-sm text-muted-foreground">Dashboard de vendas</p>
       </div>
       <div className="no-print flex flex-wrap items-center gap-2">
-        <div className="flex rounded-lg border bg-muted p-0.5">
-          {years.map(y => (
-            <button
-              key={y}
-              type="button"
-              onClick={() => onYear(y)}
-              className={cn(
-                'rounded-md cursor-pointer px-3 py-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                y === year
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}>
-              {y}
-            </button>
-          ))}
-        </div>
+        <YearFilter years={years} value={year} onValueChange={onYear} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
