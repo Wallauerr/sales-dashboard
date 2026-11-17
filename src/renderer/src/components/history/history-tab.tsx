@@ -5,13 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Table,
   TableBody,
   TableCell,
@@ -19,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { YearFilter } from '@/components/year-filter'
 import { errorMessage } from '@/lib/errors'
 import { brl0, brlHumanDate, int } from '@/lib/format'
 import {
@@ -118,23 +112,13 @@ export function HistoryTab({
           <CardTitle>Importações realizadas</CardTitle>
           {activeYear !== null ? (
             <div className="flex flex-wrap items-center gap-2">
-              <Select
-                value={String(activeYear)}
-                onValueChange={value => setSelectedYear(Number(value))}>
-                <SelectTrigger
-                  size="sm"
-                  className="w-24"
-                  aria-label="Filtrar importações por ano">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map(y => (
-                    <SelectItem key={y} value={String(y)}>
-                      {y}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <YearFilter
+                variant="select"
+                years={years}
+                value={activeYear}
+                onValueChange={setSelectedYear}
+                ariaLabel="Filtrar importações por ano"
+              />
               <span className="text-xs text-muted-foreground">
                 só de{' '}
                 {months.length === 0
