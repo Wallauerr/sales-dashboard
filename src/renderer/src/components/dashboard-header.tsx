@@ -67,7 +67,12 @@ export function DashboardHeader({
         <p className="text-sm text-muted-foreground">Dashboard de vendas</p>
       </div>
       <div className="no-print flex flex-wrap items-center gap-2">
-        <YearFilter years={years} value={year} onValueChange={onYear} />
+        <YearFilter
+          years={years}
+          value={year}
+          onValueChange={onYear}
+          maxVisible={3}
+        />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
