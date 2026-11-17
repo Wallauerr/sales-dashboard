@@ -69,7 +69,29 @@ export function YearFilter({
       data-variant="pills"
       className={cn('flex items-center gap-2', className)}>
       <div className="flex rounded-lg border bg-muted p-0.5">
-        {visible.map(year => (
+        {hidden.length > 0 ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 rounded-md text-muted-foreground hover:bg-transparent hover:text-foreground"
+                aria-label="Mais anos">
+                <EllipsisIcon className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-24">
+              {[...hidden].reverse().map(year => (
+                <DropdownMenuItem
+                  key={year}
+                  onSelect={() => onValueChange(year)}>
+                  {year}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
+        {[...visible].reverse().map(year => (
           <button
             key={year}
             type="button"
@@ -85,26 +107,6 @@ export function YearFilter({
           </button>
         ))}
       </div>
-      {hidden.length > 0 ? (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              className="size-8"
-              aria-label="Mais anos">
-              <EllipsisIcon className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-24">
-            {hidden.map(year => (
-              <DropdownMenuItem key={year} onSelect={() => onValueChange(year)}>
-                {year}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ) : null}
     </div>
   )
 }
