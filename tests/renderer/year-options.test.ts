@@ -41,10 +41,10 @@ describe('opções do seletor de anos', () => {
     })
   })
 
-  it('respeita um limite menor que 5', () => {
-    expect(yearOptions([2026, 2025, 2024, 2023], 2023, 2)).toEqual({
-      visible: [2026, 2023],
-      hidden: [2025, 2024],
+  it('respeita o limite de 3 pills e pina o selecionado', () => {
+    expect(yearOptions([2026, 2025, 2024, 2023], 2023, 3)).toEqual({
+      visible: [2026, 2025, 2023],
+      hidden: [2024],
     })
   })
 
