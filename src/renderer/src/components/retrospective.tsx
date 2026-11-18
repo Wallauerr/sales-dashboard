@@ -144,7 +144,7 @@ export function Retrospective({ open, year, onClose }: Props) {
       </header>
 
       <main
-        className="relative flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-6 pb-2"
+        className="relative flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-6 pb-2 [scrollbar-gutter:stable_both-edges]"
         aria-live="polite">
         {loading ? (
           <p className="text-sm text-muted-foreground">Carregando…</p>
@@ -157,11 +157,13 @@ export function Retrospective({ open, year, onClose }: Props) {
         ) : null}
       </main>
 
-      <footer className="relative flex items-center justify-between gap-4 px-6 py-4">
-        <p className="hidden text-xs text-muted-foreground sm:block">
-          ← → ou espaço para navegar · Esc para sair
-        </p>
-        <div className="flex items-center gap-1.5">
+      <footer className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-6 py-4">
+        <div className="min-w-0">
+          <p className="hidden text-xs text-muted-foreground sm:block">
+            ← → ou espaço para navegar · Esc para sair
+          </p>
+        </div>
+        <div className="flex items-center justify-center gap-1.5">
           {SLIDES.map((id, dot) => (
             <button
               key={id}
@@ -177,7 +179,7 @@ export function Retrospective({ open, year, onClose }: Props) {
             />
           ))}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center justify-end gap-1">
           <Button
             type="button"
             variant="ghost"
