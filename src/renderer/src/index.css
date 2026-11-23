@@ -6,16 +6,16 @@
 :root {
   --background: #f5f4f0;
   --foreground: #1a1a1a;
-  --card: #ffffff;
+  --card: #fbfaf7;
   --card-foreground: #1a1a1a;
-  --popover: #ffffff;
+  --popover: #fdfcf9;
   --popover-foreground: #1a1a1a;
   --primary: #e49e18;
   --primary-foreground: #1a1a1a;
   --secondary: #f0eadb;
   --secondary-foreground: #1a1a1a;
   --muted: #efede6;
-  --muted-foreground: #6b7280;
+  --muted-foreground: #5f5c56;
   --accent: #f3ecd9;
   --accent-foreground: #1a1a1a;
   --destructive: #dc2626;
