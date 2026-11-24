@@ -70,10 +70,11 @@ function MapBackground() {
               polygon.map(ring => ringPath(ring, xScale, yScale)).join(' '),
             )
             .join(' ')}
-          fill="var(--muted)"
+          fill="var(--secondary)"
           fillRule="evenodd"
-          stroke="var(--border)"
-          strokeWidth={0.6}
+          stroke="var(--muted-foreground)"
+          strokeOpacity={0.4}
+          strokeWidth={1}
         />
       ))}
     </g>
@@ -106,10 +107,14 @@ export function BrazilMap({
   const unmapped = unmappedStateValue(rows)
 
   return (
-    <div className={cn('flex flex-col items-center gap-1', className)}>
-      <div className="aspect-square w-full max-w-[160px]">
+    <div
+      className={cn(
+        'flex h-full flex-col items-center justify-center gap-1',
+        className,
+      )}>
+      <div className="relative aspect-square w-full max-h-full">
         <ChartContainer config={config} className="aspect-auto h-full w-full">
-          <ScatterChart margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
+          <ScatterChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
             <XAxis
               type="number"
               dataKey="x"
