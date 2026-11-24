@@ -604,11 +604,16 @@ export function App() {
                     key="regions"
                     headerClassName="card-drag-handle cursor-move"
                     title="Regiões"
-                    contentClassName="gap-2">
-                    <BrazilMap rows={snap.byState} />
+                    contentClassName="flex-row items-stretch gap-3">
                     <HorizontalBars
                       data={regionBarData(snap)}
                       valueFormat={brl0}
+                      labelWidth={128}
+                      className="w-auto min-w-0"
+                    />
+                    <BrazilMap
+                      rows={snap.byState}
+                      className="w-[52%] max-w-[300px] min-w-[180px] shrink-0"
                     />
                   </ChartCard>
 
