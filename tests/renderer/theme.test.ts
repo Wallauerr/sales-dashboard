@@ -1,6 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import {
+  applyTheme,
+  documentTheme,
+  resolveTheme,
+  type ThemeRoot,
+} from '../../src/renderer/src/lib/theme'
 
 const css = readFileSync(
   fileURLToPath(new URL('../../src/renderer/src/index.css', import.meta.url)),
@@ -63,5 +69,45 @@ describe('tema claro', () => {
     expect(
       contrast(token(light, 'muted-foreground'), card),
     ).toBeGreaterThanOrEqual(4.5)
+  })
+})
+
+describe('preferência de tema', () => {
+  it('respeita o valor salvo e cai para a preferência do sistema', () => {
+    expect(resolveTheme('dark', false)).toBe('dark')
+    expect(resolveTheme('light', true)).toBe('light')
+    expect(resolveTheme(null, true)).toBe('dark')
+    expect(resolveTheme(null, false)).toBe('light')
+  })
+
+  it('aplica a classe e o color-scheme no elemento raiz', () => {
+    const toggles: [string, boolean][] = []
+    const classes = new Set<string>()
+    const root = {
+      classList: {
+        contains: (name: string) => classes.has(name),
+        toggle: (name: string, force: boolean) => {
+          toggles.push([name, force])
+          if (force) classes.add(name)
+          else classes.delete(name)
+        },
+      },
+      style: { colorScheme: '' },
+    } satisfies ThemeRoot
+
+    applyTheme('dark', root)
+
+    expect(toggles).toEqual([['dark', true]])
+    expect(root.style.colorScheme).toBe('dark')
+    expect(documentTheme(root)).toBe('dark')
+
+    applyTheme('light', root)
+
+    expect(toggles).toEqual([
+      ['dark', true],
+      ['dark', false],
+    ])
+    expect(root.style.colorScheme).toBe('light')
+    expect(documentTheme(root)).toBe('light')
   })
 })
