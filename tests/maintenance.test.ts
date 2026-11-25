@@ -56,16 +56,16 @@ describe('manutenção de dados', () => {
   it('reset apaga vendas e histórico e preserva metas, fotos e desativados', async () => {
     const db = await seededDb('alvo.db')
     db.setMeta('meta:2026', '1000')
-    db.setSellerPhoto('Ana', 'image/png', new Uint8Array([1, 2, 3]))
-    db.setSellerDisabled('Bruno', true)
+    db.setSellerPhoto('Vendedora Beta', 'image/png', new Uint8Array([1, 2, 3]))
+    db.setSellerDisabled('Vendedor Alfa', true)
 
     resetImportedData(db)
 
     expect(db.listYears()).toEqual([])
     expect(db.listImports()).toEqual([])
     expect(db.getMeta('meta:2026')).toBe('1000')
-    expect(db.getSellerPhoto('Ana')).not.toBeNull()
-    expect(db.listDisabledSellers()).toEqual(['Bruno'])
+    expect(db.getSellerPhoto('Vendedora Beta')).not.toBeNull()
+    expect(db.listDisabledSellers()).toEqual(['Vendedor Alfa'])
   })
 
   it('reset devolve o autoincrement das tabelas apagadas', async () => {
@@ -107,8 +107,12 @@ describe('manutenção de dados', () => {
   it('merge traz vendas, metas, fotos, desativados e histórico', async () => {
     const source = await seededDb('backup.db')
     source.setMeta('meta:2026', '1000')
-    source.setSellerPhoto('Ana', 'image/png', new Uint8Array([1, 2, 3]))
-    source.setSellerDisabled('Bruno', true)
+    source.setSellerPhoto(
+      'Vendedora Beta',
+      'image/png',
+      new Uint8Array([1, 2, 3]),
+    )
+    source.setSellerDisabled('Vendedor Alfa', true)
 
     const target = openDb(new DatabaseSync(':memory:'))
     const result = mergeBackup(target, source.path as string)
@@ -121,8 +125,8 @@ describe('manutenção de dados', () => {
     expect(result.historyItems).toBeGreaterThan(0)
     expect(target.findSaleByCode('1001')).not.toBeNull()
     expect(target.getMeta('meta:2026')).toBe('1000')
-    expect(target.getSellerPhoto('Ana')).not.toBeNull()
-    expect(target.listDisabledSellers()).toEqual(['Bruno'])
+    expect(target.getSellerPhoto('Vendedora Beta')).not.toBeNull()
+    expect(target.listDisabledSellers()).toEqual(['Vendedor Alfa'])
     expect(target.listImports()).toHaveLength(1)
   })
 
@@ -181,7 +185,7 @@ describe('manutenção de dados', () => {
 
   it('dbStats conta vendas, importações, vendedores e fotos', async () => {
     const db = await seededDb('alvo.db')
-    db.setSellerPhoto('Ana', 'image/png', new Uint8Array([1]))
+    db.setSellerPhoto('Vendedora Beta', 'image/png', new Uint8Array([1]))
 
     const stats = dbStats(db)
 

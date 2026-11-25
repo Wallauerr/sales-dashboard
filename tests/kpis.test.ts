@@ -9,7 +9,7 @@ import {
 } from '../src/main/kpis/index.ts'
 import type { ImportResult } from '../src/shared/types.ts'
 import { NO_SELLER_LABEL } from '../src/shared/types.ts'
-import { makeSaleRows } from './fixtures/factories.ts'
+import { makeSaleRow, makeSaleRows } from './fixtures/factories.ts'
 import { writeWorkbook } from './fixtures/workbook.ts'
 
 const ROWS: unknown[][] = [
@@ -19,7 +19,7 @@ const ROWS: unknown[][] = [
     '',
     'X',
     'Pedido Faturado',
-    'Bruno Keller',
+    'Vendedor Alfa',
     'Equipamentos',
     '',
     '',
@@ -40,7 +40,7 @@ const ROWS: unknown[][] = [
     '',
     'X',
     'Pedido Faturado',
-    'Rosemeri',
+    'Vendedora Beta',
     'Neodimio',
     '',
     '',
@@ -61,7 +61,7 @@ const ROWS: unknown[][] = [
     '',
     'X',
     'Pedido Faturado',
-    'Bruno Keller',
+    'Vendedor Alfa',
     'Equipamentos',
     '',
     '',
@@ -82,7 +82,7 @@ const ROWS: unknown[][] = [
     '',
     'X',
     'Pedido Faturado',
-    'Rosemeri',
+    'Vendedora Beta',
     'Neodimio',
     '',
     '',
@@ -103,7 +103,7 @@ const ROWS: unknown[][] = [
     '',
     'X',
     'Pedido Faturado',
-    'Stephani Strack da Silva',
+    'Vendedora Gama',
     'Follow-Up',
     '',
     '',
@@ -124,7 +124,7 @@ const ROWS: unknown[][] = [
     '20/01/2026',
     'X',
     'Orçamento',
-    'Bruno Keller',
+    'Vendedor Alfa',
     'Equipamentos',
     '',
     '',
@@ -145,7 +145,7 @@ const ROWS: unknown[][] = [
     '',
     'X',
     'Pedido',
-    'Ursula',
+    'Vendedora Delta',
     'Neodimio',
     '',
     '',
@@ -221,7 +221,42 @@ describe('snapshot de kpis e metas', () => {
       3000,
     )
     const sorted = [...s.bySeller].sort((a, b) => b.value - a.value)
-    expect(sorted[0]).toEqual({ seller: 'Ursula', value: 4000, share: 0.4 })
+    expect(sorted[0]).toEqual({
+      seller: 'Vendedora Delta',
+      value: 4000,
+      share: 0.4,
+    })
+  })
+
+  it('calcula o ticket médio pelas categorias do banco', async () => {
+    const customDb = SalesDatabase.open(new DatabaseSync(':memory:'))
+    await importWorkbook(
+      customDb,
+      writeWorkbook([
+        makeSaleRow({
+          code: '900',
+          status: 'Pedido Faturado',
+          category: 'Serviços',
+          seller: 'Pessoa Teste',
+          value: 700,
+          month: 2,
+          year: 2026,
+        }),
+        makeSaleRow({
+          code: '901',
+          status: 'Pedido Faturado',
+          category: 'Serviços',
+          seller: 'Outra Pessoa',
+          value: 300,
+          month: 3,
+          year: 2026,
+        }),
+      ]),
+    )
+
+    expect(getSnapshot(customDb, 2026).averageTickets).toEqual([
+      { product: 'Serviços', value: 1000, volume: 2, ticket: 500 },
+    ])
   })
 
   it('metas personalizadas anual, mensal e restauração', () => {
@@ -317,9 +352,9 @@ describe('snapshot de kpis e metas', () => {
   })
 
   it('filtros de escopo por meses e vendedores', () => {
-    const sUrsula = getSnapshot(db, 2026, { sellers: ['Ursula'] })
-    expect(sUrsula.periodTotal).toBe(4000)
-    expect(sUrsula.bySeller.some(v => v.seller === 'Ursula')).toBe(true)
+    const sDelta = getSnapshot(db, 2026, { sellers: ['Vendedora Delta'] })
+    expect(sDelta.periodTotal).toBe(4000)
+    expect(sDelta.bySeller.some(v => v.seller === 'Vendedora Delta')).toBe(true)
 
     const sFev = getSnapshot(db, 2026, { months: ['fev'] })
     expect(sFev.periodTotal).toBe(4000)
@@ -327,11 +362,11 @@ describe('snapshot de kpis e metas', () => {
       1,
     )
 
-    const sUrsulaFev = getSnapshot(db, 2026, {
+    const sDeltaFev = getSnapshot(db, 2026, {
       months: ['fev'],
-      sellers: ['Ursula'],
+      sellers: ['Vendedora Delta'],
     })
-    expect(sUrsulaFev.periodTotal).toBe(4000)
+    expect(sDeltaFev.periodTotal).toBe(4000)
 
     const sJanFev = getSnapshot(db, 2026, { months: ['jan', 'fev'] })
     expect(sJanFev.periodTotal).toBe(10000)
@@ -339,12 +374,14 @@ describe('snapshot de kpis e metas', () => {
       Object.values(sJanFev.billingByMonth).filter(v => v > 0),
     ).toHaveLength(2)
 
-    const sDuas = getSnapshot(db, 2026, { sellers: ['Ursula', 'Rosemeri'] })
+    const sDuas = getSnapshot(db, 2026, {
+      sellers: ['Vendedora Delta', 'Vendedora Beta'],
+    })
     expect(sDuas.periodTotal).toBe(6000)
 
     const sDuasMeses = getSnapshot(db, 2026, {
       months: ['jan', 'fev'],
-      sellers: ['Ursula', 'Stephani Strack da Silva'],
+      sellers: ['Vendedora Delta', 'Vendedora Gama'],
     })
     expect(sDuasMeses.periodTotal).toBe(7000)
   })
@@ -359,28 +396,30 @@ describe('vendedores desativados', () => {
 
   it('caem no VENDAS sem mudar totais', () => {
     expect(db.listDisabledSellers()).toEqual([])
-    db.setSellerDisabled('Bruno Keller', true)
-    db.setSellerDisabled('Bruno Keller', true)
-    expect(db.listDisabledSellers()).toEqual(['Bruno Keller'])
-    expect(db.listSellers().includes('Bruno Keller')).toBe(false)
-    expect(db.listSellers().includes('Ursula')).toBe(true)
+    db.setSellerDisabled('Vendedor Alfa', true)
+    db.setSellerDisabled('Vendedor Alfa', true)
+    expect(db.listDisabledSellers()).toEqual(['Vendedor Alfa'])
+    expect(db.listSellers().includes('Vendedor Alfa')).toBe(false)
+    expect(db.listSellers().includes('Vendedora Delta')).toBe(true)
 
     const s = getSnapshot(db, 2026)
     expect(s.periodTotal).toBe(10000)
-    expect(s.bySeller.some(v => v.seller === 'Bruno Keller')).toBe(false)
+    expect(s.bySeller.some(v => v.seller === 'Vendedor Alfa')).toBe(false)
     expect(s.bySeller.find(v => v.seller === NO_SELLER_LABEL)?.value).toBe(1000)
 
     const sVendas = getSnapshot(db, 2026, { sellers: [NO_SELLER_LABEL] })
     expect(sVendas.periodTotal).toBe(1000)
-    expect(sVendas.bySeller.some(v => v.seller === 'Ursula')).toBe(true)
+    expect(sVendas.bySeller.some(v => v.seller === 'Vendedora Delta')).toBe(
+      true,
+    )
 
-    db.setSellerDisabled('Bruno Keller', false)
+    db.setSellerDisabled('Vendedor Alfa', false)
     expect(
-      getSnapshot(db, 2026).bySeller.some(v => v.seller === 'Bruno Keller'),
+      getSnapshot(db, 2026).bySeller.some(v => v.seller === 'Vendedor Alfa'),
     ).toBe(true)
     const nomes = db.listSellers()
     expect(nomes.includes('VENDAS')).toBe(false)
-    expect(nomes.includes('Rosemeri')).toBe(true)
+    expect(nomes.includes('Vendedora Beta')).toBe(true)
   })
 })
 
@@ -391,7 +430,7 @@ describe('rótulos e volume', () => {
       db,
       writeWorkbook([
         labelRow('L1', '', '', '', 1200),
-        labelRow('L2', 'SP', 'Sudeste', 'Ana', 800),
+        labelRow('L2', 'SP', 'Sudeste', 'Vendedora Beta', 800),
       ]),
     )
     const s = getSnapshot(db, 2026)
@@ -404,8 +443,6 @@ describe('rótulos e volume', () => {
       region: 'Não informado',
       value: 1200,
       share: 0.6,
-      x: 0,
-      y: 0,
     })
     expect(s.bySeller.find(v => v.seller === 'VENDAS')).toEqual({
       seller: 'VENDAS',

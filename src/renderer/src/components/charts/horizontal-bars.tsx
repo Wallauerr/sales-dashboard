@@ -73,6 +73,7 @@ interface HorizontalBarsProps {
   valueFormat?: (v: number) => string
   valueLabel?: string
   showValue?: boolean
+  labelWidth?: number
   className?: string
 }
 
@@ -81,6 +82,7 @@ export function HorizontalBars({
   valueFormat = brlCompact,
   valueLabel = 'Valor',
   showValue = false,
+  labelWidth = 152,
   className,
 }: HorizontalBarsProps) {
   const config = {
@@ -100,7 +102,7 @@ export function HorizontalBars({
         <YAxis
           type="category"
           dataKey="label"
-          width={152}
+          width={labelWidth}
           interval={0}
           tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
           axisLine={false}

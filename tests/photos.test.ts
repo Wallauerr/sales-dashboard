@@ -10,17 +10,19 @@ describe('foto dos vendedores', () => {
   it('grava, sobrescreve sem duplicar e remove', () => {
     const db = SalesDatabase.open(new DatabaseSync(':memory:'))
 
-    db.setSellerPhoto('Rosemeri', 'image/jpeg', Buffer.from([1, 2, 3, 4]))
-    expect(db.listSellerPhotos().map(f => f.seller)).toEqual(['Rosemeri'])
-    expect(db.getSellerPhoto('Rosemeri')?.mime).toBe('image/jpeg')
-    expect((db.getSellerPhoto('Rosemeri')?.img.length ?? 0) > 0).toBe(true)
+    db.setSellerPhoto('Vendedora Beta', 'image/jpeg', Buffer.from([1, 2, 3, 4]))
+    expect(db.listSellerPhotos().map(f => f.seller)).toEqual(['Vendedora Beta'])
+    expect(db.getSellerPhoto('Vendedora Beta')?.mime).toBe('image/jpeg')
+    expect((db.getSellerPhoto('Vendedora Beta')?.img.length ?? 0) > 0).toBe(
+      true,
+    )
 
-    db.setSellerPhoto('Rosemeri', 'image/png', Buffer.from([9, 9]))
-    expect(db.getSellerPhoto('Rosemeri')?.mime).toBe('image/png')
+    db.setSellerPhoto('Vendedora Beta', 'image/png', Buffer.from([9, 9]))
+    expect(db.getSellerPhoto('Vendedora Beta')?.mime).toBe('image/png')
     expect(db.listSellerPhotos()).toHaveLength(1)
 
-    db.removeSellerPhoto('Rosemeri')
-    expect(db.getSellerPhoto('Rosemeri')).toBeNull()
+    db.removeSellerPhoto('Vendedora Beta')
+    expect(db.getSellerPhoto('Vendedora Beta')).toBeNull()
   })
 
   it('valida a foto escolhida por tipo, tamanho e assinatura', async () => {

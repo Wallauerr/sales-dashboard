@@ -13,24 +13,7 @@ import type {
 import { MONTHS, NO_SELLER_LABEL, NO_STATE_LABEL } from '../../shared/types.ts'
 import type { SalesDatabase } from '../db/database.ts'
 
-const PRODUCT_SELLERS: Record<string, string[]> = {
-  Equipamentos: [
-    'Bruno Keller',
-    'Iago Gernhardt Benedetto',
-    'Sul Magnéticos Equipamentos Industriais Eireli',
-    'Vinicius Horn',
-  ],
-  Neodimio: ['Rosemeri', 'Ursula'],
-  'Follow-Up': ['Stephani Strack da Silva'],
-}
-
-const REGION_POSITION: Record<string, { x: number; y: number }> = {
-  Norte: { x: 30, y: 80 },
-  Nordeste: { x: 90, y: 70 },
-  'Centro-Oeste': { x: 50, y: 50 },
-  Sudeste: { x: 80, y: 30 },
-  Sul: { x: 60, y: 10 },
-}
+const TICKET_CATEGORY_LIMIT = 3
 
 interface Scope {
   where: string
@@ -167,12 +150,11 @@ function byRegion(
   db: SalesDatabase,
   sc: Scope,
   total: number,
-): { region: string; value: number; share: number; x: number; y: number }[] {
+): { region: string; value: number; share: number }[] {
   return sumBy(db, 'region', sc).map(r => ({
     region: r.key || NO_STATE_LABEL,
     value: r.value,
     share: shareOf(r.value, total),
-    ...(REGION_POSITION[r.key] ?? { x: 0, y: 0 }),
   }))
 }
 
@@ -253,22 +235,28 @@ function averageTicket(
   filter?: SnapshotScope | null,
 ): AverageTicket[] {
   const sc = scope(db, year, filter)
-  const out: AverageTicket[] = []
-  for (const [product, sellers] of Object.entries(PRODUCT_SELLERS)) {
-    const q = `SELECT COALESCE(SUM(valor_total), 0) AS value, COUNT(*) AS volume FROM vendas
-               ${sc.where} AND vendedor IN (${sellers.map(() => '?').join(', ')})`
-    const r = db.raw.prepare(q).get(...sc.params, ...sellers) as {
-      value: number
-      volume: number
-    }
-    out.push({
-      product,
-      value: r.value,
-      volume: r.volume,
-      ticket: r.volume ? r.value / r.volume : 0,
-    })
-  }
-  return out
+  const rows = db.raw
+    .prepare(
+      `SELECT TRIM(categoria) AS product,
+              COALESCE(SUM(valor_total), 0) AS value,
+              COUNT(*) AS volume
+       FROM vendas
+       ${sc.where} AND TRIM(categoria) <> ''
+       GROUP BY TRIM(categoria)
+       ORDER BY value DESC
+       LIMIT ?`,
+    )
+    .all(...sc.params, TICKET_CATEGORY_LIMIT) as {
+    product: string
+    value: number
+    volume: number
+  }[]
+  return rows.map(row => ({
+    product: row.product,
+    value: row.value,
+    volume: row.volume,
+    ticket: row.volume ? row.value / row.volume : 0,
+  }))
 }
 
 export function getSnapshot(

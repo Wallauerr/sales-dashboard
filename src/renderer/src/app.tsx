@@ -4,16 +4,13 @@ import { ActiveFilters } from '@/components/active-filters'
 import { AddressDialog } from '@/components/address-dialog'
 import { ChartCard } from '@/components/chart-card'
 import { AccumulatedLine } from '@/components/charts/accumulated-line'
+import { BrazilMap } from '@/components/charts/brazil-map'
 import { GroupedBars } from '@/components/charts/grouped-bars'
 import {
   funnelItems,
   HorizontalBars,
 } from '@/components/charts/horizontal-bars'
-import {
-  RegionDonut,
-  regionBarData,
-  regionDonutData,
-} from '@/components/charts/region-donut'
+import { regionBarData } from '@/components/charts/region-bars'
 import { ConfigTab } from '@/components/config/config-tab'
 import { DataCard } from '@/components/config/data-card'
 import { PreferencesCard } from '@/components/config/preferences-card'
@@ -607,11 +604,16 @@ export function App() {
                     key="regions"
                     headerClassName="card-drag-handle cursor-move"
                     title="Regiões"
-                    contentClassName="gap-2">
-                    <RegionDonut data={regionDonutData(snap)} />
+                    contentClassName="flex-row items-stretch gap-3">
                     <HorizontalBars
                       data={regionBarData(snap)}
                       valueFormat={brl0}
+                      labelWidth={128}
+                      className="w-auto min-w-0"
+                    />
+                    <BrazilMap
+                      rows={snap.byState}
+                      className="w-[52%] max-w-[300px] min-w-[180px] shrink-0"
                     />
                   </ChartCard>
 
