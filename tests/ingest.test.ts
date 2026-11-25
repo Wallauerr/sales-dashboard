@@ -123,11 +123,9 @@ const DAY_B = [
 
 describe('normalização de dados do SIGE', () => {
   it('titleCase respeita conectivos e nomes em caixa alta', () => {
-    expect(titleCase('BRUNO KELLER')).toBe('Bruno Keller')
-    expect(titleCase('maria da silva')).toBe('Maria da Silva')
-    expect(titleCase('STEPHANI STRACK DA SILVA')).toBe(
-      'Stephani Strack da Silva',
-    )
+    expect(titleCase('VENDEDOR ALFA')).toBe('Vendedor Alfa')
+    expect(titleCase('vendedora da silva')).toBe('Vendedora da Silva')
+    expect(titleCase('VENDEDORA DA SILVA')).toBe('Vendedora da Silva')
   })
 
   it('parseDate aceita dd/mm/aaaa e ISO', () => {
