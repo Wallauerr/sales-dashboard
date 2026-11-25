@@ -1,37 +1,30 @@
-import { type CSSProperties, useEffect, useState } from "react";
-import { Toaster as Sonner, type ToasterProps } from "sonner";
-
-function useDocumentTheme(): "light" | "dark" {
-  const read = (): "light" | "dark" =>
-    document.documentElement.classList.contains("dark") ? "dark" : "light";
-  const [theme, setTheme] = useState<"light" | "dark">(read);
-  useEffect(() => {
-    const observer = new MutationObserver(() => setTheme(read()));
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
-  return theme;
-}
+import { type CSSProperties, useSyncExternalStore } from 'react'
+import { Toaster as Sonner, type ToasterProps } from 'sonner'
+import {
+  currentDocumentTheme,
+  subscribeDocumentTheme,
+} from '@/lib/theme-dom'
 
 function Toaster(props: ToasterProps) {
-  const theme = useDocumentTheme();
+  const theme = useSyncExternalStore(
+    subscribeDocumentTheme,
+    currentDocumentTheme,
+    () => 'light' as const,
+  )
   return (
     <Sonner
       theme={theme}
       className="toaster group"
       style={
         {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
+          '--normal-bg': 'var(--popover)',
+          '--normal-text': 'var(--popover-foreground)',
+          '--normal-border': 'var(--border)',
         } as CSSProperties
       }
       {...props}
     />
-  );
+  )
 }
 
-export { Toaster };
+export { Toaster }
