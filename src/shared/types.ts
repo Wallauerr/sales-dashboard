@@ -191,8 +191,6 @@ export interface KpiSnapshot {
     region: string
     value: number
     share: number
-    x: number
-    y: number
   }[]
   funnelByMonth: FunnelMonth[]
   closingCounts: Record<Month, { quote: number; order: number }>

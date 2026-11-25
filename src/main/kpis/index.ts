@@ -15,14 +15,6 @@ import type { SalesDatabase } from '../db/database.ts'
 
 const TICKET_CATEGORY_LIMIT = 3
 
-const REGION_POSITION: Record<string, { x: number; y: number }> = {
-  Norte: { x: 30, y: 80 },
-  Nordeste: { x: 90, y: 70 },
-  'Centro-Oeste': { x: 50, y: 50 },
-  Sudeste: { x: 80, y: 30 },
-  Sul: { x: 60, y: 10 },
-}
-
 interface Scope {
   where: string
   params: (string | number)[]
@@ -158,12 +150,11 @@ function byRegion(
   db: SalesDatabase,
   sc: Scope,
   total: number,
-): { region: string; value: number; share: number; x: number; y: number }[] {
+): { region: string; value: number; share: number }[] {
   return sumBy(db, 'region', sc).map(r => ({
     region: r.key || NO_STATE_LABEL,
     value: r.value,
     share: shareOf(r.value, total),
-    ...(REGION_POSITION[r.key] ?? { x: 0, y: 0 }),
   }))
 }
 

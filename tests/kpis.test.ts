@@ -435,8 +435,6 @@ describe('rótulos e volume', () => {
       region: 'Não informado',
       value: 1200,
       share: 0.6,
-      x: 0,
-      y: 0,
     })
     expect(s.bySeller.find(v => v.seller === 'VENDAS')).toEqual({
       seller: 'VENDAS',
