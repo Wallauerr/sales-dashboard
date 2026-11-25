@@ -9,7 +9,7 @@ import {
 } from '../src/main/kpis/index.ts'
 import type { ImportResult } from '../src/shared/types.ts'
 import { NO_SELLER_LABEL } from '../src/shared/types.ts'
-import { makeSaleRows } from './fixtures/factories.ts'
+import { makeSaleRow, makeSaleRows } from './fixtures/factories.ts'
 import { writeWorkbook } from './fixtures/workbook.ts'
 
 const ROWS: unknown[][] = [
@@ -222,6 +222,37 @@ describe('snapshot de kpis e metas', () => {
     )
     const sorted = [...s.bySeller].sort((a, b) => b.value - a.value)
     expect(sorted[0]).toEqual({ seller: 'Ursula', value: 4000, share: 0.4 })
+  })
+
+  it('calcula o ticket médio pelas categorias do banco', async () => {
+    const customDb = SalesDatabase.open(new DatabaseSync(':memory:'))
+    await importWorkbook(
+      customDb,
+      writeWorkbook([
+        makeSaleRow({
+          code: '900',
+          status: 'Pedido Faturado',
+          category: 'Serviços',
+          seller: 'Pessoa Teste',
+          value: 700,
+          month: 2,
+          year: 2026,
+        }),
+        makeSaleRow({
+          code: '901',
+          status: 'Pedido Faturado',
+          category: 'Serviços',
+          seller: 'Outra Pessoa',
+          value: 300,
+          month: 3,
+          year: 2026,
+        }),
+      ]),
+    )
+
+    expect(getSnapshot(customDb, 2026).averageTickets).toEqual([
+      { product: 'Serviços', value: 1000, volume: 2, ticket: 500 },
+    ])
   })
 
   it('metas personalizadas anual, mensal e restauração', () => {
