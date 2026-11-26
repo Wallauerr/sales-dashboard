@@ -292,7 +292,7 @@ Sem internet, o app usa o último cache; se não houver cache, o card e o modal 
 
 | Documento | Descrição |
 |---|---|
-| [docs/design-to-component.md](docs/design-to-component.md) | Como converter um design (screenshot/Figma) em componentes React neste projeto |
+| [docs/design-to-component.md](docs/design-to-component.md) | Padrão de componentes React deste projeto (aponta para a skill global `react-component`) |
 | [docs/releases.md](docs/releases.md) | Passo a passo para publicar uma release, escrever as notas e liberar o auto-update |
 | [AGENTS.md](AGENTS.md) | Convenções de código, comentários e o roadmap por fases |
 

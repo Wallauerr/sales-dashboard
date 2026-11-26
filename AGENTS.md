@@ -1,31 +1,19 @@
 # Agentes
 
-## Git / commits
+## Regras
 
-- Sempre fazer commits **granulares, por arquivo** (ou por grupo lógico de arquivos), nunca um commit gigante misturando tudo — facilita achar um commit específico depois.
-- Seguir o estilo de mensagens já usado no repo (Conventional Commits: `feat(...)`, `fix(...)`, `refactor(...)`, `build(...)`, `style(...)`, `revert(...)`).
-- **Nunca commitar sem autorização explícita do usuário.** Após concluir um trabalho, deixe tudo **uncommitted** e apresente o resumo para revisão; só faça `git commit` quando o usuário pedir (ex.: "pode commitar").
-- pt-BR nas conversas com o usuário; mensagens de commit em inglês.
-- **Nunca dar push direto na `main`**: todo trabalho, inclusive o bump de release, vai em branch + PR. Para release, crie `build/release-X.Y.Z`, commite o bump (`build: release X.Y.Z`) e abra PR; só **depois do merge** crie e envie a tag `vX.Y.Z`. As notas do draft no GitHub (template `## Novidades`/`## Melhorias`/`## Correções`/`## Removido`) precisam ser preenchidas **antes** de publicar — o app só lê releases publicadas.
+As regras universais (idioma, commits, comentários, testes e skills) estão no `AGENTS.md` global do opencode (`~/.config/opencode/AGENTS.md`). Este arquivo guarda só o que é específico do sales-dashboard.
 
-## Comentários
+## UI
 
-- **Não comentar o código.** O padrão é zero comentário. Só entra quando for **extremamente essencial**, e "essencial" aqui é um listão curto:
-  1. regra de negócio que não se deduz lendo o código (ex.: a regra de faturamento em `src/main/kpis/index.ts:45`);
-  2. ordem ou timing que quebra **em silêncio** se mudar (ex.: esquema privilegiado antes do app ready, em `src/main/index.ts:19`);
-  3. o porquê de um workaround, limite ou escolha de segurança (ex.: `src/main/photos/pick.ts`, `src/renderer/src/index.css`).
-- Não repetir o que o código, o nome da função ou o tipo já dizem. Não narrar a mudança ("ajustado para", "adicionado", "antes era"). Não deixar TODO no código. Não comentário decorativo ("Format:", "Helper to...").
-- Comentário longo é sinal de que o código está errado: 1–2 linhas no máximo. Se são 5 linhas para explicar uma função, extraia uma função com nome que diga aquilo.
-- Ao tocar um arquivo, revise os comentários que já estavam nele e corte o que não passar no listão acima.
-- `// biome-ignore`, `/// <reference>` e afins são **diretivas**, não comentários: nunca remover.
+- Componentes seguem **shadcn/ui (Radix) + `cva` + `cn`** (`cn = twMerge + clsx`).
+- Para o padrão completo, use a skill global `react-component` (referência `references/shadcn.md`).
 
-## Testes
+## Testes deste projeto
 
-- **Bug corrigido = teste de regressão.** Antes de corrigir, escreva um teste que reproduza o bug (ele precisa falhar). Depois da correção ele fica no repo de vez; se o bug voltar, o CI acusa. Se não der pra testar (ex.: comportamento nativo do Electron), justifique no PR.
-- O nome do teste descreve a regra ("reset preserva metas"), não a função. Determinístico: seed fixa, sem rede e sem data/hora real.
-- Asserta comportamento (totais, contagens, saída), não implementação (SQL, estrutura interna), pra refactor legítimo não quebrar teste à toa.
-- Regra de negócio silenciosa (dinheiro, filtros, schema) também ganha teste mesmo sem bug — é o caso do `billing-rule.test.ts`.
-- **Testes automatizados já existem.** `pnpm test` roda **vitest** (`vitest run`), sem Playwright. Os testes ficam em `tests/` e `tests/renderer/`. O renderer puro (formatação BRL, `buildKpis`, rótulos, cores, foto) roda sem jsdom. Fixtures em `tests/fixtures/` usam Faker pt-BR com seed fixa. Regras críticas já cobertas: faturamento (`tests/billing-rule.test.ts`), ingestão/reconciliação/histórico (`tests/ingest.test.ts`), banco/metas/vendedores desativados/fator/unidade (`tests/database.test.ts`), KPIs/filtros/escopo (`tests/kpis.test.ts`), fotos (`tests/photos.test.ts`), maximização multi-monitor (`tests/window-maximize.test.ts`), manutenção/backup/reset/merge (`tests/maintenance.test.ts`) e lógica pura do renderer (`tests/renderer/*`). Sempre rode `pnpm test` junto com `pnpm check:ci` antes de entregar.
+- `pnpm test` roda **vitest** (`vitest run`), sem Playwright. Sempre rode junto com `pnpm check:ci` antes de entregar.
+- Testes em `tests/` e `tests/renderer/`; fixtures em `tests/fixtures/` (Faker pt-BR com seed fixa).
+- Cobertura crítica: faturamento (`tests/billing-rule.test.ts`), ingestão/reconciliação/histórico (`tests/ingest.test.ts`), banco/metas/vendedores (`tests/database.test.ts`), KPIs/filtros/escopo (`tests/kpis.test.ts`), fotos (`tests/photos.test.ts`), maximização multi-monitor (`tests/window-maximize.test.ts`), manutenção/backup/reset/merge (`tests/maintenance.test.ts`) e lógica pura do renderer (`tests/renderer/*`).
 
 ## TODOS (ordem de execução)
 
