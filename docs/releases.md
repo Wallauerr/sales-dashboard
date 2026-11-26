@@ -49,6 +49,15 @@ gh run watch
 
 O workflow valida se `v${package.version}` é igual à tag. Se não for, falha antes de buildar. Depois ele roda `check:ci` + `test`, cria o **release draft** com o template de notas e sobe o instalador, o `.blockmap` e o `latest.yml`.
 
+### 4b. Quem acompanha o CI
+
+Não peça para o agente ficar aguardando o workflow (`gh run watch`, polling de checks ou de runs): isso consome tokens e tempo sem necessidade. O acompanhamento é humano:
+
+- **Após o merge do PR:** avise “merge feito” para o agente criar e enviar a tag `vX.Y.Z`.
+- **Durante o workflow:** acompanhe no GitHub (Actions → `Release`) ou com `gh run watch` no seu terminal.
+- **Se falhar:** envie o link ou o resumo do erro; o agente corrige e orienta refazer/mover a tag se precisar.
+- **Se passar:** avise “workflow ok” para o agente ajudar a revisar/preencher as notas do draft antes da publicação.
+
 ### 5. Escreva as notas no draft
 
 Abra o draft no GitHub (Releases → o draft da tag) e preencha o corpo seguindo o template:
