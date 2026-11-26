@@ -2,29 +2,21 @@ import { MoonIcon, SunIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { THEME_STORAGE_KEY, type Theme } from '@/lib/theme'
+import { applyDocumentTheme, readTheme } from '@/lib/theme-dom'
 
 interface Props {
   className?: string
 }
 
-function applyTheme(theme: 'light' | 'dark'): void {
-  document.documentElement.classList.toggle('dark', theme === 'dark')
-}
-
-function getInitialTheme(): 'light' | 'dark' {
-  const stored = localStorage.getItem('theme')
-  if (stored === 'light' || stored === 'dark') return stored
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches
-    ? 'dark'
-    : 'light'
-}
-
 export function ThemeToggle({ className }: Props) {
-  const [theme, setTheme] = useState<'light' | 'dark'>(getInitialTheme)
+  const [theme, setTheme] = useState<Theme>(readTheme)
 
   useEffect(() => {
-    applyTheme(theme)
-    localStorage.setItem('theme', theme)
+    applyDocumentTheme(theme)
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme)
+    } catch {}
   }, [theme])
 
   const toggle = (): void => setTheme(t => (t === 'dark' ? 'light' : 'dark'))
